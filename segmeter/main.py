@@ -9,12 +9,12 @@ def main():
     options = parse_arguments()
     print(options)
 
-    output = Path(options.outputdir) / options.modus
+    output = Path(options.outdir) / options.modus
     output.mkdir(parents=True, exist_ok=True)
 
     if options.modus == "sim":
         bed = SimBase(options)
-        bed.format.simulate()
+        bed.format.simulate_basic()
 
 
 
@@ -30,7 +30,7 @@ def main():
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Benchmarking tool for interval files")
     parser.add_argument("modus", type=str, help="modus in benchmarking", choices=["sim", "bench"])
-    parser.add_argument("-f", "--format", type=str, help="format of the files to benchmark", choices=["BED"])
+    parser.add_argument("-f", "--format", type=str, help="format of the files to benchmark", choices=["BED"], default="BED")
     parser.add_argument("-n", "--intvlnums", type=str, help="number of intervals to simulate", default="10")
     parser.add_argument("-o", "--outdir", type=str, help="output folder for the benchmark results", required=True)
 
