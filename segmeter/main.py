@@ -14,7 +14,7 @@ def main():
 
     if options.modus == "sim":
         bed = SimBase(options)
-        bed.format.simulate_basic()
+        bed.format.simulate()
 
 
 
