@@ -1,6 +1,7 @@
 import os
 import random
 from pathlib import Path
+import subprocess
 
 class SimBase:
     def __init__(self, options, intvlnums):
@@ -43,34 +44,72 @@ class SimBED:
             rightmost[chr] = random.randint(100, 10000)
         return rightmost
 
+    def det_subsets(self, num):
+        subsets = {"perfect": {}, "partial": {}, "enclosed": {}}
+        percents = [perc for perc in range(10, 101, 10)] # 10%, 20%, ..., 100%
+        for p in percents:
+            # extract random numbers from 1 to num (to create random subsets)
+            subsets["perfect"][p] = random.sample(range(1, num+1), int(num * (p/100)))
+            subsets["partial"][p] = random.sample(range(1, num*2+1), int(num * (p/100)))
+            subsets["enclosed"][p] = random.sample(range(1, num*2+1), int(num * (p/100)))
+        return subsets
+
+    def open_subset_files(self, label, outdir_perfect, outdir_partial, outdir_enclosed):
+        fhs = {"perfect": {}, "partial": {},"enclosed": {}}
+        for p in range(10, 101, 10):
+            fhs["perfect"][p] = open(outdir_perfect / f"{label}_{p}p.bed", 'w')
+            fhs["partial"][p] = open(outdir_partial / f"{label}_{p}p.bed", 'w')
+            fhs["enclosed"][p] = open(outdir_enclosed / f"{label}_{p}p.bed", 'w')
+        return fhs
+
+
+    def close_subset_files(self, fhs):
+        for p in range(10,101,10):
+            fhs["perfect"][p].close()
+            fhs["partial"][p].close()
+            fhs["enclosed"][p].close()
+
+    def create_datadirs(self, outdir):
+        datadirs = {}
+        datadirs["ref"] = outdir / "ref"
+        datadirs["truth"] = outdir / "truth"
+
+        queries = ["perfect", "5p-partial", "3p-partial", "enclosed", "contained"]
+        for query in queries:
+            datadirs[query] = outdir / "query" / query
+
+        for key in datadirs.keys():
+            datadirs[key].mkdir(parents=True, exist_ok=True)
+
+        return datadirs
+
+    def open_datafiles(self, datadirs, label):
+        datafiles = {}
+        for key in datadirs.keys():
+            datafiles[key] = open(datadirs[key] / f"{label}.bed", 'w')
+        return datafiles
+
+    def close_datafiles(self, datafiles):
+        for key in datafiles.keys():
+            datafiles[key].close()
+
+    def sort_datafiles(self, datadirs, label):
+        for key in datadirs.keys():
+            infile = datadirs[key] / f"{label}.bed"
+            sorted = datadirs[key] / f"{label}_sorted.bed"
+            with open(sorted, 'w') as sorted_bed:
+                subprocess.run(["sort", "-k1,1", "-k2,2n", "-k3,3n", str(infile)], stdout=sorted_bed)
+
     def simulate(self):
         outdir = Path(self.options.outdir) / "sim" / "BED" / "simple" # create base output folder
-        outdir_ref = outdir / "ref"
-
-        outdir_partial = outdir / "query" / "partial" # create query with partial 5' and 3' overlaps
-        outdir_enclosed = outdir / "query" / "enclosed" # create query with enclosed intervals
-        outdir_truth = outdir / "truth" # create truth file
-
-        outdir_ref.mkdir(parents=True, exist_ok=True)
-        outdir_partial.mkdir(parents=True, exist_ok=True)
-        outdir_enclosed.mkdir(parents=True, exist_ok=True)
-        outdir_truth.mkdir(parents=True, exist_ok=True)
+        datadirs = self.create_datadirs(outdir)
 
         for label, num in self.intvlnums.items():
             print(f"Simulate intervals for {label}:{num}...")
-            simdata_ref = outdir_ref / f"{label}.bed" # reference intervals
-            simdata_partial = outdir_partial / f"{label}.bed"
-            simdata_enclosed = outdir_enclosed / f"{label}.bed"
-            simdata_truth = outdir_truth / f"{label}.bed"
-
-            # open files
-            fh_ref = open(simdata_ref, 'w')
-            fh_partial = open(simdata_partial, 'w')
-            fh_enclosed = open(simdata_enclosed, 'w')
-            fh_truth = open(simdata_truth, 'w')
+            datafiles = self.open_datafiles(datadirs, label)
 
             for i in range(1, int(num)+1):
-                intvl_id = f"intvl_{i}"
+                intvl_id = f"intvl_{i}" # create an interval ID
 
                 chrom = random.choice(self.chroms)
                 start_intvl = self.leftgap[chrom]["end"]+1
@@ -80,44 +119,37 @@ class SimBED:
 
                 rightgap = self.simulate_gap(end_intvl+1, end_intvl+1+random.randint(100,10000))
 
-                # write reference
-                fh_ref.write(f"{chrom}\t{start_intvl}\t{end_intvl}\t{intvl_id}\n")
+                # write reference and perfect query (is the same)
+                datafiles["ref"].write(f"{chrom}\t{start_intvl}\t{end_intvl}\t{intvl_id}\n")
+                datafiles["perfect"].write(f"{chrom}\t{start_intvl}\t{end_intvl}\t{intvl_id}_perfect\n")
 
-                # write partial (5' and 3' overlaps)
+                # write partial (5' and 3') overlaps
                 start_partial_5p = random.randint(self.leftgap[chrom]["mid"]+1, start_intvl-1)
                 end_partial_5p = random.randint(start_intvl, mid_intvl)
+                datafiles["5p-partial"].write(f"{chrom}\t{start_partial_5p}\t{end_partial_5p}\t{intvl_id}_5p\n")
                 start_partial_3p = random.randint(mid_intvl+1, end_intvl)
                 end_partial_3p = random.randint(end_intvl+1, rightgap["mid"])
-                fh_partial.write(f"{chrom}\t{start_partial_5p}\t{end_partial_5p}\t{intvl_id}_5p\n")
-                fh_partial.write(f"{chrom}\t{start_partial_3p}\t{end_partial_3p}\t{intvl_id}_3p\n")
+                datafiles["3p-partial"].write(f"{chrom}\t{start_partial_3p}\t{end_partial_3p}\t{intvl_id}_3p\n")
 
-                fh_truth.write(f"{chrom}\t{start_partial_5p}\t{end_partial_5p}\t{chrom}\t{start_intvl}\t{end_intvl}\t{intvl_id}_5p:{intvl_id}\n")
-                fh_truth.write(f"{chrom}\t{start_partial_3p}\t{end_partial_3p}\t{chrom}\t{start_intvl}\t{end_intvl}\t{intvl_id}_3p:{intvl_id}\n")
+                # write enclosing (containing) intervals (both with respect to query and reference)
+                start_contained = random.randint(start_intvl, mid_intvl) # query enclosed by reference
+                end_contained = random.randint(mid_intvl+1, end_intvl)
+                datafiles["contained"].write(f"{chrom}\t{start_contained}\t{end_contained}\t{intvl_id}_contained\n")
+                start_enclosed = random.randint(self.leftgap[chrom]["mid"]+1, start_intvl-1)
+                end_enclosed = random.randint(end_intvl+1, rightgap["mid"])
+                datafiles["enclosed"].write(f"{chrom}\t{start_enclosed}\t{end_enclosed}\t{intvl_id}_enclosed\n")
 
-                # write enclosing intervals (both with respect to query and reference)
-                start_enclosed_query = random.randint(start_intvl, mid_intvl) # query enclosed by reference
-                end_enclosed_query = random.randint(mid_intvl+1, end_intvl)
-                fh_enclosed.write(f"{chrom}\t{start_enclosed_query}\t{end_enclosed_query}\t{intvl_id}_contained\n")
-
-                start_enclosed_ref = random.randint(self.leftgap[chrom]["mid"]+1, start_intvl-1)
-                end_enclosed_ref = random.randint(end_intvl+1, rightgap["mid"])
-                fh_enclosed.write(f"{chrom}\t{start_enclosed_ref}\t{end_enclosed_ref}\t{intvl_id}_enclosed\n")
-
-                fh_truth.write(f"{chrom}\t{start_enclosed_query}\t{end_enclosed_query}\t{chrom}\t{start_intvl}\t{end_intvl}\t{intvl_id}_contained:{intvl_id}\n")
-                fh_truth.write(f"{chrom}\t{start_enclosed_ref}\t{end_enclosed_ref}\t{chrom}\t{start_intvl}\t{end_intvl}\t{intvl_id}_enclosed:{intvl_id}\n")
+                # also write entries to truth
+                datafiles["truth"].write(f"{chrom}\t{start_partial_5p}\t{end_partial_5p}\t{chrom}\t{start_intvl}\t{end_intvl}\t{intvl_id}_5p:{intvl_id}\n")
+                datafiles["truth"].write(f"{chrom}\t{start_partial_3p}\t{end_partial_3p}\t{chrom}\t{start_intvl}\t{end_intvl}\t{intvl_id}_3p:{intvl_id}\n")
+                datafiles["truth"].write(f"{chrom}\t{start_contained}\t{end_contained}\t{chrom}\t{start_intvl}\t{end_intvl}\t{intvl_id}_contained:{intvl_id}\n")
+                datafiles["truth"].write(f"{chrom}\t{start_enclosed}\t{end_enclosed}\t{chrom}\t{start_intvl}\t{end_intvl}\t{intvl_id}_enclosed:{intvl_id}\n")
+                datafiles["truth"].write(f"{chrom}\t{start_intvl}\t{end_intvl}\t{chrom}\t{start_intvl}\t{end_intvl}\t{intvl_id}_perfect:{intvl_id}\n")
 
                 self.leftgap[chrom] = rightgap # make rightgap to leftgap (for next iteration)
 
-
-            fh_ref.close()
-            fh_partial.close()
-            fh_enclosed.close()
-            fh_truth.close()
-
-            # simdatafile_sorted = outdir_ref / f"{label}_sorted.bed"
-            os.system(f"sort -k1,1 -k2,2n -k3,3n  {simdata_ref} > {outdir_ref / f'{label}_sorted.bed'}")
-            os.system(f"sort -k1,1 -k2,2n -k3,3n  {simdata_partial} > {outdir_partial / f'{label}_sorted.bed'}")
-            os.system(f"sort -k1,1 -k2,2n -k3,3n  {simdata_enclosed} > {outdir_enclosed / f'{label}_sorted.bed'}")
+            self.close_datafiles(datafiles)
+            self.sort_datafiles(datadirs, label)
 
             # create file for chrlens
             fh_chromlens = open(outdir / f"{label}_chromlens.txt",'w')
