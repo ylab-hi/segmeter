@@ -3,22 +3,12 @@ import random
 from pathlib import Path
 
 class SimBase:
-    def __init__(self, options):
+    def __init__(self, options, intvlnums):
         self.options = options
-        self.intvlnums = self.det_intvlnums()
+        self.intvlnums = intvlnums
 
         if options.format == "BED":
             self.format = SimBED(options, self.intvlnums)
-
-    def det_intvlnums(self):
-        intnums = {}
-        nummap = {'K': 1000, 'M': 1000000}
-        for num in self.options.intvlnums.split(","):
-            if num[-1] in nummap:
-                intnums[num] = int(num[:-1]) * nummap[num[-1]]
-            else:
-                intnums[num] = int(num)
-        return intnums
 
 class SimBED:
     def __init__(self, options, intvlnums):
@@ -56,8 +46,9 @@ class SimBED:
     def simulate(self):
         outdir = Path(self.options.outdir) / "sim" / "BED" / "simple" # create base output folder
         outdir_ref = outdir / "ref"
-        outdir_partial = outdir / "partial" # create query with partial 5' and 3' overlaps
-        outdir_enclosed = outdir / "enclosed" # create query with enclosed intervals
+
+        outdir_partial = outdir / "query" / "partial" # create query with partial 5' and 3' overlaps
+        outdir_enclosed = outdir / "query" / "enclosed" # create query with enclosed intervals
         outdir_truth = outdir / "truth" # create truth file
 
         outdir_ref.mkdir(parents=True, exist_ok=True)
@@ -127,3 +118,9 @@ class SimBED:
             os.system(f"sort -k1,1 -k2,2n -k3,3n  {simdata_ref} > {outdir_ref / f'{label}_sorted.bed'}")
             os.system(f"sort -k1,1 -k2,2n -k3,3n  {simdata_partial} > {outdir_partial / f'{label}_sorted.bed'}")
             os.system(f"sort -k1,1 -k2,2n -k3,3n  {simdata_enclosed} > {outdir_enclosed / f'{label}_sorted.bed'}")
+
+            # create file for chrlens
+            fh_chromlens = open(outdir / f"{label}_chromlens.txt",'w')
+            for chr in self.chroms:
+                fh_chromlens.write(f"{chr}\t{self.leftgap[chr]['end']}\n")
+            fh_chromlens.close()
