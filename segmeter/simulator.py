@@ -3,6 +3,9 @@ import random
 from pathlib import Path
 import subprocess
 
+# class
+import utility
+
 class SimBase:
     def __init__(self, options, intvlnums):
         self.options = options
@@ -44,35 +47,11 @@ class SimBED:
             rightmost[chr] = random.randint(100, 10000)
         return rightmost
 
-    def det_subsets(self, num):
-        subsets = {"perfect": {}, "partial": {}, "enclosed": {}}
-        percents = [perc for perc in range(10, 101, 10)] # 10%, 20%, ..., 100%
-        for p in percents:
-            # extract random numbers from 1 to num (to create random subsets)
-            subsets["perfect"][p] = random.sample(range(1, num+1), int(num * (p/100)))
-            subsets["partial"][p] = random.sample(range(1, num*2+1), int(num * (p/100)))
-            subsets["enclosed"][p] = random.sample(range(1, num*2+1), int(num * (p/100)))
-        return subsets
-
-    def open_subset_files(self, label, outdir_perfect, outdir_partial, outdir_enclosed):
-        fhs = {"perfect": {}, "partial": {},"enclosed": {}}
-        for p in range(10, 101, 10):
-            fhs["perfect"][p] = open(outdir_perfect / f"{label}_{p}p.bed", 'w')
-            fhs["partial"][p] = open(outdir_partial / f"{label}_{p}p.bed", 'w')
-            fhs["enclosed"][p] = open(outdir_enclosed / f"{label}_{p}p.bed", 'w')
-        return fhs
-
-
-    def close_subset_files(self, fhs):
-        for p in range(10,101,10):
-            fhs["perfect"][p].close()
-            fhs["partial"][p].close()
-            fhs["enclosed"][p].close()
-
     def create_datadirs(self, outdir):
         datadirs = {}
         datadirs["ref"] = outdir / "ref"
         datadirs["truth"] = outdir / "truth"
+        datadirs["lie"] = outdir / "lie"
 
         queries = ["perfect", "5p-partial", "3p-partial", "enclosed", "contained"]
         for query in queries:
@@ -97,8 +76,21 @@ class SimBED:
         for key in datadirs.keys():
             infile = datadirs[key] / f"{label}.bed"
             sorted = datadirs[key] / f"{label}_sorted.bed"
-            with open(sorted, 'w') as sorted_bed:
-                subprocess.run(["sort", "-k1,1", "-k2,2n", "-k3,3n", str(infile)], stdout=sorted_bed)
+            utility.sort_BED(infile, sorted)
+
+    def subset_datafiles(self, datadirs, label, num):
+        for key in datadirs.keys():
+            if (key == "ref" or
+                key == "truth" or
+                key == "lie"):
+                continue
+            infile = datadirs[key] / f"{label}.bed"
+            for subset in range(10,101,10):
+                outfile = datadirs[key] / f"{label}_{subset}p.bed"
+                with open(outfile, 'w') as subset_bed:
+                    subprocess.run(["shuf", "-n", str(int(num * (subset / 100))), str(infile)], stdout=subset_bed)
+                sorted = datadirs[key] / f"{label}_{subset}p_sorted.bed"
+                utility.sort_BED(outfile, sorted) # also sort the subset files
 
     def simulate(self):
         outdir = Path(self.options.outdir) / "sim" / "BED" / "simple" # create base output folder
@@ -139,6 +131,11 @@ class SimBED:
                 end_enclosed = random.randint(end_intvl+1, rightgap["mid"])
                 datafiles["enclosed"].write(f"{chrom}\t{start_enclosed}\t{end_enclosed}\t{intvl_id}_enclosed\n")
 
+                # add no overlaps (falls within gaps)
+                start_lie = random.randint(self.leftgap[chrom]["start"], self.leftgap[chrom]["mid"])
+                end_lie = random.randint(self.leftgap[chrom]["mid"]+1, self.leftgap[chrom]["end"])
+                datafiles["lie"].write(f"{chrom}\t{start_lie}\t{end_lie}\tlie_{i}\n")
+
                 # also write entries to truth
                 datafiles["truth"].write(f"{chrom}\t{start_partial_5p}\t{end_partial_5p}\t{chrom}\t{start_intvl}\t{end_intvl}\t{intvl_id}_5p:{intvl_id}\n")
                 datafiles["truth"].write(f"{chrom}\t{start_partial_3p}\t{end_partial_3p}\t{chrom}\t{start_intvl}\t{end_intvl}\t{intvl_id}_3p:{intvl_id}\n")
@@ -149,7 +146,8 @@ class SimBED:
                 self.leftgap[chrom] = rightgap # make rightgap to leftgap (for next iteration)
 
             self.close_datafiles(datafiles)
-            self.sort_datafiles(datadirs, label)
+            self.sort_datafiles(datadirs, label) # sort the ref and query files
+            self.subset_datafiles(datadirs, label, num)
 
             # create file for chrlens
             fh_chromlens = open(outdir / f"{label}_chromlens.txt",'w')
