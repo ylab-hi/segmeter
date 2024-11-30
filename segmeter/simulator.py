@@ -51,10 +51,15 @@ class SimBED:
         datadirs = {}
         datadirs["ref"] = outdir / "ref"
         datadirs["truth"] = outdir / "truth"
-        datadirs["lie"] = outdir / "lie"
 
-        queries = ["perfect", "5p-partial", "3p-partial", "enclosed", "contained"]
-        for query in queries:
+        # positive queries
+        queries_pos = ["perfect", "5p-partial", "3p-partial", "enclosed", "contained"]
+        for query in queries_pos:
+            datadirs[query] = outdir / "query" / query
+
+        # negative queries
+        queries_neg = ["perfect-gap", "left-adjacent-gap", "right-adjacent-gap", "mid-gap1", "mid-gap2"]
+        for query in queries_neg:
             datadirs[query] = outdir / "query" / query
 
         for key in datadirs.keys():
@@ -100,7 +105,7 @@ class SimBED:
             print(f"Simulate intervals for {label}:{num}...")
             datafiles = self.open_datafiles(datadirs, label)
 
-            for i in range(1, int(num)+1):
+            for i in range(1, (int(num)//10)+1):
                 intvl_id = f"intvl_{i}" # create an interval ID
 
                 chrom = random.choice(self.chroms)
@@ -132,9 +137,17 @@ class SimBED:
                 datafiles["enclosed"].write(f"{chrom}\t{start_enclosed}\t{end_enclosed}\t{intvl_id}_enclosed\n")
 
                 # add no overlaps (falls within gaps)
-                start_lie = random.randint(self.leftgap[chrom]["start"], self.leftgap[chrom]["mid"])
-                end_lie = random.randint(self.leftgap[chrom]["mid"]+1, self.leftgap[chrom]["end"])
-                datafiles["lie"].write(f"{chrom}\t{start_lie}\t{end_lie}\tlie_{i}\n")
+                datafiles["perfect-gap"].write(f"{chrom}\t{self.leftgap[chrom]['start']}\t{self.leftgap[chrom]['end']}\t{intvl_id}_perfect-gap\n")
+                end_left_adjacent = random.randint(self.leftgap[chrom]["mid"]+1, self.leftgap[chrom]["end"])
+                datafiles["left-adjacent-gap"].write(f"{chrom}\t{self.leftgap[chrom]['start']}\t{end_left_adjacent}\t{intvl_id}_left-adjacent\n")
+                start_right_adjacent = random.randint(self.leftgap[chrom]['start'], self.leftgap[chrom]['mid'])
+                datafiles["right-adjacent-gap"].write(f"{chrom}\t{start_right_adjacent}\t{self.leftgap[chrom]['end']}\t{intvl_id}_right-adjacent\n")
+                start_mid_gap1 = random.randint(self.leftgap[chrom]["start"], self.leftgap[chrom]["mid"])
+                end_mid_gap1 = random.randint(self.leftgap[chrom]["mid"]+1, self.leftgap[chrom]["end"])
+                datafiles["mid-gap1"].write(f"{chrom}\t{start_mid_gap1}\t{end_mid_gap1}\t{intvl_id}_mid-gap1\n")
+                start_mid_gap2 = random.randint(self.leftgap[chrom]["start"], self.leftgap[chrom]["mid"])
+                end_mid_gap2 = random.randint(self.leftgap[chrom]["mid"]+1, self.leftgap[chrom]["end"])
+                datafiles["mid-gap2"].write(f"{chrom}\t{start_mid_gap2}\t{end_mid_gap2}\t{intvl_id}_mid-gap2\n")
 
                 # also write entries to truth
                 datafiles["truth"].write(f"{chrom}\t{start_partial_5p}\t{end_partial_5p}\t{chrom}\t{start_intvl}\t{end_intvl}\t{intvl_id}_5p:{intvl_id}\n")
