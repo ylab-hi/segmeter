@@ -1,8 +1,12 @@
+from idlelib.searchengine import get
 import os
 from pathlib import Path
 import time
 import subprocess
 import logging
+import tempfile
+
+# Class
 import utility
 
 class BenchBase:
@@ -12,34 +16,48 @@ class BenchBase:
         self.logger = logger
 
         query_time = {}
+        query_precision = {}
         if options.tool == "tabix":
             self.tool = BenchTabix(options, intvlnums)
             index_time = self.tool.create_index()
             index_time_file = Path(options.outdir) / 'bench' / f'{options.tool}_index_time.tsv'
             self.save_index_time(index_time, index_time_file)
-
-            # query_time = self.tool.query_intervals()
+            query_time, query_precision = self.tool.query_intervals()
 
         elif options.tool == "bedtools":
             self.tool = BenchBEDTools(options, intvlnums)
 
-        query_time_file = Path(options.outdir) / 'bench' / f'{options.tool}_query_time.tsv'
+        query_time_file = Path(options.outdir) / "bench" / f"{options.tool}_query_time.tsv"
         self.save_query_time(query_time, query_time_file)
+        query_precision_file = Path(options.outdir) / "bench" / f"{options.tool}_query_precision.tsv"
+        self.save_query_precision(query_precision, query_precision_file)
 
     def save_index_time(self, index_time, filename):
         fh = open(filename, "w")
-        fh.write(f"intvlnum\ttime(s)\n")
+        fh.write("intvlnum\ttime(s)\n")
         for key, value in index_time.items():
             fh.write(f"{key}\t{value}\n")
         fh.close()
 
     def save_query_time(self, query_time, filename):
         fh = open(filename, "w")
-        fh.write(f"intvlnum\tquery_type\tsubset\ttime\n")
+        fh.write("intvlnum\tquery_type\tsubset\ttime\n")
         for key, value in query_time.items():
             for key2, value2 in value.items():
                 for key3, value3 in value2.items():
                     fh.write(f"{key}\t{key2}\t{key3}%\t{value3}\n")
+        fh.close()
+
+    def save_query_precision(self, query_precision, filename):
+        fh = open(filename, "w")
+        fh.write("intvlnum\tsubset\tTP\tFP\tTN\tFN\tPrecision\tRecall\tF1\n")
+        for key, value in query_precision.items():
+            for key2, value2 in value.items():
+                fh.write(f"{key}\t{key2}%\t{value2['TP']}\t{value2['FP']}\t{value2['TN']}\t{value2['FN']}\t")
+                precision = value2['TP'] / (value2['TP'] + value2['FP'])
+                recall = value2['TP'] / (value2['TP'] + value2['FN'])
+                f1 = 2*(precision*recall) / (precision + recall)
+                fh.write(f"{precision}\t{recall}\t{f1}\n")
         fh.close()
 
 class BenchBEDTools:
@@ -76,29 +94,37 @@ class BenchTabix:
     def get_querydirs(self):
         """returns the directories for the query intervals"""
         querydirs = {}
-        for query in ["perfect", "5p-partial", "3p-partial", "enclosed", "contained"]:
-            querydirs[query] = Path(self.options.outdir) / "bench" / "tabix" / self.options.datatype / "query" / query
+        for query in ["perfect","5p-partial","3p-partial","enclosed","contained",
+            "perfect-gap","left-adjacent-gap","right-adjacent-gap","mid-gap1","mid-gap2"]:
+            querydirs[query] = Path(self.options.outdir) / "sim" / "BED" / self.options.datatype / "query" / query
+
         return querydirs
 
-    def get_queryfiles(self, )
+    def get_queryfiles(self, querydirs, label):
+        """return the query files for the different query types according to the label"""
+        queryfiles = {}
+        if self.options.datatype == "simple":
+            for query in querydirs.keys():
+                queryfiles[query] = {}
+                for prct in range(10,101,10):
+                    queryfiles[query][prct] = querydirs[query] / f"{label}_{prct}p.bed"
+        return queryfiles
 
-    def get_outdirs(self):
-        query = Path(self.options.outdir) / "bench" / "tabix" / self.options.datatype / "query"
-        outdirs = {}
-        outdirs["perfect"] = query / "perfect"
-        outdirs["3p-partial"] = query / "3p-partial"
-        # outdirs[""]
+    def get_qtype_bin(self, qtype):
+        """returns the binary (pos, neg) or the qtype"""
+        if qtype in ["perfect", "5p-partial", "3p-partial", "enclosed", "contained"]:
+            return "pos"
+        elif qtype in ["perfect-gap", "left-adjacent-gap", "right-adjacent-gap", "mid-gap1", "mid-gap2"]:
+            return "neg"
+        else:
+            return None
 
-        # outdir_query = Path(self.options.outdir) / "bench" / "tabix" / "simple" / "query"
-
-        # outdir_identical = outdir / "identical"
-        # outdir_partial = outdir / "partial"
-        # outdir_enclosed = outdir / "enclosed"
-        # outdir_identical.mkdir(parents=True, exist_ok=True)
-        # outdir_partial.mkdir(parents=True, exist_ok=True)
-        # outdir_enclosed.mkdir(parents=True, exist_ok=True)
-        #
-
+    def init_stat(self):
+        """this function initializes the precision fields for the different query types"""
+        fields = {}
+        for subset in range(10,101,10):
+            fields[subset] = {"TP": 0, "FP": 0, "TN": 0, "FN":0}
+        return fields
 
     def create_index(self):
         """Tabix creates the index in the same folder as the input file."""
@@ -125,74 +151,73 @@ class BenchTabix:
         return creation_times
 
     def query_intervals(self):
-        indirs = self.get_indirs()
-
-        # indir_ref = Path(self.options.outdir) / "sim" / "BED" / "simple" / "ref"
-        # indir_query = Path(self.options.outdir) / "sim" / "BED" / "simple" / "query"
-        #
-
-        # outdir = Path(self.options.outdir) / "bench" / "tabix" / "simple" / "query"
-        # outdir_identical = outdir / "identical"
-        # outdir_partial = outdir / "partial"
-        # outdir_enclosed = outdir / "enclosed"
-        # outdir_identical.mkdir(parents=True, exist_ok=True)
-        # outdir_partial.mkdir(parents=True, exist_ok=True)
-        # outdir_enclosed.mkdir(parents=True, exist_ok=True)
+        refdirs = self.get_refdirs()
+        querydirs = self.get_querydirs()
 
         query_times = {}
+        query_precision = {}
         for i, (label, num) in enumerate(self.intvlnums.items()):
+            # load reference interval and query intervals
+            reffiles = self.get_reffiles(refdirs, label)
+            queryfiles = self.get_queryfiles(querydirs, label)
+
             print(f"Detect overlaps for {num} intervals...({i+1} out of {len(self.intvlnums)})")
-            infiles = {
-               "identical": indir_ref / f"{label}.bed",
-               "partial": indir_query / "partial" / f"{label}.bed",
-               "enclosed": indir_query / "enclosed" / f"{label}.bed"
-            }
             query_times[label] = {}
+            query_precision[label] = self.init_stat()
 
             # load ground truth
-            truth = self.load_truth(truthdir / f"{label}.bed")
-            print(truth)
+            truth = self.load_truth(reffiles["truth"])
+            # print(truth)
+            #
 
-
-            # subsets 10,20,30
-            subsets = [num for num in range(10, 101, 10)]
-            for qtype, infile in infiles.items():
+            for qtype in queryfiles.keys():
                 query_times[label][qtype] = {}
-                fh = open(infile)
-                total = 0 # total number of (query) intervals
-                for line in fh:
-                    total += 1
-                fh.close()
-                for subset in subsets: # iterate through percentages (10%, 20%,...)
-                    print(f"\rSubsetting {num} '{qtype}' intervals (by {subset}%) and searching for overlaps...", end="")
-                    num_searched = 0
-                    duration = 0.0
 
-                    fh = open(infile)
+                for subset in queryfiles[qtype].keys():
+                    # counter that keeps track of the total number of intervals
+                    total_intvls = utility.file_linecounter(queryfiles[qtype][subset])
+                    print(f"\rSearching for overlaps in {subset}% of {num} '{qtype}' intervals...", end="")
+                    searched_intvls = 0
+                    time_duration = 0.0
+
+                    fh = open(queryfiles[qtype][subset])
                     for line in fh:
-                        splitted = line.strip().split("\t")
-                        searchst = f"{splitted[0]}:{splitted[1]}-{splitted[2]}"
-                        start_time = time.time()
-                        subprocess.run(["tabix", f"{indexdir / f'{label}.bed.gz'}", f"{searchst}"], stdout=open(outdir / "tmp", "w"))
+                        cols = line.strip().split("\t")
+                        searchstr = f"{cols[0]}:{cols[1]}-{cols[2]}" # chr1:1000-2000
+                        tmpfile = tempfile.NamedTemporaryFile(mode='w', delete=False)
+                        start_time = time.time() # start taking the time
+                        subprocess.run(["tabix", f"{reffiles['ref']}", f"{searchstr}"], stdout=tmpfile)
                         end_time = time.time()
-                        duration += end_time - start_time
-                        num_searched += 1
+                        time_duration += round(end_time - start_time, 5)
+                        tmpfile.close()
+                        searched_intvls += 1
 
-                        # check if the search result is correct
-                        print("bla results")
-                        fh = open(outdir / "tmp")
-                        for line in fh:
-                            print(line)
-                        print("bla end")
+                        # check File
+                        fho = open(tmpfile.name)
+                        key = (cols[0], cols[1], cols[2])
+                        found = False # flag to check if the interval could be found
+                        for line in fho:
+                            splitted = line.strip().split("\t")
+                            if tuple(splitted[0:3]) == truth[key]:
+                                found = True
+                        binary = self.get_qtype_bin(qtype)
+                        if binary == "pos":
+                            if found:
+                                query_precision[label][subset]["TP"] += 1
+                            else:
+                                query_precision[label][subset]["FN"] += 1
+                        elif binary == "neg":
+                            if found:
+                                query_precision[label][subset]["FP"] += 1
+                            else:
+                                query_precision[label][subset]["TN"] += 1
+                        fho.close()
+                    query_times[label][qtype][subset] = time_duration
+                    query_precision[label]
 
-                        progress = float(num_searched/total)
-                        if progress >= float(subset/100):
-                            end_time = time.time()
-                            query_times[label][qtype][subset] = round(duration, 3)
-                            break
+
                 print("done!")
-
-        return query_times
+        return query_times, query_precision
 
     def load_truth(self, filename):
         truth = {}
