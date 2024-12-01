@@ -1,19 +1,16 @@
-from idlelib.searchengine import get
 import os
 from pathlib import Path
 import time
 import subprocess
-import logging
 import tempfile
 
 # Class
 import utility
 
 class BenchBase:
-    def __init__(self, options, intvlnums, logger):
+    def __init__(self, options, intvlnums):
         self.options = options
         self.intvlnums = intvlnums
-        self.logger = logger
 
         query_time = {}
         query_precision = {}
@@ -70,10 +67,6 @@ class BenchTabix:
         self.intvlnums = intvlnums
 
         # create dirs (needed for later use)
-
-        # create a logger
-        logfile = Path(options.outdir) / 'tabix.log'
-        self.logger = utility.setup_logger(logfile, options.loglevel, "[tabix]")
 
     def get_refdirs(self):
         """returns the input directories for the reference and query intervals"""

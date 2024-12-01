@@ -10,8 +10,6 @@ import utility
 
 def main():
     options = parse_arguments()
-    logfile = Path(options.outdir) / 'segmeter.log'
-    logger = utility.setup_logger(logfile, options.loglevel, "")
 
     output = Path(options.outdir) / options.modus
     output.mkdir(parents=True, exist_ok=True)
@@ -21,7 +19,7 @@ def main():
         bed = SimBase(options, intvlnums)
         bed.format.simulate()
     elif options.modus == "bench":
-        bench = BenchBase(options, intvlnums, logger)
+        bench = BenchBase(options, intvlnums)
 
     # look up the files to benchmark
     # fh = open(options.list, "r")
@@ -39,7 +37,7 @@ def parse_arguments():
     parser.add_argument("-n", "--intvlnums", type=str, help="number of intervals to simulate", default="10")
     parser.add_argument("-o", "--outdir", type=str, help="output folder for the benchmark/simulation results. ", required=True)
     parser.add_argument("-t", "--tool", type=str, help="tool to benchmark", choices=["tabix", "bedtools"])
-    parser.add_argument("-l", "--loglevel", type=str, help="Log level", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], default="INFO")
+    # parser.add_argument("-l", "--loglevel", type=str, help="Log level", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], default="INFO")
     parser.add_argument("-d", "--datatype", type=str, help="datatype of the intervals", choices=["simple", "complex", "custom"], default="simple")
 
     args = parser.parse_args()
