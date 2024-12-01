@@ -1,6 +1,6 @@
 <div align="left">
     <h1>segmeter</h1>
-    <img src="https://img.shields.io/github/v/release/ylab-hi/ScanNeo2">
+    <img src="https://img.shields.io/github/v/release/ylab-hi/segmeter">
     <img src="https://github.com/ylab-hi/ScanNeo2/actions/workflows/linting.yml/badge.svg" alt="Workflow status badge">
     <img src="https://img.shields.io/badge/License-MIT-yellow.svg">
     <img src="https://img.shields.io/github/downloads/ylab-hi/segmeter/total.svg">
@@ -10,6 +10,8 @@
     <img src="https://img.shields.io/github/stars/ylab-hi/segmeter?style=social">
     <img src="https://img.shields.io/github/forks/ylab-hi/segmeter?style=social">
 </div>
+
+## What is segmeter
 
 This is a tool for simulating interval data and benchmarking tool for interval retrieval.
 
