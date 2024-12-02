@@ -38,7 +38,7 @@ def parse_arguments():
     parser.add_argument("-o", "--outdir", type=str, help="output folder for the benchmark/simulation results. ", required=True)
     parser.add_argument("-t", "--tool", type=str, help="tool to benchmark", choices=["tabix", "bedtools"])
     parser.add_argument("-g", "--gapsize", type=str, help="random size of the gaps (min and max) between the intervals", default="100-5000")
-
+    parser.add_argument("-i", "--intvlsize", type=str, help="random size (min and max) of the intervals", default="100-10000")
     # parser.add_argument("-l", "--loglevel", type=str, help="Log level", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], default="INFO")
     parser.add_argument("-d", "--datatype", type=str, help="datatype of the intervals", choices=["simple", "complex", "custom"], default="simple")
 

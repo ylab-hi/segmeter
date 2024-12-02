@@ -22,13 +22,11 @@ class SimBED:
         # self.rightmost = self.det_rightmost_start()
         self.leftgap = self.init_leftgap()
 
-        print(self.options.gapsize)
-
     def init_leftgap(self):
         leftgap = {}
+        gs_start, gs_end = [int(x) for x in self.options.gapsize.split("-")]
         for chr in self.chroms:
-            gapsize = self.options.gapsize.split("-")
-            leftgap[chr] = self.simulate_gap(1, random.randint(gapsize[0], gapsize[1]))
+            leftgap[chr] = self.simulate_gap(1, random.randint(gs_start, gs_end))
         return leftgap
 
     def simulate_gap(self, start, end):
@@ -101,6 +99,7 @@ class SimBED:
     def simulate(self):
         outdir = Path(self.options.outdir) / "sim" / "BED" / "simple" # create base output folder
         datadirs = self.create_datadirs(outdir)
+        is_start, is_end = [int(x) for x in self.options.intvlsize.split("-")]
 
         for label, num in self.intvlnums.items():
             print(f"Simulate intervals for {label}:{num}...")
@@ -111,12 +110,12 @@ class SimBED:
 
                 chrom = random.choice(self.chroms)
                 start_intvl = self.leftgap[chrom]["end"]+1
-                intvl_size = random.randint(100,50000)
+                intvl_size = random.randint(is_start, is_end)
                 end_intvl = start_intvl + (intvl_size-1)
                 mid_intvl = int((start_intvl + end_intvl) // 2) # determine middle of interval
 
-                gapsize = self.options.gapsize.split("-")
-                rightgap = self.simulate_gap(end_intvl+1, end_intvl+1+random.randint(gapsize[0],gapsize[1]))
+                gs_start, gs_end = [int(x) for x in self.options.gapsize.split("-")]
+                rightgap = self.simulate_gap(end_intvl+1, end_intvl+1+random.randint(gs_start,gs_end))
 
                 # write reference and perfect query (is the same)
                 datafiles["ref"].write(f"{chrom}\t{start_intvl}\t{end_intvl}\t{intvl_id}\n")
