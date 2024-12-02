@@ -37,6 +37,8 @@ def parse_arguments():
     parser.add_argument("-n", "--intvlnums", type=str, help="number of intervals to simulate", default="10")
     parser.add_argument("-o", "--outdir", type=str, help="output folder for the benchmark/simulation results. ", required=True)
     parser.add_argument("-t", "--tool", type=str, help="tool to benchmark", choices=["tabix", "bedtools"])
+    parser.add_argument("-g", "--gapsize", type=str, help="random size of the gaps (min and max) between the intervals", default="100-5000")
+
     # parser.add_argument("-l", "--loglevel", type=str, help="Log level", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], default="INFO")
     parser.add_argument("-d", "--datatype", type=str, help="datatype of the intervals", choices=["simple", "complex", "custom"], default="simple")
 
@@ -46,6 +48,7 @@ def parse_arguments():
     script_dir = Path(__file__).parent.resolve()
 
     return args
+
 
 def det_intvlnums(intvlnums):
     intnums = {}

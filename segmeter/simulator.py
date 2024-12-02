@@ -22,10 +22,13 @@ class SimBED:
         # self.rightmost = self.det_rightmost_start()
         self.leftgap = self.init_leftgap()
 
+        print(self.options.gapsize)
+
     def init_leftgap(self):
         leftgap = {}
         for chr in self.chroms:
-            leftgap[chr] = self.simulate_gap(1, random.randint(100, 10000))
+            gapsize = self.options.gapsize.split("-")
+            leftgap[chr] = self.simulate_gap(1, random.randint(gapsize[0], gapsize[1]))
         return leftgap
 
     def simulate_gap(self, start, end):
@@ -85,9 +88,7 @@ class SimBED:
 
     def subset_datafiles(self, datadirs, label, num):
         for key in datadirs.keys():
-            if (key == "ref" or
-                key == "truth" or
-                key == "lie"):
+            if (key == "ref" or key == "truth"):
                 continue
             infile = datadirs[key] / f"{label}.bed"
             for subset in range(10,101,10):
@@ -114,7 +115,8 @@ class SimBED:
                 end_intvl = start_intvl + (intvl_size-1)
                 mid_intvl = int((start_intvl + end_intvl) // 2) # determine middle of interval
 
-                rightgap = self.simulate_gap(end_intvl+1, end_intvl+1+random.randint(100,10000))
+                gapsize = self.options.gapsize.split("-")
+                rightgap = self.simulate_gap(end_intvl+1, end_intvl+1+random.randint(gapsize[0],gapsize[1]))
 
                 # write reference and perfect query (is the same)
                 datafiles["ref"].write(f"{chrom}\t{start_intvl}\t{end_intvl}\t{intvl_id}\n")
