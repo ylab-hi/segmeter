@@ -16,6 +16,7 @@ RUN apt-get install -y \
     python3-setuptools \
     python3-wheel \
     tree \
+    time \
     curl \
     git \
     ca-certificates
