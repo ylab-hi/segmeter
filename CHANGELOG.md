@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - minimum and maximum of the randomly generated gapsizes can be specified as paramter (--gapsize)
 - minimum and maximum of the randomly generated interval sizes can be specified as paramter (--intvlsize)
+- included memory measurements for tabix benchmark
 
 # [0.1.2]
 

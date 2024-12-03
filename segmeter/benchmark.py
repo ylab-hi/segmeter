@@ -1,8 +1,14 @@
+from re import A
+from tkinter import Menu
 import os
 from pathlib import Path
 import time
 import subprocess
 import tempfile
+import platform
+import psutil
+import threading
+import re
 
 # Class
 import utility
@@ -14,12 +20,14 @@ class BenchBase:
 
         query_time = {}
         query_precision = {}
+        query_memory = {}
         if options.tool == "tabix":
             self.tool = BenchTabix(options, intvlnums)
             index_time = self.tool.create_index()
             index_time_file = Path(options.outdir) / 'bench' / f'{options.tool}_index_time.tsv'
             self.save_index_time(index_time, index_time_file)
-            query_time, query_precision = self.tool.query_intervals()
+            query_time, query_memory, query_precision = self.tool.query_intervals()
+
 
         elif options.tool == "bedtools":
             self.tool = BenchBEDTools(options, intvlnums)
@@ -28,6 +36,8 @@ class BenchBase:
         self.save_query_time(query_time, query_time_file)
         query_precision_file = Path(options.outdir) / "bench" / f"{options.tool}_query_precision.tsv"
         self.save_query_precision(query_precision, query_precision_file)
+        query_memory_file = Path(options.outdir) / "bench" / f"{options.tool}_query_memory.tsv"
+        self.save_query_memory(query_memory, query_memory_file)
 
     def save_index_time(self, index_time, filename):
         fh = open(filename, "w")
@@ -44,6 +54,16 @@ class BenchBase:
                 for key3, value3 in value2.items():
                     fh.write(f"{key}\t{key2}\t{key3}%\t{value3}\n")
         fh.close()
+
+    def save_query_memory(self, query_memory, filename):
+        fh = open(filename, "w")
+        fh.write("intvlnum\tquery_type\tsubset\tmax_RSS\n")
+        for key, value in query_memory.items():
+            for key2, value2 in value.items():
+                for key3, value3 in value2.items():
+                    fh.write(f"{key}\t{key2}\t{key3}%\t{value3}\n")
+        fh.close()
+
 
     def save_query_precision(self, query_precision, filename):
         fh = open(filename, "w")
@@ -119,6 +139,57 @@ class BenchTabix:
             fields[subset] = {"TP": 0, "FP": 0, "TN": 0, "FN":0}
         return fields
 
+    def load_truth(self, filename):
+        truth = {}
+        fh = open(filename)
+        for line in fh:
+            fields = line.strip().split("\t")
+            truth[(fields[0], fields[1], fields[2])] = (fields[3], fields[4], fields[5])
+        return truth
+
+    def monitor_memory(self, reffile, filename):
+        """This function monitors the memory usage of tabix queries (needs to be done separately)"""
+        # Determine which option to use for /usr/bin/time based on the OS
+        if platform.system() == "Darwin":  # macOS
+            verbose = "-l"
+            rss_label = "maximum resident set size"
+        else:  # Linux
+            verbose = "-v"
+            rss_label = "Maximum resident set size (kbytes)"
+
+        # Open the file and process each line
+        with open(filename, "r") as fh:
+            rss_value = None
+            for line in fh:
+                cols = line.strip().split("\t")
+                searchstr = f"{cols[0]}:{cols[1]}-{cols[2]}"  # chr1:1000-2000
+
+                verbose = "-v"
+                if platform.system() == "Darwin":
+                    verbose = "-l"
+
+                result = subprocess.run(["/usr/bin/time", verbose, "tabix", f"{reffile}", f"{searchstr}"],
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+
+                # Extract RSS from the output
+                stderr_output = result.stderr
+
+                for line in stderr_output.split("\n"):
+                    if rss_label in line:
+                        # Extract the numerical value from the line
+                        match = re.search(r"(\d+)", line)
+                        if match:
+                            rss_value = int(match.group(1))
+                            break
+
+            if rss_value:
+                rss_value_mb = rss_value/(1000000)
+                return rss_value_mb
+            else:
+                return -1
+
+
     def create_index(self):
         """Tabix creates the index in the same folder as the input file."""
         # create folder
@@ -148,6 +219,7 @@ class BenchTabix:
         querydirs = self.get_querydirs()
 
         query_times = {}
+        query_memory = {}
         query_precision = {}
         for i, (label, num) in enumerate(self.intvlnums.items()):
             # load reference interval and query intervals
@@ -157,6 +229,7 @@ class BenchTabix:
             print(f"Detect overlaps for {num} intervals...({i+1} out of {len(self.intvlnums)})")
             query_times[label] = {}
             query_precision[label] = self.init_stat()
+            query_memory[label] = {}
 
             # load ground truth
             truth = self.load_truth(reffiles["truth"])
@@ -165,13 +238,15 @@ class BenchTabix:
 
             for qtype in queryfiles.keys():
                 query_times[label][qtype] = {}
+                query_memory[label][qtype] = {}
 
                 for subset in queryfiles[qtype].keys():
                     # counter that keeps track of the total number of intervals
-                    total_intvls = utility.file_linecounter(queryfiles[qtype][subset])
-                    print(f"\rSearching for overlaps in {subset}% of {num} '{qtype}' intervals...", end="")
+                    # total_intvls = utility.file_linecounter(queryfiles[qtype][subset])
+                    print(f"\rSearching for overlaps in {subset}% of {num//10} '{qtype}' intervals...", end="")
                     searched_intvls = 0
                     time_duration = 0.0
+                    memory_stats = []
 
                     fh = open(queryfiles[qtype][subset])
                     for line in fh:
@@ -208,14 +283,9 @@ class BenchTabix:
                     query_times[label][qtype][subset] = time_duration
                     query_precision[label]
 
+                    # memory measurement
+                    rss_value = self.monitor_memory(reffiles["ref"], queryfiles[qtype][subset])
+                    query_memory[label][qtype][subset] = rss_value
 
                 print("done!")
-        return query_times, query_precision
-
-    def load_truth(self, filename):
-        truth = {}
-        fh = open(filename)
-        for line in fh:
-            fields = line.strip().split("\t")
-            truth[(fields[0], fields[1], fields[2])] = (fields[3], fields[4], fields[5])
-        return truth
+        return query_times, query_memory, query_precision
