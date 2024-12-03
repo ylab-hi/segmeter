@@ -1,5 +1,3 @@
-from re import A
-from tkinter import Menu
 import os
 from pathlib import Path
 import time
