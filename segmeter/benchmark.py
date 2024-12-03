@@ -4,8 +4,6 @@ import time
 import subprocess
 import tempfile
 import platform
-import psutil
-import threading
 import re
 
 # Class
