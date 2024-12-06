@@ -1,3 +1,4 @@
+from pip._internal import req
 import os
 from pathlib import Path
 import time
@@ -14,11 +15,31 @@ class BenchBase:
         self.options = options
         self.intvlnums = intvlnums
 
+
+
+
+
+
+
         query_time = {}
         query_precision = {}
         query_memory = {}
+
+
+
         if options.tool == "tabix":
-            self.tool = BenchTabix(options, intvlnums)
+            self.tool = BenchTabix(options)
+            for label, num in intvlnums.items():
+                outfile = Path(options.outdir) / "bench" / "tabix" / "simple" / "ref" / f"{label}_idx_stats.txt"
+                idx_time = self.tool.create_index(label, num)
+                idx_mem = self.tool.create_index_mem(label, num)
+                self.idx_stats(idx_time, idx_mem, outfile) # write stats for the index creation
+
+
+
+
+
+
             index_time = self.tool.create_index()
             index_time_file = Path(options.outdir) / 'bench' / f'{options.tool}_index_time.tsv'
             self.save_index_time(index_time, index_time_file)
@@ -28,19 +49,23 @@ class BenchBase:
         elif options.tool == "bedtools":
             self.tool = BenchBEDTools(options, intvlnums)
 
-        query_time_file = Path(options.outdir) / "bench" / f"{options.tool}_query_time.tsv"
-        self.save_query_time(query_time, query_time_file)
-        query_precision_file = Path(options.outdir) / "bench" / f"{options.tool}_query_precision.tsv"
-        self.save_query_precision(query_precision, query_precision_file)
-        query_memory_file = Path(options.outdir) / "bench" / f"{options.tool}_query_memory.tsv"
-        self.save_query_memory(query_memory, query_memory_file)
+        # query_time_file = Path(options.outdir) / "bench" / f"{options.tool}_query_time.tsv"
+        # self.save_query_time(query_time, query_time_file)
+        # query_precision_file = Path(options.outdir) / "bench" / f"{options.tool}_query_precision.tsv"
+        # self.save_query_precision(query_precision, query_precision_file)
+        # query_memory_file = Path(options.outdir) / "bench" / f"{options.tool}_query_memory.tsv"
+        # self.save_query_memory(query_memory, query_memory_file)
+        #
 
-    def save_index_time(self, index_time, filename):
-        fh = open(filename, "w")
-        fh.write("intvlnum\ttime(s)\n")
-        for key, value in index_time.items():
-            fh.write(f"{key}\t{value}\n")
-        fh.close()
+
+    def idx_stats(self, query_time, query_mem, filename):
+
+
+    def create_refdirs(self):
+        indir = Path(self.options.outdir) / "sim" / "BED" / "simple" / "ref" # load reference intervals
+        outdir = Path(self.options.outdir) / "bench" / "tabix" / "simple" / "ref"
+        outdir.mkdir(parents=True, exist_ok=True)
+
 
     def save_query_time(self, query_time, filename):
         fh = open(filename, "w")
@@ -78,17 +103,20 @@ class BenchBEDTools:
         self.options = options
 
 class BenchTabix:
-    def __init__(self, options, intvlnums):
+    def __init__(self, options):
         self.options = options
-        self.intvlnums = intvlnums
-
+        # self.intvlnums = intvlnums
         # create dirs (needed for later use)
+        #
+        self.refdirs = self.get_refdirs()
 
     def get_refdirs(self):
         """returns the input directories for the reference and query intervals"""
         refdirs = {}
-        refdirs["ref"] = Path(self.options.outdir) / "bench" / "tabix" / self.options.datatype / "ref"
-        refdirs["truth"] = Path(self.options.outdir) / "sim" / "BED" / self.options.datatype / "truth"
+        refdirs["ref"] = Path(self.options.outdir) / "sim" / self.options.format / self.options.datatype / "ref"
+        refdirs["idx"] = Path(self.options.outdir) / "bench" / "tabix" / self.options.datatype / "idx"
+        refdirs["idx"].mkdir(parents=True, exist_ok=True) # need to be created (store the index files)
+        refdirs["truth"] = Path(self.options.outdir) / "sim" / self.options.format / self.options.datatype / "truth"
         return refdirs
 
     def get_reffiles(self, refdirs, label):
@@ -186,29 +214,34 @@ class BenchTabix:
                 return -1
 
 
-    def create_index(self):
+    def create_index(self, label, num):
         """Tabix creates the index in the same folder as the input file."""
-        # create folder
-        indir = Path(self.options.outdir) / "sim" / "BED" / "simple" / "ref" # load reference intervals
-        outdir = Path(self.options.outdir) / "bench" / "tabix" / "simple" / "ref"
-        outdir.mkdir(parents=True, exist_ok=True)
+        print(f"Indexing {self.refdirs['ref']} with {label}:{num} intervals...")
+        start_time = time.time() # start the timer
+        # sort bgzip and create index
+        subprocess.run(["sort", "-k1,1", "-k2,2n", "-k3,3n", f"{self.refdirs['ref'] / f'{label}.bed'}"],
+            stdout=open(self.refdirs['idx'] / f'{label}.bed', 'w'))
+        subprocess.run(["bgzip", "-f", f"{self.refdirs['idx'] / f'{label}.bed'}"])
+        subprocess.run(["tabix", "-f", "-C", "-p", "bed", f"{self.refdirs['idx'] / f'{label}.bed'}.gz"])
+        end_time = time.time() # end the timer
+        duration = round(end_time - start_time, 5)
+        return duration
 
-        creation_times = {}
-        print("Sort the BED file, compress (bgzip) and create the index...")
-        for label, num in self.intvlnums.items():
-            print(f"Processing {indir / f'{label}.bed'} with {label}:{num} intervals...")
+    def create_index_mem(self, label, num):
+        """Monitor the memory usage of the index creation"""
+        print("\t... measuring memory requirements...")
+        rss_label = utility.get_time_rss_label()
+        verbose = utility.get_time_verbose_flag()
+        result = subprocess.run(["/usr/bin/time", verbose, "tabix", "-f", "-C", "-p", "bed", f"{self.refdirs['idx'] / f'{label}.bed'}.gz"],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        stderr_output = result.stderr
+        rss_value = utility.get_rss_from_stderr(stderr_output, rss_label)
 
-            start_time = time.time() # start timer
-
-            # sort, bgzip and create index - change to subprocess
-            subprocess.run(["sort", "-k1,1", "-k2,2n", "-k3,3n", f"{indir / f'{label}.bed'}"], stdout=open(outdir / f'{label}.bed', 'w'))
-            subprocess.run(["bgzip", "-f", f"{outdir / f'{label}.bed'}"])
-            subprocess.run(["tabix", "-f", "-C", "-p", "bed", f"{outdir / f'{label}.bed'}.gz"])
-
-            end_time = time.time() # end timer
-            duration = round(end_time - start_time, 5)
-            creation_times[label] = duration
-        return creation_times
+        if rss_value:
+            rss_value_mb = rss_value/(1000000)
+            return rss_value_mb
+        else:
+            return -1
 
     def query_intervals(self):
         refdirs = self.get_refdirs()
