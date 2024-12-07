@@ -97,7 +97,7 @@ class SimBED:
                 utility.sort_BED(outfile, sorted) # also sort the subset files
 
     def simulate(self):
-        outdir = Path(self.options.outdir) / "sim" / "BED" / "simple" # create base output folder
+        outdir = Path(self.options.outdir) / "sim" / "BED" / self.options.datatype # create base output folder
         datadirs = self.create_datadirs(outdir)
         is_start, is_end = [int(x) for x in self.options.intvlsize.split("-")]
 
