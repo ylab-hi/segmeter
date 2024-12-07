@@ -50,3 +50,17 @@ def save_index_time(self, intvlnum, index_time, filename):
     for key, value in index_time.items():
         fh.write(f"{key}\t{value}\n")
     fh.close()
+
+
+def get_query_type(datatype, query):
+    """returns the query type (e.g., interval or gap)"""
+
+    if datatype == "basic":
+        if query in ["perfect", "5p-partial", "3p-partial", "enclosed", "contained"]:
+            return "interval"
+        elif query in ["perfect-gap", "left-adjacent-gap", "right-adjacent-gap", "mid-gap1", "mid-gap2"]:
+            return "gap"
+        else:
+            raise ValueError("Query type not supported")
+    elif datatype == "complex":
+        return "undefined" # todo
