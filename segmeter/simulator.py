@@ -18,9 +18,44 @@ class SimBED:
     def __init__(self, options, intvlnums):
         self.options = options
         self.intvlnums = intvlnums
-        self.chroms = [f'chr{i}' for i in range(1, 23)] + ['chrX', 'chrY']
+        self.chroms = self.init_chroms()
+
         # self.rightmost = self.det_rightmost_start()
-        self.leftgap = self.init_leftgap()
+        # self.leftgap = self.init_leftgap()
+
+    def init_chroms(self):
+        """Initialize the chromosomes"""
+        chroms = {}
+        # consists of a list of chromosome that haven't exeeded a maximum length
+        chroms["space-left"] = [f'chr{i}' for i in range(1, 23)] + ['chrX', 'chrY']
+        chroms["leftgap"] = {} # contains the end position of the last gap (left of interval)
+        for chr in chroms["space-left"]:
+            chroms["leftgap"][chr] = {}
+        return chroms
+
+    def select_chrom(self):
+        """Randomly select a chromosome"""
+        gs_start, gs_end = [int(x) for x in self.options.gapsize.split("-")] # get the gap size
+        selection = random.choice(self.chroms["space-left"])
+        if selection in self.chroms["leftgap"]: # this should be the case regardless
+            if self.chroms["leftgap"][selection] == {}: # no interval has been placed on this chromosome
+                # therefore simulate a (left) gap
+                self.chroms["leftgap"][selection] = self.simulate_gap(1, random.randint(gs_start, gs_end))
+                return selection
+            else:
+                if self.chroms["leftgap"][selection]["end"] < self.options.max_chromlen:
+                    return selection
+                else:
+                    self.chroms["space-left"].remove(selection) # chromosome has reached maximum length
+                    allchroms = list(self.chroms["leftgap"].keys()) # get all chromosomes
+                    scaffolds = [chr for chr in allchroms if "SCF" in allchroms] # filter for SCF
+                    scaffold_name = f"SCF{len(scaffolds)+1}"
+                    self.chroms["space-left"].append(scaffold_name)
+                    self.chroms["leftgap"][scaffold_name] = self.simulate_gap(1, random.randint(gs_start, gs_end))
+
+
+            return selection
+
 
     def init_leftgap(self):
         leftgap = {}
