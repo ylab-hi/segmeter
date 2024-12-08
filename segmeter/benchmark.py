@@ -22,12 +22,14 @@ class BenchBase:
         if options.tool == "tabix":
             self.tool = BenchTabix(options)
             for i, (label, num) in enumerate(intvlnums.items()):
-                outfile = Path(options.outdir) / "bench" / "tabix" / "simple" / f"{label}_idx_stats.txt"
+                outfile = Path(options.outdir) / "bench" / "tabix" / self.options.datatype / f"{label}_idx_stats.txt"
                 idx_time = self.tool.create_index(label, num)
                 idx_mem = self.tool.create_index_mem(label, num)
                 self.save_idx_stats(num, idx_time, idx_mem, outfile) # write stats for the index creation
                 print(f"Detect overlaps for {num} intervals...({i+1} out of {len(intvlnums)})")
                 query_time, query_memory, query_precision = self.tool.query_intervals(label, num)
+                outfile_query = Path(options.outdir) / "bench" / "tabix" / self.options.datatype / f"{label}_query_stats.txt"
+                self.save_query_stats(num, query_time, query_memory, outfile_query)
 
 
 
@@ -53,6 +55,13 @@ class BenchBase:
         fh.write("intvlnum\ttime(s)\tmax_RSS(MB)\n")
         fh.write(f"{num}\t{idx_time}\t{idx_mem}\n")
         fh.close()
+
+    def save_query_stats(self, num, query_time, query_mem, filename):
+        fh = open(filename, "w")
+        fh.write("intvlnum\tquery_type\tsubset\ttime\n")
+        for key, value in query_time.items():
+            for key2, value2 in value.items():
+                fh.write(f"{num}\t{key}\t{key2}%\t{value2}\n")
 
     def create_refdirs(self):
         indir = Path(self.options.outdir) / "sim" / "BED" / "simple" / "ref" # load reference intervals
@@ -117,7 +126,7 @@ class BenchTabix:
         if self.options.datatype == "basic":
             querydirs["basic"] = {}
             for query in ["perfect", "5p-partial", "3p-partial", "enclosed", "contained"]:
-                querydirs[query] = Path(self.options.outdir) / "sim" / self.options.format / self.options.datatype / "query" / query
+                querydirs["basic"][query] = Path(self.options.outdir) / "sim" / self.options.format / self.options.datatype / "query" / query
             for query in ["perfect-gap", "left-adjacent-gap", "right-adjacent-gap", "mid-gap1", "mid-gap2"]:
                 querydirs["basic"][query] = Path(self.options.outdir) / "sim" / self.options.format / self.options.datatype / "query" / query
         elif self.options.datatype == "complex":
@@ -130,8 +139,9 @@ class BenchTabix:
         if self.options.datatype == "basic":
             reffiles = {}
             reffiles["basic"] = {
-                "ref": self.refdirs["ref"] / f"{label}.bed.gz",
-                "truth": self.refdirs["truth"] / f"{label}.bed"
+                "ref": self.refdirs[self.options.datatype]["ref"] / f"{label}.bed.gz",
+                "truth": self.refdirs[self.options.datatype]["truth"] / f"{label}.bed",
+                "idx": self.refdirs[self.options.datatype]["idx"] / f"{label}.bed.gz"
             }
         if self.options.datatype == "complex":
             reffiles = {}
@@ -142,18 +152,12 @@ class BenchTabix:
         queryfiles = {}
         queryfiles[self.options.datatype] = {}
         if self.options.datatype == "basic":
-            queryfiles["basic"] = {}
-            for query in self.querydirs["basic"]["intvlqueries"].keys():
-                queryfiles["basic"]["intvlqueries"][query] = {}
+            for query in self.querydirs["basic"].keys():
+                queryfiles["basic"][query] = {}
                 for subset in range(10, 101, 10):
-                    queryfiles["basic"]["intvlqueries"][query][subset] = self.querydirs[query] / f"{label}_{subset}p.bed"
-            queryfiles["basic"]["gapqueries"] = {}
-            for query in self.querydirs["basic"]["gapqueries"].keys():
-                queryfiles["basic"]["gapqueries"][query] = {}
-                for subset in range(10, 101, 10):
-                    queryfiles["basic"]["gapqueries"][query][subset] = self.querydirs[query] / f"{label}_{subset}p.bed"
-        elif self.options.datatype == "complex":
-            queryfiles["complex"]["intvlqueries"] = {}
+                    queryfiles["basic"][query][subset] = self.querydirs["basic"][query] / f"{label}_{subset}p.bed"
+        # elif self.options.datatype == "complex":
+        #     queryfiles["complex"]["int = {}
 
         return queryfiles
 
@@ -218,13 +222,14 @@ class BenchTabix:
 
     def create_index(self, label, num):
         """Tabix creates the index in the same folder as the input file."""
-        print(f"Indexing {self.refdirs['ref']} with {label}:{num} intervals...")
+        dtype = self.options.datatype # buffer datatype
+        print(f"Indexing {self.refdirs[dtype]['ref']} with {label}:{num} intervals...")
         start_time = time.time() # start the timer
         # sort bgzip and create index
-        subprocess.run(["sort", "-k1,1", "-k2,2n", "-k3,3n", f"{self.refdirs['ref'] / f'{label}.bed'}"],
-            stdout=open(self.refdirs['idx'] / f'{label}.bed', 'w'))
-        subprocess.run(["bgzip", "-f", f"{self.refdirs['idx'] / f'{label}.bed'}"])
-        subprocess.run(["tabix", "-f", "-C", "-p", "bed", f"{self.refdirs['idx'] / f'{label}.bed'}.gz"])
+        subprocess.run(["sort", "-k1,1", "-k2,2n", "-k3,3n", f"{self.refdirs[dtype]['ref'] / f'{label}.bed'}"],
+            stdout=open(self.refdirs[dtype]['idx'] / f'{label}.bed', 'w'))
+        subprocess.run(["bgzip", "-f", f"{self.refdirs[dtype]['idx'] / f'{label}.bed'}"])
+        subprocess.run(["tabix", "-f", "-C", "-p", "bed", f"{self.refdirs[dtype]['idx'] / f'{label}.bed'}.gz"])
         end_time = time.time() # end the timer
         duration = round(end_time - start_time, 5)
         return duration
@@ -232,9 +237,10 @@ class BenchTabix:
     def create_index_mem(self, label, num):
         """Monitor the memory usage of the index creation"""
         print("\t... measuring memory requirements...")
+        dtype = self.options.datatype
         rss_label = utility.get_time_rss_label()
         verbose = utility.get_time_verbose_flag()
-        result = subprocess.run(["/usr/bin/time", verbose, "tabix", "-f", "-C", "-p", "bed", f"{self.refdirs['idx'] / f'{label}.bed'}.gz"],
+        result = subprocess.run(["/usr/bin/time", verbose, "tabix", "-f", "-C", "-p", "bed", f"{self.refdirs[dtype]['idx'] / f'{label}.bed'}.gz"],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         stderr_output = result.stderr
         rss_value = utility.get_rss_from_stderr(stderr_output, rss_label)
@@ -249,7 +255,7 @@ class BenchTabix:
         reffiles = self.get_reffiles(label) # get the reference files
         queryfiles = self.get_queryfiles(label)
 
-        truth = self.load_truth(reffiles["truth"]) # load the ground truth
+        truth = self.load_truth(reffiles[self.options.datatype]["truth"]) # load the ground truth
 
         query_times = {}
         query_memory = {}
@@ -266,8 +272,9 @@ class BenchTabix:
                     cols = line.strip().split("\t")
                     searchstr = f"{cols[0]}:{cols[1]}-{cols[2]}"
                     tmpfile = tempfile.NamedTemporaryFile(mode='w', delete=False)
+                    dtype = self.options.datatype
                     start_time = time.time() # start taking the time
-                    subprocess.run(["tabix", f"{reffiles['ref']}", f"{searchstr}"], stdout=tmpfile)
+                    subprocess.run(["tabix", f"{reffiles[dtype]['idx']}", f"{searchstr}"], stdout=tmpfile)
                     end_time = time.time()
                     query_times[qtype][subset] = round(end_time - start_time, 5)
                     tmpfile.close()
@@ -284,18 +291,18 @@ class BenchTabix:
                     qgroup = utility.get_query_group(self.options.datatype, qtype) # intvl or gap
                     if qgroup == "interval":
                         if found:
-                            query_precision[qtype][subset]["TP"] += 1
+                            query_precision[subset]["TP"] += 1
                         else:
-                            query_precision[qtype][subset]["FN"] += 1
+                            query_precision[subset]["FN"] += 1
                     elif qgroup == "gap":
                         if found:
-                            query_precision[qtype][subset]["FP"] += 1
+                            query_precision[subset]["FP"] += 1
                         else:
-                            query_precision[qtype][subset]["TN"] += 1
+                            query_precision[subset]["TN"] += 1
 
                 # memory measurement
-                rss_value = self.monitor_memory(reffiles["ref"], queryfiles[self.options.datatype][qtype][subset])
-                query_memory[qtype][subset] = rss_value
+                # rss_value = self.monitor_memory(reffiles["ref"], queryfiles[self.options.datatype][qtype][subset])
+                # query_memory[qtype][subset] = rss_value
 
 
             print("done!")
