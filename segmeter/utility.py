@@ -41,7 +41,7 @@ def get_rss_from_stderr(stderr_output, rss_label):
             match = re.search(r"(\d+)", line)
             if match:
                 return int(match.group(1))
-    return None
+    return -1
 
 
 def save_index_time(self, intvlnum, index_time, filename):
@@ -52,8 +52,8 @@ def save_index_time(self, intvlnum, index_time, filename):
     fh.close()
 
 
-def get_query_type(datatype, query):
-    """returns the query type (e.g., interval or gap)"""
+def get_query_group(datatype, query):
+    """returns the query group (e.g., interval or gap) based on the datatype and query"""
 
     if datatype == "basic":
         if query in ["perfect", "5p-partial", "3p-partial", "enclosed", "contained"]:
