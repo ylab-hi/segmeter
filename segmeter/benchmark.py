@@ -171,48 +171,6 @@ class BenchTabix:
             truth[(fields[0], fields[1], fields[2])] = (fields[3], fields[4], fields[5])
         return truth
 
-    def monitor_memory(self, reffile, filename):
-        """This function monitors the memory usage of tabix queries (needs to be done separately)"""
-        # Determine which option to use for /usr/bin/time based on the OS
-        if platform.system() == "Darwin":  # macOS
-            verbose = "-l"
-            rss_label = "maximum resident set size"
-        else:  # Linux
-            verbose = "-v"
-            rss_label = "Maximum resident set size (kbytes)"
-
-        # Open the file and process each line
-        with open(filename, "r") as fh:
-            rss_value = None
-            for line in fh:
-                cols = line.strip().split("\t")
-                searchstr = f"{cols[0]}:{cols[1]}-{cols[2]}"  # chr1:1000-2000
-
-                verbose = "-v"
-                if platform.system() == "Darwin":
-                    verbose = "-l"
-
-                result = subprocess.run(["/usr/bin/time", verbose, "tabix", f"{reffile}", f"{searchstr}"],
-                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-
-                # Extract RSS from the output
-                stderr_output = result.stderr
-
-                for line in stderr_output.split("\n"):
-                    if rss_label in line:
-                        # Extract the numerical value from the line
-                        match = re.search(r"(\d+)", line)
-                        if match:
-                            rss_value = int(match.group(1))
-                            break
-
-            if rss_value:
-                rss_value_mb = rss_value/(1000000)
-                return rss_value_mb
-            else:
-                return -1
-
-
     def create_index(self, label, num):
         """Tabix creates the index in the same folder as the input file."""
         dtype = self.options.datatype # buffer datatype
