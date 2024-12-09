@@ -1,4 +1,3 @@
-import os
 import random
 from pathlib import Path
 import subprocess
@@ -37,22 +36,20 @@ class SimBED:
         """Randomly select a chromosome"""
         gs_start, gs_end = [int(x) for x in self.options.gapsize.split("-")] # get the gap size
         selection = random.choice(self.chroms["space-left"])
-        if selection in self.chroms["leftgap"]: # this should be the case regardless
-            if self.chroms["leftgap"][selection] == {}: # no interval has been placed on this chromosome
-                # therefore simulate a (left) gap
-                self.chroms["leftgap"][selection] = self.simulate_gap(1, random.randint(gs_start, gs_end))
+        if self.chroms["leftgap"][selection] == {}: # no interval has been placed on this chromosome (yet)
+            # therefore simulate a (left) gap
+            self.chroms["leftgap"][selection] = self.simulate_gap(1, random.randint(gs_start, gs_end))
+            return selection
+        else:
+            if self.chroms["leftgap"][selection]["end"] < self.options.max_chromlen:
                 return selection
             else:
-                if self.chroms["leftgap"][selection]["end"] < self.options.max_chromlen:
-                    return selection
-                else:
-                    self.chroms["space-left"].remove(selection) # chromosome has reached maximum length
-                    allchroms = list(self.chroms["leftgap"].keys()) # get all chromosomes
-                    scaffolds = [chr for chr in allchroms if "SCF" in allchroms] # filter for SCF
-                    scaffold_name = f"SCF{len(scaffolds)+1}"
-                    self.chroms["space-left"].append(scaffold_name)
-                    self.chroms["leftgap"][scaffold_name] = self.simulate_gap(1, random.randint(gs_start, gs_end))
-
+                self.chroms["space-left"].remove(selection) # chromosome has reached maximum length
+                allchroms = list(self.chroms["leftgap"].keys()) # get all chromosomes
+                scaffolds = [chr for chr in allchroms if "SCF" in allchroms] # filter for SCF
+                scaffold_name = f"SCF{len(scaffolds)+1}"
+                self.chroms["space-left"].append(scaffold_name)
+                self.chroms["leftgap"][scaffold_name] = self.simulate_gap(1, random.randint(gs_start, gs_end))
 
             return selection
 
@@ -72,9 +69,9 @@ class SimBED:
         return gap
 
     def update_leftgap(self, chrom, start, end, mid):
-        self.leftgap[chrom]["start"] = start
-        self.leftgap[chrom]["end"] = end
-        self.leftgap[chrom]["mid"] = mid
+        self.chroms["leftgap"][chrom]["start"] = start
+        self.chroms["leftgap"][chrom]["end"] = end
+        self.chroms["leftgap"][chrom]["mid"] = mid
 
     def det_rightmost_start(self): # needs to be set to 0
         """Simulate start position of first interval (aka right-most position)"""
@@ -143,8 +140,9 @@ class SimBED:
             for i in range(1, (int(num)//10)+1):
                 intvl_id = f"intvl_{i}" # create an interval ID
 
-                chrom = random.choice(self.chroms)
-                start_intvl = self.leftgap[chrom]["end"]+1
+                # chrom = random.choice(self.chroms)
+                chrom = self.select_chrom()
+                start_intvl = self.chroms["leftgap"][chrom]["end"]+1
                 intvl_size = random.randint(is_start, is_end)
                 end_intvl = start_intvl + (intvl_size-1)
                 mid_intvl = int((start_intvl + end_intvl) // 2) # determine middle of interval
@@ -157,7 +155,7 @@ class SimBED:
                 datafiles["perfect"].write(f"{chrom}\t{start_intvl}\t{end_intvl}\t{intvl_id}_perfect\n")
 
                 # write partial (5' and 3') overlaps
-                start_partial_5p = random.randint(self.leftgap[chrom]["mid"]+1, start_intvl-1)
+                start_partial_5p = random.randint(self.chroms["leftgap"][chrom]["mid"]+1, start_intvl-1)
                 end_partial_5p = random.randint(start_intvl, mid_intvl)
                 datafiles["5p-partial"].write(f"{chrom}\t{start_partial_5p}\t{end_partial_5p}\t{intvl_id}_5p\n")
                 start_partial_3p = random.randint(mid_intvl+1, end_intvl)
@@ -168,21 +166,21 @@ class SimBED:
                 start_contained = random.randint(start_intvl, mid_intvl) # query enclosed by reference
                 end_contained = random.randint(mid_intvl+1, end_intvl)
                 datafiles["contained"].write(f"{chrom}\t{start_contained}\t{end_contained}\t{intvl_id}_contained\n")
-                start_enclosed = random.randint(self.leftgap[chrom]["mid"]+1, start_intvl-1)
+                start_enclosed = random.randint(self.chroms["leftgap"][chrom]["mid"]+1, start_intvl-1)
                 end_enclosed = random.randint(end_intvl+1, rightgap["mid"])
                 datafiles["enclosed"].write(f"{chrom}\t{start_enclosed}\t{end_enclosed}\t{intvl_id}_enclosed\n")
 
                 # add no overlaps (falls within gaps)
-                datafiles["perfect-gap"].write(f"{chrom}\t{self.leftgap[chrom]['start']}\t{self.leftgap[chrom]['end']}\t{intvl_id}_perfect-gap\n")
-                end_left_adjacent = random.randint(self.leftgap[chrom]["mid"]+1, self.leftgap[chrom]["end"])
-                datafiles["left-adjacent-gap"].write(f"{chrom}\t{self.leftgap[chrom]['start']}\t{end_left_adjacent}\t{intvl_id}_left-adjacent\n")
-                start_right_adjacent = random.randint(self.leftgap[chrom]['start'], self.leftgap[chrom]['mid'])
-                datafiles["right-adjacent-gap"].write(f"{chrom}\t{start_right_adjacent}\t{self.leftgap[chrom]['end']}\t{intvl_id}_right-adjacent\n")
-                start_mid_gap1 = random.randint(self.leftgap[chrom]["start"], self.leftgap[chrom]["mid"])
-                end_mid_gap1 = random.randint(self.leftgap[chrom]["mid"]+1, self.leftgap[chrom]["end"])
+                datafiles["perfect-gap"].write(f"{chrom}\t{self.chroms['leftgap'][chrom]['start']}\t{self.chroms['leftgap'][chrom]['end']}\t{intvl_id}_perfect-gap\n")
+                end_left_adjacent = random.randint(self.chroms["leftgap"][chrom]["mid"]+1, self.chroms["leftgap"][chrom]["end"])
+                datafiles["left-adjacent-gap"].write(f"{chrom}\t{self.chroms['leftgap'][chrom]['start']}\t{end_left_adjacent}\t{intvl_id}_left-adjacent\n")
+                start_right_adjacent = random.randint(self.chroms["leftgap"][chrom]["start"], self.chroms["leftgap"][chrom]["mid"])
+                datafiles["right-adjacent-gap"].write(f"{chrom}\t{start_right_adjacent}\t{self.chroms['leftgap'][chrom]['end']}\t{intvl_id}_right-adjacent\n")
+                start_mid_gap1 = random.randint(self.chroms["leftgap"][chrom]["start"], self.chroms["leftgap"][chrom]["mid"])
+                end_mid_gap1 = random.randint(self.chroms["leftgap"][chrom]["mid"]+1, self.chroms["leftgap"][chrom]["end"])
                 datafiles["mid-gap1"].write(f"{chrom}\t{start_mid_gap1}\t{end_mid_gap1}\t{intvl_id}_mid-gap1\n")
-                start_mid_gap2 = random.randint(self.leftgap[chrom]["start"], self.leftgap[chrom]["mid"])
-                end_mid_gap2 = random.randint(self.leftgap[chrom]["mid"]+1, self.leftgap[chrom]["end"])
+                start_mid_gap2 = random.randint(self.chroms["leftgap"][chrom]["start"], self.chroms["leftgap"][chrom]["mid"])
+                end_mid_gap2 = random.randint(self.chroms["leftgap"][chrom]["mid"]+1, self.chroms["leftgap"][chrom]["end"])
                 datafiles["mid-gap2"].write(f"{chrom}\t{start_mid_gap2}\t{end_mid_gap2}\t{intvl_id}_mid-gap2\n")
 
                 # also write entries to truth
@@ -192,7 +190,7 @@ class SimBED:
                 datafiles["truth"].write(f"{chrom}\t{start_enclosed}\t{end_enclosed}\t{chrom}\t{start_intvl}\t{end_intvl}\t{intvl_id}_enclosed:{intvl_id}\n")
                 datafiles["truth"].write(f"{chrom}\t{start_intvl}\t{end_intvl}\t{chrom}\t{start_intvl}\t{end_intvl}\t{intvl_id}_perfect:{intvl_id}\n")
 
-                self.leftgap[chrom] = rightgap # make rightgap to leftgap (for next iteration)
+                self.chroms["leftgap"][chrom] = rightgap # make rightgap to leftgap (for next iteration)
 
             self.close_datafiles(datafiles)
             self.sort_datafiles(datadirs, label) # sort the ref and query files
