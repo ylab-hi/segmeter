@@ -19,9 +19,6 @@ class SimBED:
         self.intvlnums = intvlnums
         self.chroms = self.init_chroms()
 
-        # self.rightmost = self.det_rightmost_start()
-        # self.leftgap = self.init_leftgap()
-
     def init_chroms(self):
         """Initialize the chromosomes"""
         chroms = {}
@@ -199,5 +196,11 @@ class SimBED:
             # create file for chrlens
             fh_chromlens = open(outdir / f"{label}_chromlens.txt",'w')
             for chr in self.chroms:
-                fh_chromlens.write(f"{chr}\t{self.leftgap[chr]['end']}\n")
+                fh_chromlens.write(f"{chr}\t{self.chroms['leftgap'][chr]['end']}\n")
             fh_chromlens.close()
+
+    def simulate_basic(self):
+        print()
+
+    def simulate_complex(self):
+        print()
