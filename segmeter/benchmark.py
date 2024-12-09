@@ -1,11 +1,7 @@
-from pip._internal import req
-import os
 from pathlib import Path
 import time
 import subprocess
 import tempfile
-import platform
-import re
 
 # Class
 import utility

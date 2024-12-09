@@ -1,4 +1,3 @@
-from pathlib import Path
 import subprocess
 import platform
 import re
