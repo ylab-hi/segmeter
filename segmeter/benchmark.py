@@ -58,16 +58,10 @@ class BenchBase:
 
     def save_query_stats(self, num, query_time, query_mem, filename):
         fh = open(filename, "w")
-        fh.write("intvlnum\tquery_type\tsubset\ttime\n")
+        fh.write("intvlnum\tquery_type\tsubset\ttime\tmax_RSS(MB)\n")
         for key, value in query_time.items():
             for key2, value2 in value.items():
-                fh.write(f"{num}\t{key}\t{key2}%\t{value2}\n")
-
-    def create_refdirs(self):
-        indir = Path(self.options.outdir) / "sim" / "BED" / "simple" / "ref" # load reference intervals
-        outdir = Path(self.options.outdir) / "bench" / "tabix" / "simple" / "ref"
-        outdir.mkdir(parents=True, exist_ok=True)
-
+                fh.write(f"{num}\t{key}\t{key2}%\t{value2}\t{query_mem[key][key2]}\n")
 
     def save_query_time(self, query_time, filename):
         fh = open(filename, "w")
@@ -201,7 +195,6 @@ class BenchTabix:
                 result = subprocess.run(["/usr/bin/time", verbose, "tabix", f"{reffile}", f"{searchstr}"],
                     stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
-
                 # Extract RSS from the output
                 stderr_output = result.stderr
 
@@ -254,25 +247,25 @@ class BenchTabix:
     def query_intervals(self, label, num):
         reffiles = self.get_reffiles(label) # get the reference files
         queryfiles = self.get_queryfiles(label)
+        dtype = self.options.datatype
 
-        truth = self.load_truth(reffiles[self.options.datatype]["truth"]) # load the ground truth
+        truth = self.load_truth(reffiles[dtype]["truth"]) # load the ground truth
 
         query_times = {}
         query_memory = {}
         query_precision = self.init_stat()
 
-        for qtype in queryfiles[self.options.datatype].keys():
+        for qtype in queryfiles[dtype].keys():
             query_times[qtype] = {}
             query_memory[qtype] = {}
-            for subset in queryfiles[self.options.datatype][qtype]:
+            for subset in queryfiles[dtype][qtype]:
                 print(f"\rSearching for overlaps in {subset}% of {num//10} '{qtype}' intervals...", end="")
                 # query_times[qtype][subset] = 0.0
-                fh = open(queryfiles[self.options.datatype][qtype][subset])
+                fh = open(queryfiles[dtype][qtype][subset])
                 for line in fh:
                     cols = line.strip().split("\t")
                     searchstr = f"{cols[0]}:{cols[1]}-{cols[2]}"
                     tmpfile = tempfile.NamedTemporaryFile(mode='w', delete=False)
-                    dtype = self.options.datatype
                     start_time = time.time() # start taking the time
                     subprocess.run(["tabix", f"{reffiles[dtype]['idx']}", f"{searchstr}"], stdout=tmpfile)
                     end_time = time.time()
@@ -288,7 +281,7 @@ class BenchTabix:
                         if tuple(splitted[0:3]) == truth[key]:
                             found = True
                     fho.close()
-                    qgroup = utility.get_query_group(self.options.datatype, qtype) # intvl or gap
+                    qgroup = utility.get_query_group(dtype, qtype) # intvl or gap
                     if qgroup == "interval":
                         if found:
                             query_precision[subset]["TP"] += 1
@@ -301,83 +294,30 @@ class BenchTabix:
                             query_precision[subset]["TN"] += 1
 
                 # memory measurement
-                # rss_value = self.monitor_memory(reffiles["ref"], queryfiles[self.options.datatype][qtype][subset])
-                # query_memory[qtype][subset] = rss_value
-
+                query_memory[qtype][subset] = self.query_intervals_mem(reffiles[dtype]["ref"],
+                    queryfiles[dtype][qtype][subset])
 
             print("done!")
 
         return query_times, query_memory, query_precision
 
+    def query_intervals_mem(self, reffile, queryfile):
+        # print("\t... measuring memory requirements...")
+        rss_label = utility.get_time_rss_label()
+        verbose = utility.get_time_verbose_flag()
 
-
-
-
-        # for i, (label, num) in enumerate(self.intvlnums.items()):
-        #     # load reference interval and query intervals
-        #     reffiles = self.get_reffiles(refdirs, label)
-        #     queryfiles = self.get_queryfiles(querydirs, label)
-
-        #     print(f"Detect overlaps for {num} intervals...({i+1} out of {len(self.intvlnums)})")
-        #     query_times[label] = {}
-        #     query_precision[label] = self.init_stat()
-        #     query_memory[label] = {}
-
-        #     # load ground truth
-        #     truth = self.load_truth(reffiles["truth"])
-        #     # print(truth)
-        #     #
-
-        #     for qtype in queryfiles.keys():
-        #         query_times[label][qtype] = {}
-        #         query_memory[label][qtype] = {}
-
-        #         for subset in queryfiles[qtype].keys():
-        #             # counter that keeps track of the total number of intervals
-        #             # total_intvls = utility.file_linecounter(queryfiles[qtype][subset])
-        #             print(f"\rSearching for overlaps in {subset}% of {num//10} '{qtype}' intervals...", end="")
-        #             searched_intvls = 0
-        #             time_duration = 0.0
-        #             memory_stats = []
-
-        #             fh = open(queryfiles[qtype][subset])
-        #             for line in fh:
-        #                 cols = line.strip().split("\t")
-        #                 searchstr = f"{cols[0]}:{cols[1]}-{cols[2]}" # chr1:1000-2000
-        #                 tmpfile = tempfile.NamedTemporaryFile(mode='w', delete=False)
-        #                 start_time = time.time() # start taking the time
-        #                 subprocess.run(["tabix", f"{reffiles['ref']}", f"{searchstr}"], stdout=tmpfile)
-        #                 end_time = time.time()
-        #                 time_duration += round(end_time - start_time, 5)
-        #                 tmpfile.close()
-        #                 searched_intvls += 1
-
-        #                 # check File
-        #                 fho = open(tmpfile.name)
-        #                 key = (cols[0], cols[1], cols[2])
-        #                 found = False # flag to check if the interval could be found
-        #                 for line in fho:
-        #                     splitted = line.strip().split("\t")
-        #                     if tuple(splitted[0:3]) == truth[key]:
-        #                         found = True
-        #                 binary = self.get_qtype_bin(qtype)
-        #                 if binary == "pos":
-        #                     if found:
-        #                         query_precision[label][subset]["TP"] += 1
-        #                     else:
-        #                         query_precision[label][subset]["FN"] += 1
-        #                 elif binary == "neg":
-        #                     if found:
-        #                         query_precision[label][subset]["FP"] += 1
-        #                     else:
-        #                         query_precision[label][subset]["TN"] += 1
-        #                 fho.close()
-        #             query_times[label][qtype][subset] = time_duration
-        #             query_precision[label]
-
-        #             # memory measurement
-        #             rss_value = self.monitor_memory(reffiles["ref"], queryfiles[qtype][subset])
-        #             query_memory[label][qtype][subset] = rss_value
-
-        #         print("done!")
-        # return query_times, query_memory, query_precision
+        max_rss = 0
+        # iterate through the query file
+        with open(queryfile, "r") as fh:
+            for line in fh:
+                cols = line.strip().split("\t")
+                searchstr = f"{cols[0]}:{cols[1]}-{cols[2]}"
+                result = subprocess.run(["/usr/bin/time", verbose, "tabix", f"{reffile}", f"{searchstr}"],
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                stderr_output = result.stderr
+                rss_value = utility.get_rss_from_stderr(stderr_output, rss_label)
+                if rss_value:
+                    rss_value_mb = rss_value/(1000000)
+                    if rss_value_mb > max_rss:
+                        max_rss = rss_value_mb
+        return max_rss
