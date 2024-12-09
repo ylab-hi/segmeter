@@ -82,15 +82,26 @@ class SimBED:
         datadirs["ref"] = outdir / "ref"
         datadirs["truth"] = outdir / "truth"
 
-        # positive queries
-        queries_pos = ["perfect", "5p-partial", "3p-partial", "enclosed", "contained"]
-        for query in queries_pos:
-            datadirs[query] = outdir / "query" / query
+        if self.options.datatype == "basic":
+            # positive queries
+            queries_pos = ["perfect", "5p-partial", "3p-partial", "enclosed", "contained"]
+            for query in queries_pos:
+                datadirs[query] = outdir / "query" / query
 
-        # negative queries
-        queries_neg = ["perfect-gap", "left-adjacent-gap", "right-adjacent-gap", "mid-gap1", "mid-gap2"]
-        for query in queries_neg:
-            datadirs[query] = outdir / "query" / query
+            # negative queries
+            queries_neg = ["perfect-gap", "left-adjacent-gap", "right-adjacent-gap", "mid-gap1", "mid-gap2"]
+            for query in queries_neg:
+                datadirs[query] = outdir / "query" / query
+
+        elif self.options.datatype == "complex":
+            # positive queries
+            queries_pos = ["span-intvl"]
+            for query in queries_pos:
+                datadirs[query] = outdir / "query" / query
+
+            queries_neg = ["span-gap"]
+            for query in queries_neg:
+                datadirs[query] = outdir / "query" / query
 
         for key in datadirs.keys():
             datadirs[key].mkdir(parents=True, exist_ok=True)
@@ -199,8 +210,61 @@ class SimBED:
                 fh_chromlens.write(f"{chr}\t{self.chroms['leftgap'][chr]['end']}\n")
             fh_chromlens.close()
 
-    def simulate_basic(self):
-        print()
+    def simulate_basic(self, datafiles, num):
+        for i in range(1, (int(num)//10)+1):
+            intvl_id = f"intvl_{i}" # create an interval ID
+
+            # chrom = random.choice(self.chroms)
+            chrom = self.select_chrom()
+            start_intvl = self.chroms["leftgap"][chrom]["end"]+1
+            intvl_size = random.randint(is_start, is_end)
+            end_intvl = start_intvl + (intvl_size-1)
+            mid_intvl = int((start_intvl + end_intvl) // 2) # determine middle of interval
+
+            gs_start, gs_end = [int(x) for x in self.options.gapsize.split("-")]
+            rightgap = self.simulate_gap(end_intvl+1, end_intvl+1+random.randint(gs_start,gs_end))
+
+            # write reference and perfect query (is the same)
+            datafiles["ref"].write(f"{chrom}\t{start_intvl}\t{end_intvl}\t{intvl_id}\n")
+            datafiles["perfect"].write(f"{chrom}\t{start_intvl}\t{end_intvl}\t{intvl_id}_perfect\n")
+
+            # write partial (5' and 3') overlaps
+            start_partial_5p = random.randint(self.chroms["leftgap"][chrom]["mid"]+1, start_intvl-1)
+            end_partial_5p = random.randint(start_intvl, mid_intvl)
+            datafiles["5p-partial"].write(f"{chrom}\t{start_partial_5p}\t{end_partial_5p}\t{intvl_id}_5p\n")
+            start_partial_3p = random.randint(mid_intvl+1, end_intvl)
+            end_partial_3p = random.randint(end_intvl+1, rightgap["mid"])
+            datafiles["3p-partial"].write(f"{chrom}\t{start_partial_3p}\t{end_partial_3p}\t{intvl_id}_3p\n")
+
+            # write enclosing (containing) intervals (both with respect to query and reference)
+            start_contained = random.randint(start_intvl, mid_intvl) # query enclosed by reference
+            end_contained = random.randint(mid_intvl+1, end_intvl)
+            datafiles["contained"].write(f"{chrom}\t{start_contained}\t{end_contained}\t{intvl_id}_contained\n")
+            start_enclosed = random.randint(self.chroms["leftgap"][chrom]["mid"]+1, start_intvl-1)
+            end_enclosed = random.randint(end_intvl+1, rightgap["mid"])
+            datafiles["enclosed"].write(f"{chrom}\t{start_enclosed}\t{end_enclosed}\t{intvl_id}_enclosed\n")
+
+            # add no overlaps (falls within gaps)
+            datafiles["perfect-gap"].write(f"{chrom}\t{self.chroms['leftgap'][chrom]['start']}\t{self.chroms['leftgap'][chrom]['end']}\t{intvl_id}_perfect-gap\n")
+            end_left_adjacent = random.randint(self.chroms["leftgap"][chrom]["mid"]+1, self.chroms["leftgap"][chrom]["end"])
+            datafiles["left-adjacent-gap"].write(f"{chrom}\t{self.chroms['leftgap'][chrom]['start']}\t{end_left_adjacent}\t{intvl_id}_left-adjacent\n")
+            start_right_adjacent = random.randint(self.chroms["leftgap"][chrom]["start"], self.chroms["leftgap"][chrom]["mid"])
+            datafiles["right-adjacent-gap"].write(f"{chrom}\t{start_right_adjacent}\t{self.chroms['leftgap'][chrom]['end']}\t{intvl_id}_right-adjacent\n")
+            start_mid_gap1 = random.randint(self.chroms["leftgap"][chrom]["start"], self.chroms["leftgap"][chrom]["mid"])
+            end_mid_gap1 = random.randint(self.chroms["leftgap"][chrom]["mid"]+1, self.chroms["leftgap"][chrom]["end"])
+            datafiles["mid-gap1"].write(f"{chrom}\t{start_mid_gap1}\t{end_mid_gap1}\t{intvl_id}_mid-gap1\n")
+            start_mid_gap2 = random.randint(self.chroms["leftgap"][chrom]["start"], self.chroms["leftgap"][chrom]["mid"])
+            end_mid_gap2 = random.randint(self.chroms["leftgap"][chrom]["mid"]+1, self.chroms["leftgap"][chrom]["end"])
+            datafiles["mid-gap2"].write(f"{chrom}\t{start_mid_gap2}\t{end_mid_gap2}\t{intvl_id}_mid-gap2\n")
+
+            # also write entries to truth
+            datafiles["truth"].write(f"{chrom}\t{start_partial_5p}\t{end_partial_5p}\t{chrom}\t{start_intvl}\t{end_intvl}\t{intvl_id}_5p:{intvl_id}\n")
+            datafiles["truth"].write(f"{chrom}\t{start_partial_3p}\t{end_partial_3p}\t{chrom}\t{start_intvl}\t{end_intvl}\t{intvl_id}_3p:{intvl_id}\n")
+            datafiles["truth"].write(f"{chrom}\t{start_contained}\t{end_contained}\t{chrom}\t{start_intvl}\t{end_intvl}\t{intvl_id}_contained:{intvl_id}\n")
+            datafiles["truth"].write(f"{chrom}\t{start_enclosed}\t{end_enclosed}\t{chrom}\t{start_intvl}\t{end_intvl}\t{intvl_id}_enclosed:{intvl_id}\n")
+            datafiles["truth"].write(f"{chrom}\t{start_intvl}\t{end_intvl}\t{chrom}\t{start_intvl}\t{end_intvl}\t{intvl_id}_perfect:{intvl_id}\n")
+
+            self.chroms["leftgap"][chrom] = rightgap # make rightgap to leftgap (for next iteration)
 
     def simulate_complex(self):
         print()
