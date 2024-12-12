@@ -34,7 +34,7 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description="Benchmarking tool for interval files")
     parser.add_argument("modus", type=str, help="modus in benchmarking", choices=["sim", "bench"])
     parser.add_argument("-f", "--format", type=str, help="format of the files to benchmark", choices=["BED"], default="BED")
-    parser.add_argument("-n", "--intvlnums", type=str, help="number of intervals to simulate (should be divisible by 10)", default="10")
+    parser.add_argument("-n", "--intvlnums", type=str, help="""Number of intervals to simulate (should be divisible by 10).""", default="10")
     parser.add_argument("-c", "--clustfrac", type=str, help="fraction of the intervals (as specified in --intvlsnums) that are part of a cluster", default="0.1-0.2")
     parser.add_argument("-m", "--max_chromlen", type=int, help="maximum length of the simulated chromosomes", default=1000000000)
     parser.add_argument("-o", "--outdir", type=str, help="output folder for the benchmark/simulation results. ", required=True)
@@ -42,7 +42,7 @@ def parse_arguments():
     parser.add_argument("-g", "--gapsize", type=str, help="random size of the gaps (min and max) between the intervals", default="100-5000")
     parser.add_argument("-i", "--intvlsize", type=str, help="random size (min and max) of the intervals", default="100-10000")
     # parser.add_argument("-l", "--loglevel", type=str, help="Log level", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], default="INFO")
-    parser.add_argument("-d", "--datatype", type=str, help="datatype of the intervals", choices=["basic", "complex", "custom"], default="basic")
+    # parser.add_argument("-d", "--datatype", type=str, help="datatype of the intervals", choices=["basic", "complex", "custom"], default="basic")
 
     args = parser.parse_args()
 
