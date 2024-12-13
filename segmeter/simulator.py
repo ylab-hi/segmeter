@@ -78,9 +78,24 @@ class SimBED:
         return rightmost
 
     def create_datadirs(self, outdir):
-        datadirs = {}
-        datadirs["ref"] = outdir / "ref"
-        datadirs["truth"] = outdir / "truth"
+        refdir = outdir / "ref"
+
+        truthdirs = {}
+        truthdirs["basic"] = outdir / "basic" / "truth"
+        truthdirs["complex"] = outdir / "complex" / "truth"
+
+        querydirs = {}
+        querydirs["basic"] = {}
+        for query_pos in ["perfect", "5p-partial", "3p-partial", "enclosed", "contained"]
+            querydirs["basic"][query_pos] = outdir / "basic" / "query" / query_pos
+        for query_neg in ["perfect-gap", "left-adjacent-gap", "right-adjacent-gap", "mid-gap1", "mid-gap2"]
+            querydirs["basic"][query_neg] = outdir / "basic" / "query" / query_neg
+
+        refdir.mkdir(parents=True, exist_ok=True)
+        truthdirs["basic"].mkdir(parents=True, exist_ok=True)
+        truthdirs["complex"].mkdir(parents=True, exist_ok=True)
+
+
 
         if self.options.datatype == "basic":
             # positive queries
@@ -108,8 +123,9 @@ class SimBED:
 
         return datadirs
 
-    def open_datafiles(self, datadirs, label):
+    def open_datafiles(self, refdir, datadirs, label):
         datafiles = {}
+        datafiles["ref"] = open(refdir / f"{label}.bed", 'w')
         for key in datadirs.keys():
             datafiles[key] = open(datadirs[key] / f"{label}.bed", 'w')
         return datafiles
@@ -137,15 +153,27 @@ class SimBED:
                 utility.sort_BED(outfile, sorted) # also sort the subset files
 
     def sim_intervals(self):
-        outdir = Path(self.options.outdir) / "sim" / "BED" / self.options.datatype # create base output folder
+        refdir = Path(self.options.outdir) / "sim" / "BED" / "ref"
+        refdir.mkdir(parents=True, exist_ok=True) # create folder for reference intervals
+
+
+        outdir = Path(self.options.outdir) / "sim" / "BED"
+
+
+        / self.options.datatype # create base output folder
         datadirs = self.create_datadirs(outdir)
         is_start, is_end = [int(x) for x in self.options.intvlsize.split("-")]
 
         for label, num in self.intvlnums.items():
             print(f"Simulate intervals for {label}:{num}...")
-            datafiles = self.open_datafiles(datadirs, label)
+            datafiles = self.open_datafiles(refdir, datadirs, label)
 
-            for i in range(1, (int(num)//10)+1):
+            # queriesnum = num * 10 # in basic mode we simulate 10 different queries per interval
+            # int(num)//10 # in basic mode we simulate 10 different queries per interval
+            # if self.options.datatype == "basic":
+            #     intvl_num = int(num)//
+
+            for i in range(1, (int(num))+1):
                 chrom = self.select_chrom()
                 intvl = {} # create/simulate new interval
                 intvl["id"] = f"intvl_{i}" # create an interval ID
