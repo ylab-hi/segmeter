@@ -17,7 +17,7 @@ def main():
 
     if options.modus == "sim":
         bed = SimBase(options, intvlnums)
-        bed.format.simulate()
+        bed.format.sim_intervals()
     elif options.modus == "bench":
         bench = BenchBase(options, intvlnums)
 
