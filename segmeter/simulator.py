@@ -111,34 +111,46 @@ class SimBED:
         datafiles["truth-complex"] = open(truthdirs["complex"] / f"{label}.bed", 'w')
         datafiles["queries-basic"] = {}
         for key in querydirs["basic"].keys():
-            datafiles["queries"][key] = open(querydirs["basic"][key] / f"{label}.bed", 'w')
+            datafiles["queries-basic"][key] = open(querydirs["basic"][key] / f"{label}.bed", 'w')
         datafiles["queries-complex"] = {}
         for key in querydirs["complex"].keys():
-            datafiles["queries"][key] = open(querydirs["complex"][key] / f"{label}.bed", 'w')
+            datafiles["queries-complex"][key] = open(querydirs["complex"][key] / f"{label}.bed", 'w')
 
         return datafiles
 
-    def close_datafiles(self, datafiles):
-        for key in datafiles.keys():
-            datafiles[key].close()
+    def close_datafiles_basic(self, datafiles):
+        """Close all (basic) datafiles"""
+        datafiles["truth-basic"].close()
+        for key in datafiles["queries-basic"].keys():
+            datafiles["queries-basic"][key].close()
 
-    def sort_datafiles(self, datadirs, label):
-        for key in datadirs.keys():
-            infile = datadirs[key] / f"{label}.bed"
-            sorted = datadirs[key] / f"{label}_sorted.bed"
-            utility.sort_BED(infile, sorted)
+    def close_datafiles_complex(self, datafiles):
+        """Close all (complex) datafiles"""
+        datafiles["truth-complex"].close()
+        for key in datafiles["queries-complex"].keys():
+            datafiles["queries-complex"][key].close()
 
-    def subset_datafiles(self, datadirs, label, num):
-        for key in datadirs.keys():
-            if (key == "ref" or key == "truth"):
-                continue
-            infile = datadirs[key] / f"{label}.bed"
+    def sort_datafiles(self, datatype, label, truthdirs, querydirs):
+        """Sort some of the datafiles
+        datatype -> [basic, complex]"""
+        truth_in = truthdirs[datatype] / f"{label}.bed"
+        truth_out = truthdirs[datatype] / f"{label}_sorted.bed"
+        utility.sort_BED(truth_in, truth_out)
+
+        for key in querydirs[datatype].keys():
+            infile = querydirs[datatype][key] / f"{label}.bed"
+            outfile = querydirs[datatype][key] / f"{label}_sorted.bed"
+            utility.sort_BED(infile, outfile)
+
+    def subset_basic_queryfiles(self, querydirs, label, num):
+        for key in querydirs["basic"].keys():
+            infile = querydirs["basic"][key] / f"{label}.bed"
             for subset in range(10,101,10):
-                outfile = datadirs[key] / f"{label}_{subset}p.bed"
+                outfile = querydirs["basic"][key] / f"{label}_{subset}p.bed"
                 with open(outfile, 'w') as subset_bed:
                     subprocess.run(["shuf", "-n", str(int(num * (subset / 100))), str(infile)], stdout=subset_bed)
-                sorted = datadirs[key] / f"{label}_{subset}p_sorted.bed"
-                utility.sort_BED(outfile, sorted) # also sort the subset files
+                sorted = querydirs["basic"][key] / f"{label}_{subset}p_sorted.bed"
+                utility.sort_BED(outfile, sorted)
 
     def sim_intervals(self):
         outpath = Path(self.options.outdir) / "sim" / "BED"
@@ -148,11 +160,6 @@ class SimBED:
         for label, num in self.intvlnums.items():
             print(f"Simulate intervals for {label}:{num}...")
             datafiles = self.open_datafiles(label, refdir, truthdirs, querydirs)
-
-            # queriesnum = num * 10 # in basic mode we simulate 10 different queries per interval
-            # int(num)//10 # in basic mode we simulate 10 different queries per interval
-            # if self.options.datatype == "basic":
-            #     intvl_num = int(num)//
 
             for i in range(1, (int(num))+1):
                 chrom = self.select_chrom()
@@ -167,24 +174,25 @@ class SimBED:
                 gs_start, gs_end = [int(x) for x in self.options.gapsize.split("-")]
                 rightgap = self.simulate_gap(intvl["end"]+1, intvl["end"]+1+random.randint(gs_start,gs_end))
 
-                if self.options.datatype == "basic":
-                    self.sim_basic_queries(datafiles, intvl, rightgap)
+                self.sim_basic_queries(datafiles, intvl, rightgap)
 
-            self.close_datafiles(datafiles)
-            self.sort_datafiles(datadirs, label) # sort the ref and query files
+            datafiles["ref"].close() # close the reference file
+            self.close_datafiles_basic(datafiles) # close the basic datafiles
+            utility.sort_BED(datafiles["ref"] / f"{label}.bed", datafiles["ref"] / f"{label}_sorted.bed") # sort the reference file
+            self.sort_datafiles("basic", label, truthdirs, querydirs) # sort the truth and query files
 
             # basic queries should also be subsetted
             if self.options.datatype == "basic":
-                self.subset_datafiles(datadirs, label, num)
+                self.subset_basic_queryfiles(querydirs, label, num)
 
             # create file for chrlens
-            fh_chromlens = open(outdir / f"{label}_chromlens.txt",'w')
-            for chr in self.chroms["leftgap"]:
-                if self.chroms["leftgap"][chr] != {}:
-                    fh_chromlens.write(f"{chr}\t{self.chroms['leftgap'][chr]['end']}\n")
-                else:
-                    fh_chromlens.write(f"{chr}\t0\n")
-            fh_chromlens.close()
+            # fh_chromlens = open(outdir / f"{label}_chromlens.txt",'w')
+            # for chr in self.chroms["leftgap"]:
+            #     if self.chroms["leftgap"][chr] != {}:
+            #         fh_chromlens.write(f"{chr}\t{self.chroms['leftgap'][chr]['end']}\n")
+            #     else:
+            #         fh_chromlens.write(f"{chr}\t0\n")
+            # fh_chromlens.close()
 
     def sim_basic_queries(self, datafiles, intvl, rightgap):
         intvl_id = intvl["id"]
@@ -195,23 +203,23 @@ class SimBED:
 
         # write reference and perfect query (is the same)
         datafiles["ref"].write(f"{chrom}\t{start_intvl}\t{end_intvl}\t{intvl_id}\n")
-        datafiles["perfect"].write(f"{chrom}\t{start_intvl}\t{end_intvl}\t{intvl_id}_perfect\n")
+        datafiles["queries-basic"]["perfect"].write(f"{chrom}\t{start_intvl}\t{end_intvl}\t{intvl_id}_perfect\n")
 
         # write partial (5' and 3') overlaps
         start_partial_5p = random.randint(self.chroms["leftgap"][chrom]["mid"]+1, start_intvl-1)
         end_partial_5p = random.randint(start_intvl, mid_intvl)
-        datafiles["5p-partial"].write(f"{chrom}\t{start_partial_5p}\t{end_partial_5p}\t{intvl_id}_5p\n")
+        datafiles["queries-basic"]["5p-partial"].write(f"{chrom}\t{start_partial_5p}\t{end_partial_5p}\t{intvl_id}_5p\n")
         start_partial_3p = random.randint(mid_intvl+1, end_intvl)
         end_partial_3p = random.randint(end_intvl+1, rightgap["mid"])
-        datafiles["3p-partial"].write(f"{chrom}\t{start_partial_3p}\t{end_partial_3p}\t{intvl_id}_3p\n")
+        datafiles["queries-basic"]["3p-partial"].write(f"{chrom}\t{start_partial_3p}\t{end_partial_3p}\t{intvl_id}_3p\n")
 
         # write enclosing (containing) intervals (both with respect to query and reference)
         start_contained = random.randint(start_intvl, mid_intvl) # query enclosed by reference
         end_contained = random.randint(mid_intvl+1, end_intvl)
-        datafiles["contained"].write(f"{chrom}\t{start_contained}\t{end_contained}\t{intvl_id}_contained\n")
+        datafiles["queries-basic"]["contained"].write(f"{chrom}\t{start_contained}\t{end_contained}\t{intvl_id}_contained\n")
         start_enclosed = random.randint(self.chroms["leftgap"][chrom]["mid"]+1, start_intvl-1)
         end_enclosed = random.randint(end_intvl+1, rightgap["mid"])
-        datafiles["enclosed"].write(f"{chrom}\t{start_enclosed}\t{end_enclosed}\t{intvl_id}_enclosed\n")
+        datafiles["queries-basic"]["enclosed"].write(f"{chrom}\t{start_enclosed}\t{end_enclosed}\t{intvl_id}_enclosed\n")
 
         # add no overlaps (falls within gaps)
         datafiles["perfect-gap"].write(f"{chrom}\t{self.chroms['leftgap'][chrom]['start']}\t{self.chroms['leftgap'][chrom]['end']}\t{intvl_id}_perfect-gap\n")
