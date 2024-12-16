@@ -90,9 +90,6 @@ class BenchBase:
                 fh.write(f"{precision}\t{recall}\t{f1}\n")
         fh.close()
 
-class BenchBEDTools:
-    def __init__(self, options, intvlnums):
-        self.options = options
 
 class BenchTabix:
     def __init__(self, options):
