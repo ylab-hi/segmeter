@@ -178,7 +178,7 @@ class SimBED:
 
             datafiles["ref"].close() # close the reference file
             self.close_datafiles_basic(datafiles) # close the basic datafiles
-            utility.sort_BED(datafiles["ref"] / f"{label}.bed", datafiles["ref"] / f"{label}_sorted.bed") # sort the reference file
+            utility.sort_BED(refdir / f"{label}.bed", datafiles["ref"] / f"{label}_sorted.bed") # sort the reference file
             self.sort_datafiles("basic", label, truthdirs, querydirs) # sort the truth and query files
 
             # basic queries should also be subsetted
@@ -222,24 +222,24 @@ class SimBED:
         datafiles["queries-basic"]["enclosed"].write(f"{chrom}\t{start_enclosed}\t{end_enclosed}\t{intvl_id}_enclosed\n")
 
         # add no overlaps (falls within gaps)
-        datafiles["perfect-gap"].write(f"{chrom}\t{self.chroms['leftgap'][chrom]['start']}\t{self.chroms['leftgap'][chrom]['end']}\t{intvl_id}_perfect-gap\n")
+        datafiles["queries-basic"]["perfect-gap"].write(f"{chrom}\t{self.chroms['leftgap'][chrom]['start']}\t{self.chroms['leftgap'][chrom]['end']}\t{intvl_id}_perfect-gap\n")
         end_left_adjacent = random.randint(self.chroms["leftgap"][chrom]["mid"]+1, self.chroms["leftgap"][chrom]["end"])
-        datafiles["left-adjacent-gap"].write(f"{chrom}\t{self.chroms['leftgap'][chrom]['start']}\t{end_left_adjacent}\t{intvl_id}_left-adjacent\n")
+        datafiles["queries-basic"]["left-adjacent-gap"].write(f"{chrom}\t{self.chroms['leftgap'][chrom]['start']}\t{end_left_adjacent}\t{intvl_id}_left-adjacent\n")
         start_right_adjacent = random.randint(self.chroms["leftgap"][chrom]["start"], self.chroms["leftgap"][chrom]["mid"])
-        datafiles["right-adjacent-gap"].write(f"{chrom}\t{start_right_adjacent}\t{self.chroms['leftgap'][chrom]['end']}\t{intvl_id}_right-adjacent\n")
+        datafiles["queries-basic"]["right-adjacent-gap"].write(f"{chrom}\t{start_right_adjacent}\t{self.chroms['leftgap'][chrom]['end']}\t{intvl_id}_right-adjacent\n")
         start_mid_gap1 = random.randint(self.chroms["leftgap"][chrom]["start"], self.chroms["leftgap"][chrom]["mid"])
         end_mid_gap1 = random.randint(self.chroms["leftgap"][chrom]["mid"]+1, self.chroms["leftgap"][chrom]["end"])
-        datafiles["mid-gap1"].write(f"{chrom}\t{start_mid_gap1}\t{end_mid_gap1}\t{intvl_id}_mid-gap1\n")
+        datafiles["queries-basic"]["mid-gap1"].write(f"{chrom}\t{start_mid_gap1}\t{end_mid_gap1}\t{intvl_id}_mid-gap1\n")
         start_mid_gap2 = random.randint(self.chroms["leftgap"][chrom]["start"], self.chroms["leftgap"][chrom]["mid"])
         end_mid_gap2 = random.randint(self.chroms["leftgap"][chrom]["mid"]+1, self.chroms["leftgap"][chrom]["end"])
-        datafiles["mid-gap2"].write(f"{chrom}\t{start_mid_gap2}\t{end_mid_gap2}\t{intvl_id}_mid-gap2\n")
+        datafiles["queries-basic"]["mid-gap2"].write(f"{chrom}\t{start_mid_gap2}\t{end_mid_gap2}\t{intvl_id}_mid-gap2\n")
 
         # also write entries to truth
-        datafiles["truth"].write(f"{chrom}\t{start_partial_5p}\t{end_partial_5p}\t{chrom}\t{start_intvl}\t{end_intvl}\t{intvl_id}_5p:{intvl_id}\n")
-        datafiles["truth"].write(f"{chrom}\t{start_partial_3p}\t{end_partial_3p}\t{chrom}\t{start_intvl}\t{end_intvl}\t{intvl_id}_3p:{intvl_id}\n")
-        datafiles["truth"].write(f"{chrom}\t{start_contained}\t{end_contained}\t{chrom}\t{start_intvl}\t{end_intvl}\t{intvl_id}_contained:{intvl_id}\n")
-        datafiles["truth"].write(f"{chrom}\t{start_enclosed}\t{end_enclosed}\t{chrom}\t{start_intvl}\t{end_intvl}\t{intvl_id}_enclosed:{intvl_id}\n")
-        datafiles["truth"].write(f"{chrom}\t{start_intvl}\t{end_intvl}\t{chrom}\t{start_intvl}\t{end_intvl}\t{intvl_id}_perfect:{intvl_id}\n")
+        datafiles["truth-basic"].write(f"{chrom}\t{start_partial_5p}\t{end_partial_5p}\t{chrom}\t{start_intvl}\t{end_intvl}\t{intvl_id}_5p:{intvl_id}\n")
+        datafiles["truth-basic"].write(f"{chrom}\t{start_partial_3p}\t{end_partial_3p}\t{chrom}\t{start_intvl}\t{end_intvl}\t{intvl_id}_3p:{intvl_id}\n")
+        datafiles["truth-basic"].write(f"{chrom}\t{start_contained}\t{end_contained}\t{chrom}\t{start_intvl}\t{end_intvl}\t{intvl_id}_contained:{intvl_id}\n")
+        datafiles["truth-basic"].write(f"{chrom}\t{start_enclosed}\t{end_enclosed}\t{chrom}\t{start_intvl}\t{end_intvl}\t{intvl_id}_enclosed:{intvl_id}\n")
+        datafiles["truth-basic"].write(f"{chrom}\t{start_intvl}\t{end_intvl}\t{chrom}\t{start_intvl}\t{end_intvl}\t{intvl_id}_perfect:{intvl_id}\n")
 
         self.chroms["leftgap"][chrom] = rightgap # make rightgap to leftgap (for next iteration)
 
