@@ -18,6 +18,7 @@ class SimBED:
         self.options = options
         self.intvlnums = intvlnums
         self.chroms = self.init_chroms()
+        self.intvls = {} # stores number of intervals
 
     def init_chroms(self):
         """Initialize the chromosomes"""
@@ -25,6 +26,7 @@ class SimBED:
         # consists of a list of chromosome that haven't exeeded a maximum length
         chroms["space-left"] = [f'chr{i}' for i in range(1, 23)] + ['chrX', 'chrY']
         chroms["leftgap"] = {} # contains the end position of the last gap (left of interval)
+        chroms["intvl"] = {} # stores the number of intervals on each chromosome
         for chr in chroms["space-left"]:
             chroms["leftgap"][chr] = {}
         return chroms
@@ -161,6 +163,10 @@ class SimBED:
             print(f"Simulate intervals for {label}:{num}...")
             datafiles = self.open_datafiles(label, refdir, truthdirs, querydirs)
 
+            # chroms
+            chroms =
+            # intvls
+
             for i in range(1, (int(num))+1):
                 chrom = self.select_chrom()
                 intvl = {} # create/simulate new interval
@@ -174,25 +180,30 @@ class SimBED:
                 gs_start, gs_end = [int(x) for x in self.options.gapsize.split("-")]
                 rightgap = self.simulate_gap(intvl["end"]+1, intvl["end"]+1+random.randint(gs_start,gs_end))
 
+                # stores interval in intvls
+
+
                 self.sim_basic_queries(datafiles, intvl, rightgap)
 
             datafiles["ref"].close() # close the reference file
             self.close_datafiles_basic(datafiles) # close the basic datafiles
-            utility.sort_BED(refdir / f"{label}.bed", datafiles["ref"] / f"{label}_sorted.bed") # sort the reference file
+            utility.sort_BED(refdir / f"{label}.bed", refdir / f"{label}_sorted.bed") # sort the reference file
             self.sort_datafiles("basic", label, truthdirs, querydirs) # sort the truth and query files
 
             # basic queries should also be subsetted
-            if self.options.datatype == "basic":
-                self.subset_basic_queryfiles(querydirs, label, num)
+            self.subset_basic_queryfiles(querydirs, label, num)
 
             # create file for chrlens
-            # fh_chromlens = open(outdir / f"{label}_chromlens.txt",'w')
-            # for chr in self.chroms["leftgap"]:
-            #     if self.chroms["leftgap"][chr] != {}:
-            #         fh_chromlens.write(f"{chr}\t{self.chroms['leftgap'][chr]['end']}\n")
-            #     else:
-            #         fh_chromlens.write(f"{chr}\t0\n")
-            # fh_chromlens.close()
+            fh_chromlens = open(outpath / f"{label}_chromlens.txt",'w')
+            for chr in self.chroms["leftgap"]:
+                if self.chroms["leftgap"][chr] != {}:
+                    fh_chromlens.write(f"{chr}\t{self.chroms['leftgap'][chr]['end']}\n")
+                else:
+                    fh_chromlens.write(f"{chr}\t0\n")
+            fh_chromlens.close()
+
+            # create file for chrnums
+
 
     def sim_basic_queries(self, datafiles, intvl, rightgap):
         intvl_id = intvl["id"]
