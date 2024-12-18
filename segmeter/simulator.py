@@ -17,7 +17,7 @@ class SimBED:
     def __init__(self, options, intvlnums):
         self.options = options
         self.intvlnums = intvlnums
-        self.chroms = self.init_chroms()
+        # self.chroms = self.init_chroms()
         self.intvls = {} # stores number of intervals
 
     def init_chroms(self):
@@ -29,36 +29,29 @@ class SimBED:
         chroms["intvl"] = {} # stores the number of intervals on each chromosome
         for chr in chroms["space-left"]:
             chroms["leftgap"][chr] = {}
+            chroms["intvl"][chr] = 0
         return chroms
 
-    def select_chrom(self):
+    def select_chrom(self, chroms):
         """Randomly select a chromosome"""
         gs_start, gs_end = [int(x) for x in self.options.gapsize.split("-")] # get the gap size
-        selection = random.choice(self.chroms["space-left"])
-        if self.chroms["leftgap"][selection] == {}: # no interval has been placed on this chromosome (yet)
+        selection = random.choice(chroms["space-left"])
+        if chroms["leftgap"][selection] == {}: # no interval has been placed on this chromosome (yet)
             # therefore simulate a (left) gap
-            self.chroms["leftgap"][selection] = self.simulate_gap(1, random.randint(gs_start, gs_end))
+            chroms["leftgap"][selection] = self.simulate_gap(1, random.randint(gs_start, gs_end))
             return selection
         else:
-            if self.chroms["leftgap"][selection]["end"] < self.options.max_chromlen:
+            if chroms["leftgap"][selection]["end"] < self.options.max_chromlen:
                 return selection
             else:
-                self.chroms["space-left"].remove(selection) # chromosome has reached maximum length
-                allchroms = list(self.chroms["leftgap"].keys()) # get all chromosomes
+                chroms["space-left"].remove(selection) # chromosome has reached maximum length
+                allchroms = list(chroms["leftgap"].keys()) # get all chromosomes
                 scaffolds = [chr for chr in allchroms if "SCF" in allchroms] # filter for SCF
                 scaffold_name = f"SCF{len(scaffolds)+1}"
-                self.chroms["space-left"].append(scaffold_name)
-                self.chroms["leftgap"][scaffold_name] = self.simulate_gap(1, random.randint(gs_start, gs_end))
+                chroms["space-left"].append(scaffold_name)
+                chroms["leftgap"][scaffold_name] = self.simulate_gap(1, random.randint(gs_start, gs_end))
 
             return selection
-
-
-    def init_leftgap(self):
-        leftgap = {}
-        gs_start, gs_end = [int(x) for x in self.options.gapsize.split("-")]
-        for chr in self.chroms:
-            leftgap[chr] = self.simulate_gap(1, random.randint(gs_start, gs_end))
-        return leftgap
 
     def simulate_gap(self, start, end):
         gap = {}
@@ -67,15 +60,20 @@ class SimBED:
         gap["mid"] = int((start + end) // 2)
         return gap
 
-    def update_leftgap(self, chrom, start, end, mid):
-        self.chroms["leftgap"][chrom]["start"] = start
-        self.chroms["leftgap"][chrom]["end"] = end
-        self.chroms["leftgap"][chrom]["mid"] = mid
+    def update_leftgap(self, chroms, chrom, start, end, mid):
+        chroms["leftgap"][chrom]["start"] = start
+        chroms["leftgap"][chrom]["end"] = end
+        chroms["leftgap"][chrom]["mid"] = mid
 
-    def det_rightmost_start(self): # needs to be set to 0
+    def update_intvl_counter(self, chroms, chrom):
+        if chrom not in chroms["intvl"].keys():
+            chroms["intvl"][chrom] = 0
+        chroms["intvl"][chrom] += 1
+
+    def det_rightmost_start(self, chroms): # needs to be set to 0
         """Simulate start position of first interval (aka right-most position)"""
         rightmost = {}
-        for chr in self.chroms:
+        for chr in chroms:
             rightmost[chr] = random.randint(100, 10000)
         return rightmost
 
@@ -164,26 +162,26 @@ class SimBED:
             datafiles = self.open_datafiles(label, refdir, truthdirs, querydirs)
 
             # chroms
-            chroms =
+            chroms = self.init_chroms()
             # intvls
 
             for i in range(1, (int(num))+1):
-                chrom = self.select_chrom()
+                chrom = self.select_chrom(chroms)
                 intvl = {} # create/simulate new interval
                 intvl["id"] = f"intvl_{i}" # create an interval ID
                 intvl["chrom"] = chrom
-                intvl["start"] = self.chroms["leftgap"][chrom]["end"]+1
+                intvl["start"] = chroms["leftgap"][chrom]["end"]+1
                 intvl_size = random.randint(is_start, is_end)
                 intvl["end"] = intvl["start"] + (intvl_size-1)
                 intvl["mid"] = int((intvl["start"] + intvl["end"]) // 2) # determine middle of interval
 
+                # update counter
+                self.update_intvl_counter(chroms, chrom)
+
                 gs_start, gs_end = [int(x) for x in self.options.gapsize.split("-")]
                 rightgap = self.simulate_gap(intvl["end"]+1, intvl["end"]+1+random.randint(gs_start,gs_end))
 
-                # stores interval in intvls
-
-
-                self.sim_basic_queries(datafiles, intvl, rightgap)
+                self.sim_basic_queries(chroms, datafiles, intvl, rightgap)
 
             datafiles["ref"].close() # close the reference file
             self.close_datafiles_basic(datafiles) # close the basic datafiles
@@ -195,17 +193,21 @@ class SimBED:
 
             # create file for chrlens
             fh_chromlens = open(outpath / f"{label}_chromlens.txt",'w')
-            for chr in self.chroms["leftgap"]:
-                if self.chroms["leftgap"][chr] != {}:
-                    fh_chromlens.write(f"{chr}\t{self.chroms['leftgap'][chr]['end']}\n")
+            for chr in chroms["leftgap"]:
+                if chroms["leftgap"][chr] != {}:
+                    fh_chromlens.write(f"{chr}\t{chroms['leftgap'][chr]['end']}\n")
                 else:
                     fh_chromlens.write(f"{chr}\t0\n")
             fh_chromlens.close()
 
             # create file for chrnums
+            fh_chrnums = open(outpath / f"{label}_chrnums.txt",'w')
+            for chr in chroms["intvl"]:
+                fh_chrnums.write(f"{chr}\t{chroms['intvl'][chr]}\n")
+            fh_chrnums.close()
 
 
-    def sim_basic_queries(self, datafiles, intvl, rightgap):
+    def sim_basic_queries(self, chroms, datafiles, intvl, rightgap):
         intvl_id = intvl["id"]
         chrom = intvl["chrom"]
         start_intvl = intvl["start"]
@@ -217,7 +219,7 @@ class SimBED:
         datafiles["queries-basic"]["perfect"].write(f"{chrom}\t{start_intvl}\t{end_intvl}\t{intvl_id}_perfect\n")
 
         # write partial (5' and 3') overlaps
-        start_partial_5p = random.randint(self.chroms["leftgap"][chrom]["mid"]+1, start_intvl-1)
+        start_partial_5p = random.randint(chroms["leftgap"][chrom]["mid"]+1, start_intvl-1)
         end_partial_5p = random.randint(start_intvl, mid_intvl)
         datafiles["queries-basic"]["5p-partial"].write(f"{chrom}\t{start_partial_5p}\t{end_partial_5p}\t{intvl_id}_5p\n")
         start_partial_3p = random.randint(mid_intvl+1, end_intvl)
@@ -228,21 +230,21 @@ class SimBED:
         start_contained = random.randint(start_intvl, mid_intvl) # query enclosed by reference
         end_contained = random.randint(mid_intvl+1, end_intvl)
         datafiles["queries-basic"]["contained"].write(f"{chrom}\t{start_contained}\t{end_contained}\t{intvl_id}_contained\n")
-        start_enclosed = random.randint(self.chroms["leftgap"][chrom]["mid"]+1, start_intvl-1)
+        start_enclosed = random.randint(chroms["leftgap"][chrom]["mid"]+1, start_intvl-1)
         end_enclosed = random.randint(end_intvl+1, rightgap["mid"])
         datafiles["queries-basic"]["enclosed"].write(f"{chrom}\t{start_enclosed}\t{end_enclosed}\t{intvl_id}_enclosed\n")
 
         # add no overlaps (falls within gaps)
-        datafiles["queries-basic"]["perfect-gap"].write(f"{chrom}\t{self.chroms['leftgap'][chrom]['start']}\t{self.chroms['leftgap'][chrom]['end']}\t{intvl_id}_perfect-gap\n")
-        end_left_adjacent = random.randint(self.chroms["leftgap"][chrom]["mid"]+1, self.chroms["leftgap"][chrom]["end"])
-        datafiles["queries-basic"]["left-adjacent-gap"].write(f"{chrom}\t{self.chroms['leftgap'][chrom]['start']}\t{end_left_adjacent}\t{intvl_id}_left-adjacent\n")
-        start_right_adjacent = random.randint(self.chroms["leftgap"][chrom]["start"], self.chroms["leftgap"][chrom]["mid"])
-        datafiles["queries-basic"]["right-adjacent-gap"].write(f"{chrom}\t{start_right_adjacent}\t{self.chroms['leftgap'][chrom]['end']}\t{intvl_id}_right-adjacent\n")
-        start_mid_gap1 = random.randint(self.chroms["leftgap"][chrom]["start"], self.chroms["leftgap"][chrom]["mid"])
-        end_mid_gap1 = random.randint(self.chroms["leftgap"][chrom]["mid"]+1, self.chroms["leftgap"][chrom]["end"])
+        datafiles["queries-basic"]["perfect-gap"].write(f"{chrom}\t{chroms['leftgap'][chrom]['start']}\t{chroms['leftgap'][chrom]['end']}\t{intvl_id}_perfect-gap\n")
+        end_left_adjacent = random.randint(chroms["leftgap"][chrom]["mid"]+1, chroms["leftgap"][chrom]["end"])
+        datafiles["queries-basic"]["left-adjacent-gap"].write(f"{chrom}\t{chroms['leftgap'][chrom]['start']}\t{end_left_adjacent}\t{intvl_id}_left-adjacent\n")
+        start_right_adjacent = random.randint(chroms["leftgap"][chrom]["start"], chroms["leftgap"][chrom]["mid"])
+        datafiles["queries-basic"]["right-adjacent-gap"].write(f"{chrom}\t{start_right_adjacent}\t{chroms['leftgap'][chrom]['end']}\t{intvl_id}_right-adjacent\n")
+        start_mid_gap1 = random.randint(chroms["leftgap"][chrom]["start"], chroms["leftgap"][chrom]["mid"])
+        end_mid_gap1 = random.randint(chroms["leftgap"][chrom]["mid"]+1, chroms["leftgap"][chrom]["end"])
         datafiles["queries-basic"]["mid-gap1"].write(f"{chrom}\t{start_mid_gap1}\t{end_mid_gap1}\t{intvl_id}_mid-gap1\n")
-        start_mid_gap2 = random.randint(self.chroms["leftgap"][chrom]["start"], self.chroms["leftgap"][chrom]["mid"])
-        end_mid_gap2 = random.randint(self.chroms["leftgap"][chrom]["mid"]+1, self.chroms["leftgap"][chrom]["end"])
+        start_mid_gap2 = random.randint(chroms["leftgap"][chrom]["start"], chroms["leftgap"][chrom]["mid"])
+        end_mid_gap2 = random.randint(chroms["leftgap"][chrom]["mid"]+1, chroms["leftgap"][chrom]["end"])
         datafiles["queries-basic"]["mid-gap2"].write(f"{chrom}\t{start_mid_gap2}\t{end_mid_gap2}\t{intvl_id}_mid-gap2\n")
 
         # also write entries to truth
@@ -252,7 +254,7 @@ class SimBED:
         datafiles["truth-basic"].write(f"{chrom}\t{start_enclosed}\t{end_enclosed}\t{chrom}\t{start_intvl}\t{end_intvl}\t{intvl_id}_enclosed:{intvl_id}\n")
         datafiles["truth-basic"].write(f"{chrom}\t{start_intvl}\t{end_intvl}\t{chrom}\t{start_intvl}\t{end_intvl}\t{intvl_id}_perfect:{intvl_id}\n")
 
-        self.chroms["leftgap"][chrom] = rightgap # make rightgap to leftgap (for next iteration)
+        chroms["leftgap"][chrom] = rightgap # make rightgap to leftgap (for next iteration)
 
     def simulate_complex(self):
         print()
