@@ -206,6 +206,8 @@ class SimBED:
                 fh_chrnums.write(f"{chr}\t{chroms['intvl'][chr]}\n")
             fh_chrnums.close()
 
+            self.sim_complex_queries(refdir / f"{label}_sorted.bed")
+
 
     def sim_basic_queries(self, chroms, datafiles, intvl, rightgap):
         intvl_id = intvl["id"]
@@ -256,5 +258,20 @@ class SimBED:
 
         chroms["leftgap"][chrom] = rightgap # make rightgap to leftgap (for next iteration)
 
-    def simulate_complex(self):
-        print()
+    def simulate_complex(self, reffile):
+        fh = open(reffile, 'r')
+        curr_chr = ""
+        intvls = []
+        for line in fh:
+            splitted = line.strip().split("\t")
+            chr = splitted[0]
+
+            if curr_chr != "" and curr_chr != chr:
+                # simulate mult intervals
+                #
+
+                intvl = []
+
+
+            intvls.append(splitted)
+            curr_chr = chr
