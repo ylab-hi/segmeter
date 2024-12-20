@@ -206,7 +206,7 @@ class SimBED:
                 fh_chrnums.write(f"{chr}\t{chroms['intvl'][chr]}\n")
             fh_chrnums.close()
 
-            self.sim_complex_queries(refdir / f"{label}_sorted.bed")
+            self.sim_complex_queries(refdir, querydir, label)
 
 
     def sim_basic_queries(self, chroms, datafiles, intvl, rightgap):
@@ -258,7 +258,10 @@ class SimBED:
 
         chroms["leftgap"][chrom] = rightgap # make rightgap to leftgap (for next iteration)
 
-    def simulate_complex(self, reffile):
+    def simulate_complex_queries(self, refdir, querydir, label):
+        reffile = refdir / f"{label}.bed" # reference file
+        queryfile = querydir["complex"]["mult"] / f"{label}.bed"
+
         fh = open(reffile, 'r')
         curr_chr = ""
         intvls = []
@@ -268,7 +271,21 @@ class SimBED:
 
             if curr_chr != "" and curr_chr != chr:
                 # simulate mult intervals
-                #
+
+                # determine the number of intervals (for )
+                intvlnum = len(intvls)
+                if intvlnum > 1: # we need at least two intervals to simulate a complex query
+                    for i in range(2, intvlnum+1):
+                        start_intvl = random.randint(0, intvlnum-i)
+                        end_intvl = start_intvl + i - 1
+
+                        # determine the number of intervals to be used for the complex query
+                        query_start = intvls[start_intvl][1]
+                        query_end = intvls[end_intvl][2]
+
+
+                for i in range(2, intvlnum+1):
+                    query_start = random.randint()
 
                 intvl = []
 
