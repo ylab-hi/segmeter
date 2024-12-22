@@ -200,12 +200,6 @@ class SimBED:
                     fh_chromlens.write(f"{chr}\t0\n")
             fh_chromlens.close()
 
-            # create file for chrnums
-            fh_chrnums = open(outpath / f"{label}_chrnums.txt",'w')
-            for chr in chroms["intvl"]:
-                fh_chrnums.write(f"{chr}\t{chroms['intvl'][chr]}\n")
-            fh_chrnums.close()
-
             self.sim_complex_queries(refdir, truthdirs, querydirs, label)
 
     def sim_basic_queries(self, chroms, datafiles, intvl, rightgap):
