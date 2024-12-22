@@ -206,8 +206,7 @@ class SimBED:
                 fh_chrnums.write(f"{chr}\t{chroms['intvl'][chr]}\n")
             fh_chrnums.close()
 
-            self.sim_complex_queries(refdir, querydir, label)
-
+            self.sim_complex_queries(refdir, truthdirs, querydirs, label)
 
     def sim_basic_queries(self, chroms, datafiles, intvl, rightgap):
         intvl_id = intvl["id"]
@@ -258,9 +257,13 @@ class SimBED:
 
         chroms["leftgap"][chrom] = rightgap # make rightgap to leftgap (for next iteration)
 
-    def simulate_complex_queries(self, refdir, querydir, label):
-        reffile = refdir / f"{label}.bed" # reference file
-        queryfile = querydir["complex"]["mult"] / f"{label}.bed"
+    def sim_complex_queries(self, refdir, truthdirs, querydirs, label):
+        reffile = refdir / f"{label}_sorted.bed" # reference file
+        queryfile = querydirs["complex"]["mult"] / f"{label}.bed"
+        truthfile = truthdirs["complex"] / f"{label}.bed"
+
+        fh_query = open(queryfile, 'w')
+        fh_truth = open(truthfile, 'w')
 
         fh = open(reffile, 'r')
         curr_chr = ""
@@ -270,25 +273,30 @@ class SimBED:
             chr = splitted[0]
 
             if curr_chr != "" and curr_chr != chr:
-                # simulate mult intervals
-
-                # determine the number of intervals (for )
-                intvlnum = len(intvls)
-                if intvlnum > 1: # we need at least two intervals to simulate a complex query
-                    for i in range(2, intvlnum+1):
-                        start_intvl = random.randint(0, intvlnum-i)
-                        end_intvl = start_intvl + i - 1
-
-                        # determine the number of intervals to be used for the complex query
-                        query_start = intvls[start_intvl][1]
-                        query_end = intvls[end_intvl][2]
-
-
-                for i in range(2, intvlnum+1):
-                    query_start = random.randint()
-
-                intvl = []
-
+                self.sim_overlaps(intvls, fh_query, fh_truth)
+                intvls = []
 
             intvls.append(splitted)
             curr_chr = chr
+
+        if len(intvls) > 1: # simulate if still intervals left
+            self.sim_overlaps(intvls, fh_query, fh_truth)
+
+        fh.close()
+        fh_query.close()
+        fh_truth.close()
+
+    def sim_overlaps(self, intvls, fh_query, fh_truth):
+        intvlnum = len(intvls)
+        if intvlnum > 1:
+            chr = intvls[0][0]
+            for i in range(2, intvlnum+1):
+                start_intvl = random.randint(0, intvlnum-i)
+                end_intvl = start_intvl + i - 1
+
+                #
+                query_start = intvls[start_intvl][1]
+                query_end = intvls[end_intvl][2]
+
+                fh_query.write(f"{chr}\t{query_start}\t{query_end}\tmult_{i}\n")
+                fh_truth.write(f"{chr}\t{query_start}\t{query_end}\tmult_{i}\t{i}\n")
