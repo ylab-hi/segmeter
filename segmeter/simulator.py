@@ -113,8 +113,8 @@ class SimBED:
         for key in querydirs["basic"].keys():
             datafiles["queries-basic"][key] = open(querydirs["basic"][key] / f"{label}.bed", 'w')
         datafiles["queries-complex"] = {}
-        for key in querydirs["complex"].keys():
-            datafiles["queries-complex"][key] = open(querydirs["complex"][key] / f"{label}.bed", 'w')
+        # for key in querydirs["complex"].keys():
+        #     datafiles["queries-complex"][key] = open(querydirs["complex"][key] / f"{label}.bed", 'w')
 
         return datafiles
 
