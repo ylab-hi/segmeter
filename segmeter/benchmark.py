@@ -35,8 +35,8 @@ class BenchBase:
             # query_time, query_memory, query_precision = self.tool.query_intervals()
 
 
-        elif options.tool == "bedtools":
-            self.tool = BenchBEDTools(options, intvlnums)
+        # elif options.tool == "bedtools":
+        #     self.tool = BenchBEDTools(options, intvlnums)
 
         # query_time_file = Path(options.outdir) / "bench" / f"{options.tool}_query_time.tsv"
         # self.save_query_time(query_time, query_time_file)
@@ -100,24 +100,25 @@ class BenchTabix:
     def get_refdirs(self):
         """returns the input directories for the reference and query intervals"""
         refdirs = {}
-        refdirs[self.options.datatype] = {} # if its simple or clustered
-        refdirs[self.options.datatype]["ref"] = Path(self.options.outdir) / "sim" / self.options.format / self.options.datatype / "ref"
-        refdirs[self.options.datatype]["idx"] = Path(self.options.outdir) / "bench" / "tabix" / self.options.datatype / "idx"
-        refdirs[self.options.datatype]["idx"].mkdir(parents=True, exist_ok=True) # need to be created (store the index files)
-        refdirs[self.options.datatype]["truth"] = Path(self.options.outdir) / "sim" / self.options.format / self.options.datatype / "truth"
+        refdirs["ref"] = Path(self.options.outdir) / "sim" / self.options.format / "ref"
+        refdirs["idx"] = Path(self.options.outdir) / "bench" / "tabix" / "idx"
+        refdirs["idx"].mkdir(parents=True, exist_ok=True) # need to be created (store the index files)
+        refdirs["truth-basic"] = Path(self.options.outdir) / "sim" / self.options.format / "basic" / "truth"
+        refdirs["truth-complex"] = Path(self.options.outdir) / "sim" / self.options.format / "complex" / "truth"
+
         return refdirs
 
     def get_querydirs(self):
         """returns the directories for the query intervals"""
         querydirs = {}
-        if self.options.datatype == "basic":
-            querydirs["basic"] = {}
-            for query in ["perfect", "5p-partial", "3p-partial", "enclosed", "contained"]:
-                querydirs["basic"][query] = Path(self.options.outdir) / "sim" / self.options.format / self.options.datatype / "query" / query
-            for query in ["perfect-gap", "left-adjacent-gap", "right-adjacent-gap", "mid-gap1", "mid-gap2"]:
-                querydirs["basic"][query] = Path(self.options.outdir) / "sim" / self.options.format / self.options.datatype / "query" / query
-        elif self.options.datatype == "complex":
-            querydirs["complex"] = {}
+        querydirs["basic"] = {}
+        for query in ["perfect", "5p-partial", "3p-partial", "enclosed", "contained"]:
+            querydirs["basic"][query] = Path(self.options.outdir) / "sim" / self.options.format / "basic" / "query" / query
+        for query in ["perfect-gap", "left-adjacent-gap", "right-adjacent-gap", "mid-gap1", "mid-gap2"]:
+            querydirs["basic"][query] = Path(self.options.outdir) / "sim" / self.options.format / "basic" / "query" / query
+        querydirs["complex"] = {}
+        for query in ["mult"]:
+            querydirs["complex"]["mult"] = Path(self.options.outdir) / "sim" / self.options.format / "complex" / "query" / query
 
         return querydirs
 
@@ -125,29 +126,26 @@ class BenchTabix:
         reffiles = {}
         if self.options.datatype == "basic":
             reffiles = {}
-            reffiles["basic"] = {
-                "ref": self.refdirs[self.options.datatype]["ref"] / f"{label}.bed.gz",
-                "truth": self.refdirs[self.options.datatype]["truth"] / f"{label}.bed",
-                "idx": self.refdirs[self.options.datatype]["idx"] / f"{label}.bed.gz"
-            }
-        if self.options.datatype == "complex":
-            reffiles = {}
+            reffiles["ref"] = self.refdirs["ref"] / f"{label}.bed.gz"
+            reffiles["idx"] = self.refdirs["idx"] / f"{label}.bed.gz"
+            reffiles["truth-basic"] = self.refdirs["truth-basic"] / f"{label}.bed"
+            reffiles["truth-complex"] = self.refdirs["truth-complex"] / f"{label}.bed"
+
         return reffiles
 
     def get_queryfiles(self, label):
         """return the query files for the different query types according to the label"""
         queryfiles = {}
-        queryfiles[self.options.datatype] = {}
-        if self.options.datatype == "basic":
-            for query in self.querydirs["basic"].keys():
-                queryfiles["basic"][query] = {}
-                for subset in range(10, 101, 10):
-                    queryfiles["basic"][query][subset] = self.querydirs["basic"][query] / f"{label}_{subset}p.bed"
-        # elif self.options.datatype == "complex":
-        #     queryfiles["complex"]["int = {}
+        queryfiles["basic"] = {}
+        queryfiles["complex"] = {}
+        for query in self.querydirs["basic"].keys():
+            queryfiles["basic"][query] = {}
+            for subset in range(10, 101, 10):
+                queryfiles["basic"][query][subset] = self.querydirs["basic"][query] / f"{label}_{subset}p.bed"
+        for query in self.querydirs["complex"].keys():
+            queryfiles["complex"][query] = self.querydirs["complex"][query] / f"{label}.bed"
 
         return queryfiles
-
 
     def init_stat(self):
         """this function initializes the precision fields for the different query types"""
