@@ -211,12 +211,12 @@ class BenchTabix:
         # load truths
         truth = self.load_truth(reffiles["truth-basic"], reffiles["truth-complex"])
 
-
-        # truth = self.load_truth(reffiles[dtype]["truth"]) # load the ground truth
-
         query_times = {}
         query_memory = {}
         query_precision = self.init_stat()
+
+        for qtype in queryfiles["basic"].keys():
+
 
         for qtype in queryfiles[dtype].keys():
             query_times[qtype] = {}
