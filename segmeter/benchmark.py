@@ -154,12 +154,23 @@ class BenchTabix:
             fields[subset] = {"TP": 0, "FP": 0, "TN": 0, "FN":0}
         return fields
 
-    def load_truth(self, filename):
+    def load_truth(self, truth_basic_file, truth_complex_file):
         truth = {}
-        fh = open(filename)
-        for line in fh:
+        truth["basic"] = {}
+        truth["complex"] = {}
+
+        fh_basic = open(truth_basic_file)
+        for line in fh_basic:
             fields = line.strip().split("\t")
             truth[(fields[0], fields[1], fields[2])] = (fields[3], fields[4], fields[5])
+        fh_basic.close()
+
+        fh_complex = open(truth_complex_file)
+        for line in fh_complex:
+            fields = line.strip().split("\t")
+            truth[(fields[0], fields[1], fields[2])] = fields[4] # only store number of records
+        fh_complex.close()
+
         return truth
 
     def create_index(self, label, num):
@@ -196,9 +207,12 @@ class BenchTabix:
     def query_intervals(self, label, num):
         reffiles = self.get_reffiles(label) # get the reference files
         queryfiles = self.get_queryfiles(label)
-        dtype = self.options.datatype
 
-        truth = self.load_truth(reffiles[dtype]["truth"]) # load the ground truth
+        # load truths
+        truth = self.load_truth(reffiles["truth-basic"], reffiles["truth-complex"])
+
+
+        # truth = self.load_truth(reffiles[dtype]["truth"]) # load the ground truth
 
         query_times = {}
         query_memory = {}
