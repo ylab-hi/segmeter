@@ -216,7 +216,17 @@ class BenchTabix:
         query_precision = self.init_stat()
 
         for qtype in queryfiles["basic"].keys():
-
+            query_times[qtype] = {}
+            query_memory[qtype] = {}
+            for subset in queryfiles["basic"][qtype].keys():
+                print(f"\rSearching for overlaps in {subset}% of {num} '{qtype}' intervals...", end="")
+                # query_times[qtype][subset] = 0.0
+                fh = open(queryfiles["basic"][qtype][subset])
+                for line in fh:
+                    cols = line.strip().split("\t")
+                    searchstr = f"{cols[0]}:{cols[1]}-{cols[2]}"
+                    tmpfile = tempfile.NamedTemporaryFile(mode='w', delete=False)
+                    start_time = time.time()
 
         for qtype in queryfiles[dtype].keys():
             query_times[qtype] = {}
