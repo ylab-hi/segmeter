@@ -221,6 +221,7 @@ class BenchTabix:
 
             for subset in queryfiles["basic"][qtype]:
                 print(f"\Searching for overlaps in {subset}% of {num} '{qtype}' intervals...", end="")
+                fh = open(queryfiles["basic"][qtype][subset])
 
         for qtype in queryfiles[dtype].keys():
             query_times[qtype] = {}
