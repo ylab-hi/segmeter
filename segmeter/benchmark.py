@@ -215,27 +215,44 @@ class BenchTabix:
         query_memory = {}
         query_precision = self.init_stat()
 
-        for qtype in queryfiles["basic"].keys():
-            query_times[qtype] = {}
-            query_memory[qtype] = {}
+        for dtype in ["basic", "complex"]:
+            for qtype in queryfiles[dtype].keys():
+                query_times[qtype] = {}
+                query_memory[qtype] = {}
 
-            for subset in queryfiles["basic"][qtype]:
-                print(f"\Searching for overlaps in {subset}% of {num} '{qtype}' intervals...", end="")
-                fh = open(queryfiles["basic"][qtype][subset])
-                for line in fh:
-                    cols = line.strip().split("\t")
-                    searchstr = f"{cols[0]}:{cols[1]}-{cols[2]}"
-                    tmpfile = tempfile.NamedTemporaryFile(mode='w', delete=False)
-                    start_time = time.time() # start taking the time
-                    subprocess.run(["tabix", f"{reffiles['idx']}", f"{searchstr}"], stdout=tmpfile)
-                    end_time = time.time()
-                    query_times[qtype][subset] = round(end_time - start_time, 5)
-                    tmpfile.close()
+                for subset in queryfiles["basic"][qtype]:
+                    print(f"\Searching for overlaps in {subset}% of {num} '{qtype}' intervals...", end="")
+                    fh = open(queryfiles["basic"][qtype][subset])
+                    for line in fh:
+                        cols = line.strip().split("\t")
+                        searchstr = f"{cols[0]}:{cols[1]}-{cols[2]}"
+                        tmpfile = tempfile.NamedTemporaryFile(mode='w', delete=False)
+                        start_time = time.time() # start taking the time
+                        subprocess.run(["tabix", f"{reffiles['idx']}", f"{searchstr}"], stdout=tmpfile)
+                        end_time = time.time()
+                        query_times[qtype][subset] = round(end_time - start_time, 5)
+                        tmpfile.close()
 
-                    # check file (and determine the accuracy of the tool)
-                    fho = open(tmpfile.name)
-                    key = (cols[0], cols[1], cols[2])
-                    found = False # flag to check if the interval could be found
+                        # check file (and determine the accuracy of the tool)
+                        fho = open(tmpfile.name)
+                        key = (cols[0], cols[1], cols[2])
+                        found = False # flag to check if the interval could be found
+                        for line in fho:
+                            splitted = line.strip().split("\t")
+                            if tuple(splitted[0:3]) == truth["basic"][key]:
+                                found = True
+                        fho.close()
+                        qgroup = utility.get_query_group("basic", qtype) # intvl or gap
+                        if qgroup == "interval":
+                            if found:
+                                query_precision[subset]["TP"] += 1
+                            else:
+                                query_precision[subset]["FN"] += 1
+                        elif qgroup == "gap":
+                            if found:
+                                query_precision[subset]["FP"] += 1
+                            else:
+                                query_precision[subset]["TN"] += 1
 
 
         for qtype in queryfiles[dtype].keys():
