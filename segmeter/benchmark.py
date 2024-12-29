@@ -162,13 +162,13 @@ class BenchTabix:
         fh_basic = open(truth_basic_file)
         for line in fh_basic:
             fields = line.strip().split("\t")
-            truth[(fields[0], fields[1], fields[2])] = (fields[3], fields[4], fields[5])
+            truth["basic"][(fields[0], fields[1], fields[2])] = (fields[3], fields[4], fields[5])
         fh_basic.close()
 
         fh_complex = open(truth_complex_file)
         for line in fh_complex:
             fields = line.strip().split("\t")
-            truth[(fields[0], fields[1], fields[2])] = fields[4] # only store number of records
+            truth["complex"][(fields[0], fields[1], fields[2])] = fields[4] # only store number of records
         fh_complex.close()
 
         return truth
@@ -222,6 +222,21 @@ class BenchTabix:
             for subset in queryfiles["basic"][qtype]:
                 print(f"\Searching for overlaps in {subset}% of {num} '{qtype}' intervals...", end="")
                 fh = open(queryfiles["basic"][qtype][subset])
+                for line in fh:
+                    cols = line.strip().split("\t")
+                    searchstr = f"{cols[0]}:{cols[1]}-{cols[2]}"
+                    tmpfile = tempfile.NamedTemporaryFile(mode='w', delete=False)
+                    start_time = time.time() # start taking the time
+                    subprocess.run(["tabix", f"{reffiles['idx']}", f"{searchstr}"], stdout=tmpfile)
+                    end_time = time.time()
+                    query_times[qtype][subset] = round(end_time - start_time, 5)
+                    tmpfile.close()
+
+                    # check file (and determine the accuracy of the tool)
+                    fho = open(tmpfile.name)
+                    key = (cols[0], cols[1], cols[2])
+                    found = False # flag to check if the interval could be found
+
 
         for qtype in queryfiles[dtype].keys():
             query_times[qtype] = {}
