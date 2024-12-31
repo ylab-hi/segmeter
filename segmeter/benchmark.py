@@ -289,11 +289,12 @@ class BenchTabix:
                         fho.close()
                         if linecount == int(truth["complex"][key]):
                             query_precision[qtype]["TP"] += 1
+                        else:
+                            query_precision[qtype]["FP"] += 1
 
-
-
-
-
+                        # repeat the process for the memory measurement
+                        query_memory[dtype][qtype] = self.query_intervals_mem(reffiles["idx"],
+                            queryfiles["complex"][qtype])
 
                 print("done!")
 
