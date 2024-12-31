@@ -154,8 +154,10 @@ class BenchTabix:
     def init_stat(self):
         """this function initializes the precision fields for the different query types"""
         fields = {}
+        fields["basic"] = {}
         for subset in range(10,101,10):
-            fields[subset] = {"TP": 0, "FP": 0, "TN": 0, "FN":0}
+            fields["basic"][subset] = {"TP": 0, "FP": 0, "TN": 0, "FN":0}
+        fields["complex"] = {"TP": 0, "FP": 0}
         return fields
 
     def load_truth(self, truth_basic_file, truth_complex_file):
@@ -252,23 +254,46 @@ class BenchTabix:
                             qgroup = utility.get_query_group("basic", qtype) # intvl or gap
                             if qgroup == "interval":
                                 if found:
-                                    query_precision[subset]["TP"] += 1
+                                    query_precision["basic"][subset]["TP"] += 1
                                 else:
-                                    query_precision[subset]["FN"] += 1
+                                    query_precision["basic"][subset]["FN"] += 1
                             elif qgroup == "gap":
                                 if found:
-                                    query_precision[subset]["FP"] += 1
+                                    query_precision["basic"][subset]["FP"] += 1
                                 else:
-                                    query_precision[subset]["TN"] += 1
+                                    query_precision["basic"][subset]["TN"] += 1
 
                             # repeat the process for the memory measurement
                             query_memory[dtype][qtype][subset] = self.query_intervals_mem(reffiles["idx"],
                                 queryfiles["basic"][qtype][subset])
 
-                # elif dtype == "complex":
-                #     print(f"\rSearching for overlaps in {num} intervals (query: '{qtype}')...", end="")
-                #     fh = open(queryfiles["complex"][qtype])
-                #     for line in fh:
+                elif dtype == "complex":
+                    print(f"\rSearching for overlaps in {num} intervals (query: '{qtype}')...", end="")
+                    fh = open(queryfiles["complex"][qtype])
+                    for line in fh:
+                        cols = line.strip().split("\t")
+                        searchstr = f"{cols[0]}:{cols[1]}-{cols[2]}"
+                        tmpfile = tempfile.NamedTemporaryFile(mode='w', delete=False)
+                        start_time = time.time()
+                        subprocess.run(["tabix", f"{reffiles['idx']}", f"{searchstr}"], stdout=tmpfile)
+                        end_time = time.time()
+                        query_times[dtype][qtype] = round(end_time - start_time, 5)
+                        tmpfile.close()
+
+                        # check file (and determine the accuracy of the tool)
+                        fho = open(tmpfile.name)
+                        key = (cols[0], cols[1], cols[2])
+                        linecount = 0
+                        for line in fho:
+                            linecount += 1
+                        fho.close()
+                        if linecount == int(truth["complex"][key]):
+                            query_precision[qtype]["TP"] += 1
+
+
+
+
+
 
                 print("done!")
 
