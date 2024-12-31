@@ -1,4 +1,5 @@
 from pathlib import Path
+from re import I
 import time
 import subprocess
 import tempfile
@@ -24,7 +25,11 @@ class BenchBase:
                 self.save_idx_stats(num, idx_time, idx_mem, outfile) # write stats for the index creation
                 print(f"Detect overlaps for {num} intervals...({i+1} out of {len(intvlnums)})")
                 query_time, query_memory, query_precision = self.tool.query_intervals(label, num)
-                outfile_query = Path(options.outdir) / "bench" / "tabix" / self.options.datatype / f"{label}_query_stats.txt"
+
+                print(query_time)
+
+
+                outfile_query = Path(options.outdir) / "bench" / "tabix" / f"{label}_query_stats.txt"
                 self.save_query_stats(num, query_time, query_memory, outfile_query)
 
 
@@ -54,10 +59,10 @@ class BenchBase:
 
     def save_query_stats(self, num, query_time, query_mem, filename):
         fh = open(filename, "w")
-        fh.write("intvlnum\tquery_type\tsubset\ttime\tmax_RSS(MB)\n")
-        for key, value in query_time.items():
+        fh.write("intvlnum\tdata_type\tquery_type\ttime\tmax_RSS(MB)\n")
+        for key, value in query_time["basic"].items():
             for key2, value2 in value.items():
-                fh.write(f"{num}\t{key}\t{key2}%\t{value2}\t{query_mem[key][key2]}\n")
+                fh.write(f"{num}\tbasic\t{key}_{key2}%\t{value2}\t{query_mem["basic"][key][key2]}\n")
 
     def save_query_time(self, query_time, filename):
         fh = open(filename, "w")
@@ -124,12 +129,11 @@ class BenchTabix:
 
     def get_reffiles(self, label):
         reffiles = {}
-        if self.options.datatype == "basic":
-            reffiles = {}
-            reffiles["ref"] = self.refdirs["ref"] / f"{label}.bed.gz"
-            reffiles["idx"] = self.refdirs["idx"] / f"{label}.bed.gz"
-            reffiles["truth-basic"] = self.refdirs["truth-basic"] / f"{label}.bed"
-            reffiles["truth-complex"] = self.refdirs["truth-complex"] / f"{label}.bed"
+        reffiles = {}
+        reffiles["ref"] = self.refdirs["ref"] / f"{label}.bed.gz"
+        reffiles["idx"] = self.refdirs["idx"] / f"{label}.bed.gz"
+        reffiles["truth-basic"] = self.refdirs["truth-basic"] / f"{label}.bed"
+        reffiles["truth-complex"] = self.refdirs["truth-complex"] / f"{label}.bed"
 
         return reffiles
 
@@ -175,14 +179,13 @@ class BenchTabix:
 
     def create_index(self, label, num):
         """Tabix creates the index in the same folder as the input file."""
-        dtype = self.options.datatype # buffer datatype
-        print(f"Indexing {self.refdirs[dtype]['ref']} with {label}:{num} intervals...")
+        print(f"Indexing {self.refdirs['ref']} with {label}:{num} intervals...")
         start_time = time.time() # start the timer
         # sort bgzip and create index
-        subprocess.run(["sort", "-k1,1", "-k2,2n", "-k3,3n", f"{self.refdirs[dtype]['ref'] / f'{label}.bed'}"],
-            stdout=open(self.refdirs[dtype]['idx'] / f'{label}.bed', 'w'))
-        subprocess.run(["bgzip", "-f", f"{self.refdirs[dtype]['idx'] / f'{label}.bed'}"])
-        subprocess.run(["tabix", "-f", "-C", "-p", "bed", f"{self.refdirs[dtype]['idx'] / f'{label}.bed'}.gz"])
+        subprocess.run(["sort", "-k1,1", "-k2,2n", "-k3,3n", f"{self.refdirs['ref'] / f'{label}.bed'}"],
+            stdout=open(self.refdirs['idx'] / f'{label}.bed', 'w'))
+        subprocess.run(["bgzip", "-f", f"{self.refdirs['idx'] / f'{label}.bed'}"])
+        subprocess.run(["tabix", "-f", "-C", "-p", "bed", f"{self.refdirs['idx'] / f'{label}.bed'}.gz"])
         end_time = time.time() # end the timer
         duration = round(end_time - start_time, 5)
         return duration
@@ -190,10 +193,9 @@ class BenchTabix:
     def create_index_mem(self, label, num):
         """Monitor the memory usage of the index creation"""
         print("\t... measuring memory requirements...")
-        dtype = self.options.datatype
         rss_label = utility.get_time_rss_label()
         verbose = utility.get_time_verbose_flag()
-        result = subprocess.run(["/usr/bin/time", verbose, "tabix", "-f", "-C", "-p", "bed", f"{self.refdirs[dtype]['idx'] / f'{label}.bed'}.gz"],
+        result = subprocess.run(["/usr/bin/time", verbose, "tabix", "-f", "-C", "-p", "bed", f"{self.refdirs['idx'] / f'{label}.bed'}.gz"],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         stderr_output = result.stderr
         rss_value = utility.get_rss_from_stderr(stderr_output, rss_label)
@@ -225,7 +227,7 @@ class BenchTabix:
 
                 if dtype == "basic":
                     for subset in queryfiles["basic"][qtype]:
-                        print(f"\Searching for overlaps in {subset}% of {num} intervals (basic queries: '{qtype}')...", end="")
+                        print(f"\rSearching for overlaps in {subset}% of {num} basic '{qtype}' queries...", end="")
                         fh = open(queryfiles["basic"][qtype][subset])
                         for line in fh:
                             cols = line.strip().split("\t")
@@ -268,7 +270,7 @@ class BenchTabix:
                 #     fh = open(queryfiles["complex"][qtype])
                 #     for line in fh:
 
-            print("done!")
+                print("done!")
 
         return query_times, query_memory, query_precision
 
