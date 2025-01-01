@@ -200,7 +200,13 @@ class SimBED:
                     fh_chromlens.write(f"{chr}\t0\n")
             fh_chromlens.close()
 
-            self.sim_complex_queries(refdir, truthdirs, querydirs, label)
+            # create file for chrnums (number of intervals on each chromosome)
+            fh_chrnums = open(outpath / f"{label}_chrnums.txt",'w')
+            for chr in chroms["intvl"]:
+                fh_chrnums.write(f"{chr}\t{chroms['intvl'][chr]}\n")
+            fh_chrnums.close()
+
+            self.sim_complex_queries(refdir, truthdirs, querydirs, num, label)
 
     def sim_basic_queries(self, chroms, datafiles, intvl, rightgap):
         intvl_id = intvl["id"]
@@ -251,10 +257,25 @@ class SimBED:
 
         chroms["leftgap"][chrom] = rightgap # make rightgap to leftgap (for next iteration)
 
-    def sim_complex_queries(self, refdir, truthdirs, querydirs, label):
+    def sim_complex_queries(self, refdir, truthdirs, querydirs, num, label):
         reffile = refdir / f"{label}_sorted.bed" # reference file
         queryfile = querydirs["complex"]["mult"] / f"{label}.bed"
         truthfile = truthdirs["complex"] / f"{label}.bed"
+
+        maxchrms = 0 # maximum number of intervals on a chromosome
+        outpath = Path(self.options.outdir) / "sim" / "BED"
+        fh = open(outpath / f"{label}_chrnums.txt")
+        for line in fh:
+            splitted = line.strip().split("\t")
+            if int(splitted[1]) > maxchrms:
+                maxchrms = int(splitted[1])
+        fh.close()
+        bins = {}
+        frac10 = int(maxchrms * 0.1)
+        for i in range(1,11):
+            start = frac10*(i-1)+1
+            end = frac10*i
+            bins[(start, end)] = open(querydirs["complex"]["mult"] / f"{label}_{(i-1)*10+1}p-{i*10}p.bed", 'w')
 
         fh_query = open(queryfile, 'w')
         fh_truth = open(truthfile, 'w')
@@ -267,20 +288,22 @@ class SimBED:
             chr = splitted[0]
 
             if curr_chr != "" and curr_chr != chr:
-                self.sim_overlaps(intvls, fh_query, fh_truth)
+                self.sim_overlaps(intvls, bins, fh_truth)
                 intvls = []
 
             intvls.append(splitted)
             curr_chr = chr
 
         if len(intvls) > 1: # simulate if still intervals left
-            self.sim_overlaps(intvls, fh_query, fh_truth)
+            self.sim_overlaps(intvls, bins, fh_truth)
 
         fh.close()
         fh_query.close()
+        # for i in bins.keys():
+        #     bins[i].close()
         fh_truth.close()
 
-    def sim_overlaps(self, intvls, fh_query, fh_truth):
+    def sim_overlaps(self, intvls, bins, fh_truth):
         intvlnum = len(intvls)
         if intvlnum > 1:
             chr = intvls[0][0]
@@ -288,9 +311,13 @@ class SimBED:
                 start_intvl = random.randint(0, intvlnum-i)
                 end_intvl = start_intvl + i - 1
 
-                #
                 query_start = intvls[start_intvl][1]
                 query_end = intvls[end_intvl][2]
 
-                fh_query.write(f"{chr}\t{query_start}\t{query_end}\tmult_{i}\n")
+                for bnds in bins.keys():
+                    if i >= bnds[0] and i <= bnds[1]:
+                        bins[bnds].write(f"{chr}\t{query_start}\t{query_end}\tmult_{i}\n")
+                        break
+
+                # fh_query.write(f"{chr}\t{query_start}\t{query_end}\tmult_{i}\n")
                 fh_truth.write(f"{chr}\t{query_start}\t{query_end}\tmult_{i}\t{i}\n")
