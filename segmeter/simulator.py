@@ -275,7 +275,7 @@ class SimBED:
         for i in range(1,11):
             start = frac10*(i-1)+1
             end = frac10*i
-            bins[(start, end)] = open(querydirs["complex"]["mult"] / f"{label}_{(i-1)*10+1}p-{i*10}p.bed", 'w')
+            bins[(start, end)] = open(querydirs["complex"]["mult"] / f"{label}_bin{i*10}.bed", 'w')
 
         fh_query = open(queryfile, 'w')
         fh_truth = open(truthfile, 'w')
@@ -299,8 +299,8 @@ class SimBED:
 
         fh.close()
         fh_query.close()
-        # for i in bins.keys():
-        #     bins[i].close()
+        for i in bins.keys():
+            bins[i].close()
         fh_truth.close()
 
     def sim_overlaps(self, intvls, bins, fh_truth):
