@@ -255,11 +255,17 @@ class SimBED:
         datafiles["truth-basic"].write(f"{chrom}\t{start_enclosed}\t{end_enclosed}\t{chrom}\t{start_intvl}\t{end_intvl}\t{intvl_id}_enclosed:{intvl_id}\n")
         datafiles["truth-basic"].write(f"{chrom}\t{start_intvl}\t{end_intvl}\t{chrom}\t{start_intvl}\t{end_intvl}\t{intvl_id}_perfect:{intvl_id}\n")
 
+        datafiles["truth-basic"].write(f"{chrom}\t{chroms['leftgap'][chrom]['start']}\t{chroms['leftgap'][chrom]['end']}\t{chrom}\t{start_intvl}\t{end_intvl}\t{intvl_id}_perfect-gap:{intvl_id}\n")
+        datafiles["truth-basic"].write(f"{chrom}\t{chroms['leftgap'][chrom]['start']}\t{end_left_adjacent}\t{chrom}\t{start_intvl}\t{end_intvl}\t{intvl_id}_left-adjacent:{intvl_id}\n")
+        datafiles["truth-basic"].write(f"{chrom}\t{start_right_adjacent}\t{chroms['leftgap'][chrom]['end']}\t{chrom}\t{start_intvl}\t{end_intvl}\t{intvl_id}_right-adjacent:{intvl_id}\n")
+        datafiles["truth-basic"].write(f"{chrom}\t{start_mid_gap1}\t{end_mid_gap1}\t{chrom}\t{start_intvl}\t{end_intvl}\t{intvl_id}_mid-gap1:{intvl_id}\n")
+        datafiles["truth-basic"].write(f"{chrom}\t{start_mid_gap2}\t{end_mid_gap2}\t{chrom}\t{start_intvl}\t{end_intvl}\t{intvl_id}_mid-gap2:{intvl_id}\n")
+
         chroms["leftgap"][chrom] = rightgap # make rightgap to leftgap (for next iteration)
 
     def sim_complex_queries(self, refdir, truthdirs, querydirs, num, label):
         reffile = refdir / f"{label}_sorted.bed" # reference file
-        queryfile = querydirs["complex"]["mult"] / f"{label}.bed"
+        # queryfile = querydirs["complex"]["mult"] / f"{label}.bed"
         truthfile = truthdirs["complex"] / f"{label}.bed"
 
         maxchrms = 0 # maximum number of intervals on a chromosome
@@ -275,9 +281,9 @@ class SimBED:
         for i in range(1,11):
             start = frac10*(i-1)+1
             end = frac10*i
-            bins[(start, end)] = open(querydirs["complex"]["mult"] / f"{label}_bin{i*10}.bed", 'w')
+            bins[(start, end)] = open(querydirs["complex"]["mult"] / f"{label}_bin{i}.bed", 'w')
 
-        fh_query = open(queryfile, 'w')
+        # fh_query = open(queryfile, 'w')
         fh_truth = open(truthfile, 'w')
 
         fh = open(reffile, 'r')
@@ -298,7 +304,7 @@ class SimBED:
             self.sim_overlaps(intvls, bins, fh_truth)
 
         fh.close()
-        fh_query.close()
+        # fh_query.close()
         for i in bins.keys():
             bins[i].close()
         fh_truth.close()
