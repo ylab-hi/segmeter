@@ -24,7 +24,10 @@ class SimBED:
         """Initialize the chromosomes"""
         chroms = {}
         # consists of a list of chromosome that haven't exeeded a maximum length
-        chroms["space-left"] = [f'chr{i}' for i in range(1, 23)] + ['chrX', 'chrY']
+        chroms["all"] = [f'chr{i}' for i in range(1, 23)] + ['chrX', 'chrY'] # main chromosomes
+        firstchrom = random.choice(chroms["all"]) # randomly select a chromosome
+        chroms["space-left"] = [firstchrom] # start with a single chromosome (e.g. chr1)
+        chroms["all"].remove(firstchrom) # remove the chromosome from the list (e.g. chr1)
         chroms["leftgap"] = {} # contains the end position of the last gap (left of interval)
         chroms["intvl"] = {} # stores the number of intervals on each chromosome
         for chr in chroms["space-left"]:
@@ -35,23 +38,39 @@ class SimBED:
     def select_chrom(self, chroms):
         """Randomly select a chromosome"""
         gs_start, gs_end = [int(x) for x in self.options.gapsize.split("-")] # get the gap size
+        # check if at least one has less than 10 intervals
+        if len(chroms["all"]) > 0: # only if there are (main) chromosomes left
+            minreached = True # check if there are no chromosomes left (with less than 10 intervals)
+            for chr in chroms["intvl"]:
+                if chroms["intvl"][chr] < 10:
+                    minreached = False
+                    break
+            if minreached:
+                nextchrom = random.choice(chroms["all"]) # randomly select a chromosome
+                chroms["all"].remove(nextchrom) # remove the chromosome from the list
+                chroms["space-left"].append(nextchrom) # add a new chromosome
+                chroms["leftgap"][nextchrom] = {} # reset the gap
+                chroms["intvl"][nextchrom] = 0 # reset the interval counter
+
         selection = random.choice(chroms["space-left"])
         if chroms["leftgap"][selection] == {}: # no interval has been placed on this chromosome (yet)
-            # therefore simulate a (left) gap
+            # therefore simulate a gap
             chroms["leftgap"][selection] = self.simulate_gap(1, random.randint(gs_start, gs_end))
             return selection
         else:
-            if chroms["leftgap"][selection]["end"] < self.options.max_chromlen:
-                return selection
-            else:
-                chroms["space-left"].remove(selection) # chromosome has reached maximum length
-                allchroms = list(chroms["leftgap"].keys()) # get all chromosomes
-                scaffolds = [chr for chr in allchroms if "SCF" in allchroms] # filter for SCF
-                scaffold_name = f"SCF{len(scaffolds)+1}"
-                chroms["space-left"].append(scaffold_name)
-                chroms["leftgap"][scaffold_name] = self.simulate_gap(1, random.randint(gs_start, gs_end))
-
-            return selection
+            valid = False
+            while not valid:
+                if chroms["leftgap"][selection]["end"] < self.options.max_chromlen:
+                    return selection
+                else:
+                    chroms["space-left"].remove(selection)
+                    allchroms = list(chroms["leftgap"].keys())
+                    scaffolds = [chr for chr in allchroms if "SCF" in allchroms]
+                    scaffold_name = f"SCF{len(scaffolds)+1}"
+                    chroms["space-left"].append(scaffold_name)
+                    chroms["leftgap"][scaffold_name] = self.simulate_gap(1, random.randint(gs_start, gs_end))
+                    chroms["intvl"][scaffold_name] = 0
+                    return scaffold_name
 
     def simulate_gap(self, start, end):
         gap = {}
@@ -281,7 +300,7 @@ class SimBED:
         for i in range(1,11):
             start = frac10*(i-1)+1
             end = frac10*i
-            bins[(start, end)] = open(querydirs["complex"]["mult"] / f"{label}_bin{i}.bed", 'w')
+            bins[(start, end)] = open(querydirs["complex"]["mult"] / f"{label}_{i*10}bin.bed", 'w')
 
         # fh_query = open(queryfile, 'w')
         fh_truth = open(truthfile, 'w')
