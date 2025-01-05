@@ -4,6 +4,7 @@ import time
 import subprocess
 import tempfile
 
+from idlelib import query
 # Class
 import utility
 
@@ -26,8 +27,8 @@ class BenchBase:
                 print(f"Detect overlaps for {num} intervals...({i+1} out of {len(intvlnums)})")
                 query_time, query_memory, query_precision = self.tool.query_intervals(label, num)
 
-                print(query_time)
-
+                # print(query_time)
+                # print(query_memory)
 
                 outfile_query = Path(options.outdir) / "bench" / "tabix" / f"{label}_query_stats.txt"
                 self.save_query_stats(num, query_time, query_memory, outfile_query)
@@ -60,9 +61,16 @@ class BenchBase:
     def save_query_stats(self, num, query_time, query_mem, filename):
         fh = open(filename, "w")
         fh.write("intvlnum\tdata_type\tquery_type\ttime\tmax_RSS(MB)\n")
-        for key, value in query_time["basic"].items():
+        for key, value in query_time["basic"].items(): # save basic query stats
             for key2, value2 in value.items():
-                fh.write(f"{num}\tbasic\t{key}_{key2}%\t{value2}\t{query_mem["basic"][key][key2]}\n")
+                fh.write(f"{num}\tbasic\t{key}_{key2}%\t{value2}\t{query_mem['basic'][key][key2]}\n")
+        for key, value in query_time["complex"].items(): # save complex query stats
+            # print(key)
+            # print(value)
+            for key2, value2 in value.items():
+                # print(key2)
+                # print(value2)
+                fh.write(f"{num}\tcomplex\t{key}\t{value}\t{query_mem['complex'][key][key2]}\n")
 
     def save_query_time(self, query_time, filename):
         fh = open(filename, "w")
@@ -147,7 +155,9 @@ class BenchTabix:
             for subset in range(10, 101, 10):
                 queryfiles["basic"][query][subset] = self.querydirs["basic"][query] / f"{label}_{subset}p.bed"
         for query in self.querydirs["complex"].keys():
-            queryfiles["complex"][query] = self.querydirs["complex"][query] / f"{label}.bed"
+            queryfiles["complex"][query] = {}
+            for bin in range(10, 101, 10):
+                queryfiles["complex"][query][bin] = self.querydirs["complex"][query] / f"{label}_{bin}bin.bed"
 
         return queryfiles
 
@@ -227,49 +237,11 @@ class BenchTabix:
                 query_times[dtype][qtype] = {}
                 query_memory[dtype][qtype] = {}
 
-                if dtype == "basic":
-                    for subset in queryfiles["basic"][qtype]:
-                        print(f"\rSearching for overlaps in {subset}% of {num} basic '{qtype}' queries...", end="")
-                        fh = open(queryfiles["basic"][qtype][subset])
-                        for line in fh:
-                            cols = line.strip().split("\t")
-                            searchstr = f"{cols[0]}:{cols[1]}-{cols[2]}"
-                            tmpfile = tempfile.NamedTemporaryFile(mode='w', delete=False)
-                            start_time = time.time()
-                            subprocess.run(["tabix", f"{reffiles['idx']}", f"{searchstr}"], stdout=tmpfile)
-                            end_time = time.time()
-                            query_times[dtype][qtype][subset] = round(end_time - start_time, 5)
-                            tmpfile.close()
-
-                            # check file (and determine the accuracy of the tool)
-                            fho = open(tmpfile.name)
-                            key = (cols[0], cols[1], cols[2])
-                            found = False # flag to check if the interval could be found
-                            for line in fho:
-                                splitted = line.strip().split("\t")
-                                if tuple(splitted[0:3]) == truth["basic"][key]:
-                                    found = True
-                            fho.close()
-
-                            qgroup = utility.get_query_group("basic", qtype) # intvl or gap
-                            if qgroup == "interval":
-                                if found:
-                                    query_precision["basic"][subset]["TP"] += 1
-                                else:
-                                    query_precision["basic"][subset]["FN"] += 1
-                            elif qgroup == "gap":
-                                if found:
-                                    query_precision["basic"][subset]["FP"] += 1
-                                else:
-                                    query_precision["basic"][subset]["TN"] += 1
-
-                            # repeat the process for the memory measurement
-                            query_memory[dtype][qtype][subset] = self.query_intervals_mem(reffiles["idx"],
-                                queryfiles["basic"][qtype][subset])
-
-                elif dtype == "complex":
-                    print(f"\rSearching for overlaps in {num} intervals (query: '{qtype}')...", end="")
-                    fh = open(queryfiles["complex"][qtype])
+                for subset in queryfiles[dtype][qtype]:
+                    print(f"\rSearching for overlaps in {subset}% of {num} {dtype} '{qtype}' queries...", end="")
+                    fh = open(queryfiles[dtype][qtype][subset])
+                    query_times[dtype][qtype][subset] = 0 # initialize the time
+                    query_memory[dtype][qtype][subset] = 0 # initialize the memory
                     for line in fh:
                         cols = line.strip().split("\t")
                         searchstr = f"{cols[0]}:{cols[1]}-{cols[2]}"
@@ -277,30 +249,30 @@ class BenchTabix:
                         start_time = time.time()
                         subprocess.run(["tabix", f"{reffiles['idx']}", f"{searchstr}"], stdout=tmpfile)
                         end_time = time.time()
-                        query_times[dtype][qtype] = round(end_time - start_time, 5)
+                        query_times[dtype][qtype][subset] += round(end_time - start_time, 5)
                         tmpfile.close()
 
-                        # check file (and determine the accuracy of the tool)
-                        fho = open(tmpfile.name)
                         key = (cols[0], cols[1], cols[2])
-                        linecount = 0
-                        for line in fho:
-                            linecount += 1
-                        fho.close()
-                        if linecount == int(truth["complex"][key]):
-                            query_precision[qtype]["TP"] += 1
-                        else:
-                            query_precision[qtype]["FP"] += 1
+                        precision = self.get_precision(tmpfile, truth[dtype][key], dtype, qtype)
+                        query_precision[dtype][subset]["TP"] += precision["TP"]
+                        query_precision[dtype][subset]["FP"] += precision["FP"]
+                        if dtype == "basic":
+                            query_precision[dtype][subset]["TN"] += precision["TN"]
+                            query_precision[dtype][subset]["FN"] += precision["FN"]
 
                         # repeat the process for the memory measurement
-                        query_memory[dtype][qtype] = self.query_intervals_mem(reffiles["idx"],
-                            queryfiles["complex"][qtype])
+                        query_memory[dtype][qtype][subset] = self.query_intervals_mem(
+                            reffiles["idx"],
+                            queryfiles[dtype][qtype][subset])
 
                 print("done!")
 
+        print(f"memory {query_memory}")
         return query_times, query_memory, query_precision
 
     def query_intervals_mem(self, reffile, queryfile):
+        print(queryfile)
+
         # print("\t... measuring memory requirements...")
         rss_label = utility.get_time_rss_label()
         verbose = utility.get_time_verbose_flag()
@@ -320,3 +292,41 @@ class BenchTabix:
                     if rss_value_mb > max_rss:
                         max_rss = rss_value_mb
         return max_rss
+
+    def get_precision(self, tmpfile, truth, dtype, qtype):
+        """Check the file for the precision of the tool"""
+        fho = open(tmpfile.name)
+        found = False # flag to check if the interval could be found
+        num_elements = 0
+        for line in fho:
+            splitted = line.strip().split("\t")
+            if dtype == "basic":
+                if tuple(splitted[0:3]) == truth:
+                    found = True
+                elif dtype == "complex":
+                    num_elements += 1
+        fho.close()
+        if dtype == "complex":
+            if num_elements == int(truth):
+                return True
+
+        precision = {"TP": 0, "FP": 0, "TN": 0, "FN": 0}
+        if dtype == "basic":
+            qgroup = utility.get_query_group("basic", qtype)
+            if qgroup == "interval":
+                if found:
+                    precision["TP"] += 1
+                else:
+                    precision["FN"] += 1
+            elif qgroup == "gap":
+                if found:
+                    precision["FP"] += 1
+                else:
+                    precision["TN"] += 1
+        elif dtype == "complex":
+            if found:
+                precision["TP"] += 1
+            else:
+                precision["FP"] += 1
+
+        return precision
