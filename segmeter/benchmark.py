@@ -1,10 +1,8 @@
 from pathlib import Path
-from re import I
 import time
 import subprocess
 import tempfile
 
-from idlelib import query
 # Class
 import utility
 
