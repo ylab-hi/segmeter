@@ -55,11 +55,18 @@ def parse_arguments():
 def det_intvlnums(intvlnums):
     intnums = {}
     nummap = {'K': 1000, 'M': 1000000}
-    for num in intvlnums.split(","):
-        if num[-1] in nummap:
-            intnums[num] = int(num[:-1]) * nummap[num[-1]]
+    if "," in intvlnums:
+        intvlnums = intvlnums.split(",")
+        for num in intvlnums:
+            if num[-1] in nummap:
+                intnums[num] = int(num[:-1]) * nummap[num[-1]]
+            else:
+                intnums[num] = int(num)
+    else:
+        if intvlnums[-1] in nummap:
+            intnums[intvlnums] = int(intvlnums[:-1]) * nummap[intvlnums[-1]]
         else:
-            intnums[num] = int(num)
+            intnums[intvlnums] = int(intvlnums)
     return intnums
 
 
