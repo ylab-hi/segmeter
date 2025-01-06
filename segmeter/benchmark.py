@@ -27,30 +27,12 @@ class BenchBase:
                 print(f"Detect overlaps for {num} intervals...({i+1} out of {len(intvlnums)})")
                 query_time, query_memory, query_precision = self.tool.query_intervals(label, num)
 
-                # print(query_time)
-                # print(query_memory)
-
                 outfile_query = Path(options.outdir) / "bench" / "tabix" / f"{label}_query_stats.txt"
                 self.save_query_stats(num, query_time, query_memory, outfile_query)
 
-
-
-            # index_time = self.tool.create_index()
-            # index_time_file = Path(options.outdir) / 'bench' / f'{options.tool}_index_time.tsv'
-            # self.save_index_time(index_time, index_time_file)
-            # query_time, query_memory, query_precision = self.tool.query_intervals()
-
-
-        # elif options.tool == "bedtools":
-        #     self.tool = BenchBEDTools(options, intvlnums)
-
-        # query_time_file = Path(options.outdir) / "bench" / f"{options.tool}_query_time.tsv"
-        # self.save_query_time(query_time, query_time_file)
-        # query_precision_file = Path(options.outdir) / "bench" / f"{options.tool}_query_precision.tsv"
-        # self.save_query_precision(query_precision, query_precision_file)
-        # query_memory_file = Path(options.outdir) / "bench" / f"{options.tool}_query_memory.tsv"
-        # self.save_query_memory(query_memory, query_memory_file)
-        #
+                outfile_precision = Path(options.outdir) / "bench" / "tabix" / f"{label}_query_precision.txt"
+                print(f"Precision: {query_precision}")
+                self.save_query_prec_stats(num, query_precision, outfile_precision)
 
     def save_idx_stats(self, num, idx_time, idx_mem, filename):
         fh = open(filename, "w")
@@ -65,42 +47,20 @@ class BenchBase:
             for key2, value2 in value.items():
                 fh.write(f"{num}\tbasic\t{key}_{key2}%\t{value2}\t{query_mem['basic'][key][key2]}\n")
         for key, value in query_time["complex"].items(): # save complex query stats
-            # print(key)
-            # print(value)
             for key2, value2 in value.items():
-                # print(key2)
-                # print(value2)
-                fh.write(f"{num}\tcomplex\t{key}\t{value}\t{query_mem['complex'][key][key2]}\n")
+                fh.write(f"{num}\tcomplex\t{key}_{key2}bin\t{value2}\t{query_mem['complex'][key][key2]}\n")
 
-    def save_query_time(self, query_time, filename):
-        fh = open(filename, "w")
-        fh.write("intvlnum\tquery_type\tsubset\ttime\n")
-        for key, value in query_time.items():
-            for key2, value2 in value.items():
-                for key3, value3 in value2.items():
-                    fh.write(f"{key}\t{key2}\t{key3}%\t{value3}\n")
-        fh.close()
-
-    def save_query_memory(self, query_memory, filename):
-        fh = open(filename, "w")
-        fh.write("intvlnum\tquery_type\tsubset\tmax_RSS\n")
-        for key, value in query_memory.items():
-            for key2, value2 in value.items():
-                for key3, value3 in value2.items():
-                    fh.write(f"{key}\t{key2}\t{key3}%\t{value3}\n")
-        fh.close()
-
-
-    def save_query_precision(self, query_precision, filename):
+    def save_query_prec_stats(self, num, query_precision, filename):
         fh = open(filename, "w")
         fh.write("intvlnum\tsubset\tTP\tFP\tTN\tFN\tPrecision\tRecall\tF1\n")
-        for key, value in query_precision.items():
-            for key2, value2 in value.items():
-                fh.write(f"{key}\t{key2}%\t{value2['TP']}\t{value2['FP']}\t{value2['TN']}\t{value2['FN']}\t")
-                precision = value2['TP'] / (value2['TP'] + value2['FP'])
-                recall = value2['TP'] / (value2['TP'] + value2['FN'])
-                f1 = 2*(precision*recall) / (precision + recall)
-                fh.write(f"{precision}\t{recall}\t{f1}\n")
+        for key, value in query_precision["basic"].items():
+            precision = value["TP"] / (value["TP"] + value["FP"])
+            recall = value["TP"] / (value["TP"] + value["FN"])
+            f1 = 2 * ((precision * recall) / (precision + recall))
+            fh.write(f"{num}\t{key}%\t{value['TP']}\t{value['FP']}\t{value['TN']}\t{value['FN']}\t")
+            fh.write(f"{precision}\t{recall}\t{f1}\n")
+        for key, value in query_precision["complex"].items():
+            fh.write(f"{num}\t{key}bin\t{value['TP']}\t{value['FP']}\t-\t-\t-\t-\t-\n")
         fh.close()
 
 
@@ -165,9 +125,10 @@ class BenchTabix:
         """this function initializes the precision fields for the different query types"""
         fields = {}
         fields["basic"] = {}
+        fields["complex"] = {}
         for subset in range(10,101,10):
             fields["basic"][subset] = {"TP": 0, "FP": 0, "TN": 0, "FN":0}
-        fields["complex"] = {"TP": 0, "FP": 0}
+            fields["complex"][subset] = {"TP": 0, "FP": 0}
         return fields
 
     def load_truth(self, truth_basic_file, truth_complex_file):
@@ -267,12 +228,10 @@ class BenchTabix:
 
                 print("done!")
 
-        print(f"memory {query_memory}")
+        # print(f"memory {query_memory}")
         return query_times, query_memory, query_precision
 
     def query_intervals_mem(self, reffile, queryfile):
-        print(queryfile)
-
         # print("\t... measuring memory requirements...")
         rss_label = utility.get_time_rss_label()
         verbose = utility.get_time_verbose_flag()
@@ -303,12 +262,13 @@ class BenchTabix:
             if dtype == "basic":
                 if tuple(splitted[0:3]) == truth:
                     found = True
-                elif dtype == "complex":
-                    num_elements += 1
+            elif dtype == "complex":
+                num_elements += 1
         fho.close()
         if dtype == "complex":
+            print(f"num_elements: {num_elements} vs truth: {truth}")
             if num_elements == int(truth):
-                return True
+                found = True
 
         precision = {"TP": 0, "FP": 0, "TN": 0, "FN": 0}
         if dtype == "basic":
