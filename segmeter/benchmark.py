@@ -29,7 +29,6 @@ class BenchBase:
                 self.save_query_stats(num, query_time, query_memory, outfile_query)
 
                 outfile_precision = Path(options.outdir) / "bench" / "tabix" / f"{label}_query_precision.txt"
-                print(f"Precision: {query_precision}")
                 self.save_query_prec_stats(num, query_precision, outfile_precision)
 
     def save_idx_stats(self, num, idx_time, idx_mem, filename):
@@ -264,7 +263,6 @@ class BenchTabix:
                 num_elements += 1
         fho.close()
         if dtype == "complex":
-            print(f"num_elements: {num_elements} vs truth: {truth}")
             if num_elements == int(truth):
                 found = True
 
