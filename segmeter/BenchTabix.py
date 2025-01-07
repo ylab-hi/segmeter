@@ -1,5 +1,6 @@
 import subprocess
 import time
+import os
 import tempfile
 from pathlib import Path
 
@@ -38,7 +39,6 @@ class BenchTabix:
 
     def get_reffiles(self, label):
         reffiles = {}
-        reffiles = {}
         reffiles["ref"] = self.refdirs["ref"] / f"{label}.bed.gz"
         reffiles["idx"] = self.refdirs["idx"] / f"{label}.bed.gz"
         reffiles["truth-basic"] = self.refdirs["truth-basic"] / f"{label}.bed"
@@ -69,7 +69,7 @@ class BenchTabix:
         fields["complex"] = {}
         for subset in range(10,101,10):
             fields["basic"][subset] = {"TP": 0, "FP": 0, "TN": 0, "FN":0}
-            fields["complex"][subset] = {"TP": 0, "FP": 0}
+            fields["complex"][subset] = {"dist": 0}
         return fields
 
     def load_truth(self, truth_basic_file, truth_complex_file):
@@ -141,31 +141,28 @@ class BenchTabix:
 
                 for subset in queryfiles[dtype][qtype]:
                     print(f"\rSearching for overlaps in {subset}% of {num} {dtype} '{qtype}' queries...", end="")
-                    fh = open(queryfiles[dtype][qtype][subset])
                     query_times[dtype][qtype][subset] = 0 # initialize the time
                     query_memory[dtype][qtype][subset] = 0 # initialize the memory
-                    for line in fh:
-                        cols = line.strip().split("\t")
-                        searchstr = f"{cols[0]}:{cols[1]}-{cols[2]}"
-                        tmpfile = tempfile.NamedTemporaryFile(mode='w', delete=False)
-                        start_time = time.time()
-                        subprocess.run(["tabix", f"{reffiles['idx']}", f"{searchstr}"], stdout=tmpfile)
-                        end_time = time.time()
-                        query_times[dtype][qtype][subset] += round(end_time - start_time, 5)
-                        tmpfile.close()
+                    tmpfile = tempfile.NamedTemporaryFile(mode='w', delete=False)
+                    start_time = time.time()
+                    subprocess.run(["tabix", f"{reffiles['idx']}", "-R", f"{queryfiles[dtype][qtype][subset]}"], stdout=tmpfile)
+                    end_time = time.time()
+                    tmpfile.close()
+                    query_times[dtype][qtype][subset] += round(end_time - start_time, 5)
 
-                        key = (cols[0], cols[1], cols[2])
-                        precision = self.get_precision(tmpfile, truth[dtype][key], dtype, qtype)
-                        query_precision[dtype][subset]["TP"] += precision["TP"]
-                        query_precision[dtype][subset]["FP"] += precision["FP"]
-                        if dtype == "basic":
-                            query_precision[dtype][subset]["TN"] += precision["TN"]
-                            query_precision[dtype][subset]["FN"] += precision["FN"]
+                    precision = self.get_precision(queryfiles[dtype][qtype][subset], tmpfile, truth[dtype], dtype, qtype)
+                    if dtype == "basic":
+                        query_precision[dtype][subset]["TP"] += precision["basic"]["TP"]
+                        query_precision[dtype][subset]["FP"] += precision["basic"]["FP"]
+                        query_precision[dtype][subset]["TN"] += precision["basic"]["TN"]
+                        query_precision[dtype][subset]["FN"] += precision["basic"]["FN"]
+                    elif dtype == "complex":
+                        query_precision[dtype][subset]["dist"] += precision["complex"]["dist"]
 
-                        # repeat the process for the memory measurement
-                        query_memory[dtype][qtype][subset] = self.query_intervals_mem(
-                            reffiles["idx"],
-                            queryfiles[dtype][qtype][subset])
+                    # repeat the process for the memory measurement
+                    query_memory[dtype][qtype][subset] = self.query_intervals_mem(
+                        reffiles["idx"],
+                        queryfiles[dtype][qtype][subset])
 
                 print("done!")
 
@@ -178,55 +175,72 @@ class BenchTabix:
         verbose = utility.get_time_verbose_flag()
 
         max_rss = 0
-        # iterate through the query file
-        with open(queryfile, "r") as fh:
-            for line in fh:
-                cols = line.strip().split("\t")
-                searchstr = f"{cols[0]}:{cols[1]}-{cols[2]}"
-                result = subprocess.run(["/usr/bin/time", verbose, "tabix", f"{reffile}", f"{searchstr}"],
-                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-                stderr_output = result.stderr
-                rss_value = utility.get_rss_from_stderr(stderr_output, rss_label)
-                if rss_value:
-                    rss_value_mb = rss_value/(1000000)
-                    if rss_value_mb > max_rss:
-                        max_rss = rss_value_mb
+        result = subprocess.run(["/usr/bin/time", verbose, "tabix", f"{reffile}", f"{queryfile}"],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        stderr_output = result.stderr
+        rss_value = utility.get_rss_from_stderr(stderr_output, rss_label)
+        if rss_value:
+            rss_value_mb = rss_value/(1000000)
+            if rss_value_mb > max_rss:
+                max_rss = rss_value_mb
         return max_rss
 
-    def get_precision(self, tmpfile, truth, dtype, qtype):
+    def get_precision(self, queryfile, tmpfile, truth, dtype, qtype):
         """Check the file for the precision of the tool"""
-        fho = open(tmpfile.name)
-        found = False # flag to check if the interval could be found
-        num_elements = 0
-        for line in fho:
-            splitted = line.strip().split("\t")
-            if dtype == "basic":
-                if tuple(splitted[0:3]) == truth:
-                    found = True
-            elif dtype == "complex":
-                num_elements += 1
-        fho.close()
-        if dtype == "complex":
-            if num_elements == int(truth):
-                found = True
+        precision = {
+            "basic": {"TP": 0, "FP": 0, "TN": 0, "FN": 0},
+            "complex": {"dist": 0}
+        }
 
-        precision = {"TP": 0, "FP": 0, "TN": 0, "FN": 0}
         if dtype == "basic":
-            qgroup = utility.get_query_group("basic", qtype)
-            if qgroup == "interval":
-                if found:
-                    precision["TP"] += 1
-                else:
-                    precision["FN"] += 1
-            elif qgroup == "gap":
-                if found:
-                    precision["FP"] += 1
-                else:
-                    precision["TN"] += 1
+            results = []
+            # iterate/store the results from the queries
+            fht = open(tmpfile.name)
+            for line in fht:
+                cols = line.strip().split("\t")
+                result = tuple(cols[0:3])
+                results.append(result)
+            fht.close()
+
+            # iterate/store the truth values from the queries
+            fhq = open(queryfile)
+            for line in fhq:
+                cols = line.strip().split("\t")
+                query = tuple(cols[0:3])
+                truthquery = truth[query]
+
+                qgroup = utility.get_query_group("basic", qtype)
+                if qgroup == "interval":
+                    if truthquery in results:
+                        precision["basic"]["TP"] += 1
+                    else:
+                        precision["basic"]["FN"] += 1
+                elif qgroup == "gap":
+                    if truthquery in results:
+                        precision["basic"]["FP"] += 1
+                    else:
+                        precision["basic"]["TN"] += 1
+            fhq.close()
         elif dtype == "complex":
-            if found:
-                precision["TP"] += 1
-            else:
-                precision["FP"] += 1
+            # if queryfile is empty, skip the precision calculation
+            if os.stat(queryfile).st_size == 0:
+                return precision
+
+            results = []
+            fht = open(tmpfile.name)
+            lines = fht.readlines()
+            results_entries_num = len(lines)
+            fht.close()
+
+            truth_entries_num = 0
+            fht = open(queryfile)
+            for line in fht:
+                cols = line.strip().split("\t")
+                query = tuple(cols[0:3])
+                truthquery = truth[query]
+                truth_entries_num += int(truthquery)
+            fht.close()
+            if results_entries_num != 0:
+                precision["complex"]["dist"] = abs(results_entries_num - truth_entries_num)
 
         return precision

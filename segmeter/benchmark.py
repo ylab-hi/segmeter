@@ -54,6 +54,7 @@ class BenchBase:
             f1 = 2 * ((precision * recall) / (precision + recall))
             fh.write(f"{num}\t{key}%\t{value['TP']}\t{value['FP']}\t{value['TN']}\t{value['FN']}\t")
             fh.write(f"{precision}\t{recall}\t{f1}\n")
+        fh.write("\nintvlnum\tbin\tdistance\n")
         for key, value in query_precision["complex"].items():
-            fh.write(f"{num}\t{key}bin\t{value['TP']}\t{value['FP']}\t-\t-\t-\t-\t-\n")
+            fh.write(f"{num}\t{key}bin\t{value['dist']}\n")
         fh.close()
