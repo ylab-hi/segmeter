@@ -2,7 +2,7 @@
 from pathlib import Path
 
 # Class
-from BenchTabix import BenchTabix
+from BenchTool import BenchTool
 
 class BenchBase:
     def __init__(self, options, intvlnums):
@@ -13,8 +13,11 @@ class BenchBase:
         query_precision = {}
         query_memory = {}
 
+        benchpath = Path(options.outdir) / "bench" / options.tool
+        benchpath.mkdir(parents=True, exist_ok=True)
+
+        self.tool = BenchTool(options)
         if options.tool == "tabix":
-            self.tool = BenchTabix(options)
             for i, (label, num) in enumerate(intvlnums.items()):
                 outfile = Path(options.outdir) / "bench" / "tabix" / f"{label}_idx_stats.txt"
                 idx_time = self.tool.create_index(label, num)
@@ -28,6 +31,18 @@ class BenchBase:
 
                 outfile_precision = Path(options.outdir) / "bench" / "tabix" / f"{label}_query_precision.txt"
                 self.save_query_prec_stats(num, query_precision, outfile_precision)
+
+        elif options.tool == "bedtools":
+            for i, (label, num) in enumerate(intvlnums.items()):
+                print(f"Detect overlaps for {num} intervals...({i+1} out of {len(intvlnums)})")
+                query_time, query_memory, query_precision = self.tool.query_intervals(label, num)
+
+                outfile_query = Path(options.outdir) / "bench" / "bedtools" / f"{label}_query_stats.txt"
+                self.save_query_stats(num, query_time, query_memory, outfile_query)
+
+                outfile_precision = Path(options.outdir) / "bench" / "bedtools" / f"{label}_query_precision.txt"
+                self.save_query_prec_stats(num, query_precision, outfile_precision)
+
 
     def save_idx_stats(self, num, idx_time, idx_mem, filename):
         fh = open(filename, "w")

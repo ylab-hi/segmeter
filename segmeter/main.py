@@ -21,15 +21,6 @@ def main():
     elif options.modus == "bench":
         bench = BenchBase(options, intvlnums)
 
-    # look up the files to benchmark
-    # fh = open(options.list, "r")
-    # for line in fh:
-    #     inputfile = line.strip()
-
-        # if options.tool == "tabix":
-        #     tabix_call(inputfile, options.output)
-
-
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Benchmarking tool for interval files")
     parser.add_argument("modus", type=str, help="modus in benchmarking", choices=["sim", "bench"])

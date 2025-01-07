@@ -6,7 +6,7 @@ from pathlib import Path
 
 import utility
 
-class BenchTabix:
+class BenchTool:
     def __init__(self, options):
         self.options = options
         self.refdirs = self.get_refdirs() # get the reference directories
@@ -109,7 +109,7 @@ class BenchTabix:
         print("\t... measuring memory requirements...")
         rss_label = utility.get_time_rss_label()
         verbose = utility.get_time_verbose_flag()
-        result = subprocess.run(["/usr/bin/time", verbose, "tabix", "-f", "-C", "-p", "bed", f"{self.refdirs['idx'] / f'{label}.bed'}.gz"],
+        result = subprocess.run(["/usr/bin/time", verbose] + self.index_call(label,num),
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         stderr_output = result.stderr
         rss_value = utility.get_rss_from_stderr(stderr_output, rss_label)
@@ -119,6 +119,23 @@ class BenchTabix:
             return rss_value_mb
         else:
             return -1
+
+    def index_call(self, label, num):
+        call = []
+        if self.options.tool == "tabix":
+            call = ["tabix", "-f", "-C", "-p", "bed", f"{self.refdirs['idx'] / f'{label}.bed'}.gz"]
+
+        return call
+
+    def query_call(self, reffile, queryfile):
+        call = []
+        if self.options.tool == "tabix":
+            call = ["tabix", f"{reffile}", "-R", f"{queryfile}"]
+        elif self.options.tool == "bedtools":
+            call = ["bedtools", "intersect", "-a", f"{reffile}", "-b", f"{queryfile}"]
+
+        return call
+
 
     def query_intervals(self, label, num):
         reffiles = self.get_reffiles(label) # get the reference files
@@ -145,7 +162,8 @@ class BenchTabix:
                     query_memory[dtype][qtype][subset] = 0 # initialize the memory
                     tmpfile = tempfile.NamedTemporaryFile(mode='w', delete=False)
                     start_time = time.time()
-                    subprocess.run(["tabix", f"{reffiles['idx']}", "-R", f"{queryfiles[dtype][qtype][subset]}"], stdout=tmpfile)
+                    subprocess.run(self.query_call(reffiles['idx'], queryfiles[dtype][qtype][subset]), stdout=tmpfile)
+                    # subprocess.run(["tabix", f"{reffiles['idx']}", "-R", f"{queryfiles[dtype][qtype][subset]}"], stdout=tmpfile)
                     end_time = time.time()
                     tmpfile.close()
                     query_times[dtype][qtype][subset] += round(end_time - start_time, 5)
@@ -175,7 +193,7 @@ class BenchTabix:
         verbose = utility.get_time_verbose_flag()
 
         max_rss = 0
-        result = subprocess.run(["/usr/bin/time", verbose, "tabix", f"{reffile}", f"{queryfile}"],
+        result = subprocess.run(["/usr/bin/time", verbose] + self.query_call(reffile, queryfile),
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         stderr_output = result.stderr
         rss_value = utility.get_rss_from_stderr(stderr_output, rss_label)
