@@ -39,6 +39,7 @@ class BenchTool:
 
     def get_reffiles(self, label):
         reffiles = {}
+        reffiles["ref-unsrt"] = self.refdirs["ref"] / f"{label}.bed"
         reffiles["ref"] = self.refdirs["ref"] / f"{label}.bed.gz"
         reffiles["idx"] = self.refdirs["idx"] / f"{label}.bed.gz"
         reffiles["truth-basic"] = self.refdirs["truth-basic"] / f"{label}.bed"
@@ -127,12 +128,12 @@ class BenchTool:
 
         return call
 
-    def query_call(self, reffile, queryfile):
+    def query_call(self, reffiles, queryfile):
         call = []
         if self.options.tool == "tabix":
-            call = ["tabix", f"{reffile}", "-R", f"{queryfile}"]
+            call = ["tabix", f"{reffiles['idx']}", "-R", f"{queryfile}"]
         elif self.options.tool == "bedtools":
-            call = ["bedtools", "intersect", "-a", f"{reffile}", "-b", f"{queryfile}"]
+            call = ["bedtools", "intersect", "-a", f"{reffiles['ref-unsrt']}", "-b", f"{queryfile}"]
 
         return call
 
@@ -162,7 +163,7 @@ class BenchTool:
                     query_memory[dtype][qtype][subset] = 0 # initialize the memory
                     tmpfile = tempfile.NamedTemporaryFile(mode='w', delete=False)
                     start_time = time.time()
-                    subprocess.run(self.query_call(reffiles['idx'], queryfiles[dtype][qtype][subset]), stdout=tmpfile)
+                    subprocess.run(self.query_call(reffiles, queryfiles[dtype][qtype][subset]), stdout=tmpfile)
                     # subprocess.run(["tabix", f"{reffiles['idx']}", "-R", f"{queryfiles[dtype][qtype][subset]}"], stdout=tmpfile)
                     end_time = time.time()
                     tmpfile.close()
