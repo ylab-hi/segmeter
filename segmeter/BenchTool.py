@@ -180,7 +180,7 @@ class BenchTool:
 
                     # repeat the process for the memory measurement
                     query_memory[dtype][qtype][subset] = self.query_intervals_mem(
-                        reffiles["idx"],
+                        reffiles,
                         queryfiles[dtype][qtype][subset])
 
                 print("done!")
@@ -188,13 +188,13 @@ class BenchTool:
         # print(f"memory {query_memory}")
         return query_times, query_memory, query_precision
 
-    def query_intervals_mem(self, reffile, queryfile):
+    def query_intervals_mem(self, reffiles, queryfile):
         # print("\t... measuring memory requirements...")
         rss_label = utility.get_time_rss_label()
         verbose = utility.get_time_verbose_flag()
 
         max_rss = 0
-        result = subprocess.run(["/usr/bin/time", verbose] + self.query_call(reffile, queryfile),
+        result = subprocess.run(["/usr/bin/time", verbose] + self.query_call(reffiles, queryfile),
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         stderr_output = result.stderr
         rss_value = utility.get_rss_from_stderr(stderr_output, rss_label)
