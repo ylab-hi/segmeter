@@ -43,6 +43,11 @@ class BenchBase:
                 outfile_precision = Path(options.outdir) / "bench" / "bedtools" / f"{label}_query_precision.txt"
                 self.save_query_prec_stats(num, query_precision, outfile_precision)
 
+            options.tool = "bedtools_sorted"
+            for i, (label, num) in enumerate(intvlnums.items()):
+                print()
+
+
 
     def save_idx_stats(self, num, idx_time, idx_mem, filename):
         fh = open(filename, "w")
