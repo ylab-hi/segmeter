@@ -34,7 +34,7 @@ class BenchBase:
 
         elif options.tool == "bedtools":
             for i, (label, num) in enumerate(intvlnums.items()):
-                print(f"Detect overlaps for {num} intervals...({i+1} out of {len(intvlnums)})")
+                print(f"Detect overlaps using bedtools for {num} intervals...({i+1} out of {len(intvlnums)})")
                 query_time, query_memory, query_precision = self.tool.query_intervals(label, num)
 
                 outfile_query = Path(options.outdir) / "bench" / "bedtools" / f"{label}_query_stats.txt"
@@ -43,9 +43,17 @@ class BenchBase:
                 outfile_precision = Path(options.outdir) / "bench" / "bedtools" / f"{label}_query_precision.txt"
                 self.save_query_prec_stats(num, query_precision, outfile_precision)
 
-            options.tool = "bedtools_sorted"
+        elif options.tool == "bedtools_sorted":
             for i, (label, num) in enumerate(intvlnums.items()):
-                print()
+                outfile = Path(options.outdir) / "bench" / "bedtools_sorted" / f"{label}_idx_stats.txt"
+                idx_time = self.tool.create_index(label, num)
+                idx_mem = self.tool.create_index_mem(label, num)
+
+
+
+
+                # print(f"Detect overlaps using bedtools w/ --sorted for {num} intervals...({i+1} out of {len(intvlnums)})")
+                # query_time, query_memory, query_precision = self.tool.query_intervals(label, num)
 
 
 
