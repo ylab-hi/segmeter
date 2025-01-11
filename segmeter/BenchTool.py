@@ -16,7 +16,7 @@ class BenchTool:
         """returns the input directories for the reference and query intervals"""
         refdirs = {}
         refdirs["ref"] = Path(self.options.outdir) / "sim" / self.options.format / "ref"
-        refdirs["idx"] = Path(self.options.outdir) / "bench" / "tabix" / "idx"
+        refdirs["idx"] = Path(self.options.outdir) / "bench" / self.options.tool / "idx"
         refdirs["idx"].mkdir(parents=True, exist_ok=True) # need to be created (store the index files)
         refdirs["truth-basic"] = Path(self.options.outdir) / "sim" / self.options.format / "basic" / "truth"
         refdirs["truth-complex"] = Path(self.options.outdir) / "sim" / self.options.format / "complex" / "truth"
@@ -97,10 +97,11 @@ class BenchTool:
         print(f"Indexing {self.refdirs['ref']} with {label}:{num} intervals...")
         start_time = time.time() # start the timer
         # sort bgzip and create index
-        subprocess.run(["sort", "-k1,1", "-k2,2n", "-k3,3n", f"{self.refdirs['ref'] / f'{label}.bed'}"],
-            stdout=open(self.refdirs['idx'] / f'{label}.bed', 'w'))
-        subprocess.run(["bgzip", "-f", f"{self.refdirs['idx'] / f'{label}.bed'}"])
-        subprocess.run(["tabix", "-f", "-C", "-p", "bed", f"{self.refdirs['idx'] / f'{label}.bed'}.gz"])
+        self.index_call(label, num)
+        # subprocess.run(["sort", "-k1,1", "-k2,2n", "-k3,3n", f"{self.refdirs['ref'] / f'{label}.bed'}"],
+        #     stdout=open(self.refdirs['idx'] / f'{label}.bed', 'w'))
+        # subprocess.run(["bgzip", "-f", f"{self.refdirs['idx'] / f'{label}.bed'}"])
+        # subprocess.run(["tabix", "-f", "-C", "-p", "bed", f"{self.refdirs['idx'] / f'{label}.bed'}.gz"])
         end_time = time.time() # end the timer
         duration = round(end_time - start_time, 5)
         return duration
@@ -122,11 +123,29 @@ class BenchTool:
             return -1
 
     def index_call(self, label, num):
-        call = []
-        if self.options.tool == "tabix":
-            call = ["tabix", "-f", "-C", "-p", "bed", f"{self.refdirs['idx'] / f'{label}.bed'}.gz"]
+        verbose = utility.get_time_verbose_flag()
+        ress_label = utility.get_time_rss_label()
 
-        return call
+        runtime = 0
+        mem = 0
+        if self.options.tool == "tabix":
+            sort_cmd = f"/usr/bin/time {verbose} sort -k1,1 -k2,2 -k3,3n {self.refdirs['ref'] / f'{label}.bed'} > {self.refdirs['idx'] / f'{label}.bed'}"
+            start_time = time.time()
+            sort_result = subprocess.run(sort_cmd, shell=True, check=True)
+            end_time = time.time()
+            runtime = round(end_time - start_time, 5)
+            stderr_output
+
+
+
+
+
+
+                subprocess.run(["sort", "-k1,1", "-k2,2n", "-k3,3n", f"{self.refdirs['ref'] / f'{label}.bed'}"],
+                    stdout=open(self.refdirs['idx'] / f'{label}.bed', 'w'))
+                subprocess.run(["bgzip", "-f", f"{self.refdirs['idx'] / f'{label}.bed'}", "-o", f"{self.refdirs['idx'] / f'{label}.bed'}.gz"])
+                subprocess.run(["tabix", "-f", "-C", "-p", "bed", f"{self.refdirs['idx'] / f'{label}.bed'}.gz"])
+
 
     def query_call(self, reffiles, queryfile):
         call = []
