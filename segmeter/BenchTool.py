@@ -92,6 +92,22 @@ class BenchTool:
 
         return truth
 
+    def program_call(self, call):
+        rss_label = utility.get_time_rss_label()
+        runtime = 0
+        mem = 0
+        start_time = time.time()
+        result = subprocess.run(call, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        end_time = time.time()
+        runtime = round(end_time - start_time, 5)
+        stderr_output = result.stderr
+        rss_value = utility.get_rss_from_stderr(stderr_output, rss_label)
+        if rss_value:
+            rss_value_mb = rss_value/(1000000)
+            mem = rss_value_mb
+        return runtime, mem
+
+
     def create_index(self, label, num):
         """Tabix creates the index in the same folder as the input file."""
         print(f"Indexing {self.refdirs['ref']} with {label}:{num} intervals...")
@@ -124,27 +140,39 @@ class BenchTool:
 
     def index_call(self, label, num):
         verbose = utility.get_time_verbose_flag()
-        ress_label = utility.get_time_rss_label()
+        rss_label = utility.get_time_rss_label()
 
         runtime = 0
         mem = 0
         if self.options.tool == "tabix":
-            sort_cmd = f"/usr/bin/time {verbose} sort -k1,1 -k2,2 -k3,3n {self.refdirs['ref'] / f'{label}.bed'} > {self.refdirs['idx'] / f'{label}.bed'}"
-            start_time = time.time()
-            sort_result = subprocess.run(sort_cmd, shell=True, check=True)
-            end_time = time.time()
-            runtime = round(end_time - start_time, 5)
-            stderr_output
+            sort_rt, sort_mem = self.program_call(f"sort -k1,1 -k2,2 -k3,3n {self.refdirs['ref'] / f'{label}.bed'} > {self.refdirs['idx'] / f'{label}.bed'}")
+            runtime += sort_rt
+            if sort_mem > mem:
+                mem = sort_mem
+
+            bgzip_rt, bgzip_mem = self.program_call(f"bgzig -f {self.refdirs['idx'] / f'{label}.bed'} -o {self.refdirs['idx'] / f'{label}.bed'}.gz")
+            runtime += bgzip_rt
+            if bgzip_mem > mem:
+                mem = bgzip_mem
+
+            tabix_rt, tabix_mem = self.program_call(f"tabix -f -C -p bed {self.refdirs['idx'] / f'{label}.bed'}.gz")
+            runtime += tabix_rt
+            if tabix_mem > mem:
+                mem = tabix_mem
+
+            # start_time = time.time()
+            # sort_result = subprocess.run(sort_cmd, shell=True, check=True)
+            # end_time = time.time()
+            # runtime = round(end_time - start_time, 5)
+            # stderr_output = sort_result.stderr
+            # rss_value = utility.get_rss_from_stderr(stderr_output, rss_label)
 
 
 
-
-
-
-                subprocess.run(["sort", "-k1,1", "-k2,2n", "-k3,3n", f"{self.refdirs['ref'] / f'{label}.bed'}"],
-                    stdout=open(self.refdirs['idx'] / f'{label}.bed', 'w'))
-                subprocess.run(["bgzip", "-f", f"{self.refdirs['idx'] / f'{label}.bed'}", "-o", f"{self.refdirs['idx'] / f'{label}.bed'}.gz"])
-                subprocess.run(["tabix", "-f", "-C", "-p", "bed", f"{self.refdirs['idx'] / f'{label}.bed'}.gz"])
+                # subprocess.run(["sort", "-k1,1", "-k2,2n", "-k3,3n", f"{self.refdirs['ref'] / f'{label}.bed'}"],
+                #     stdout=open(self.refdirs['idx'] / f'{label}.bed', 'w'))
+                # subprocess.run(["bgzip", "-f", f"{self.refdirs['idx'] / f'{label}.bed'}", "-o", f"{self.refdirs['idx'] / f'{label}.bed'}.gz"])
+                # subprocess.run(["tabix", "-f", "-C", "-p", "bed", f"{self.refdirs['idx'] / f'{label}.bed'}.gz"])
 
 
     def query_call(self, reffiles, queryfile):
