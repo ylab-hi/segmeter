@@ -101,8 +101,15 @@ class BenchTool:
         mem = 0
 
         call_time = f"/usr/bin/time {verbose} {call}"
+        print(call_time)
         start_time = time.time()
-        result = subprocess.run(call_time, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        result = subprocess.run(
+            call_time,
+            shell=True, # allows handling of '>' redirection
+            stdout=subprocess.PIPE, # captures stdout of '/usr/bin/time'
+            stderr=subprocess.PIPE, # captures stderr of '/usr/bin/time'
+            text=True # decodes stdout/stderr as strings
+        )
         end_time = time.time()
         runtime = round(end_time - start_time, 5)
         stderr_output = result.stderr
@@ -114,39 +121,42 @@ class BenchTool:
         return runtime, mem
 
 
+    # def create_index(self, label, num):
+    #     """Tabix creates the index in the same folder as the input file."""
+    #     print(f"Indexing {self.refdirs['ref']} with {label}:{num} intervals...")
+    #     self.index_call(label, num)
+    #     return duration
+
+    # def create_index_mem(self, label, num):
+    #     """Monitor the memory usage of the index creation"""
+    #     print("\t... measuring memory requirements...")
+    #     rss_label = utility.get_time_rss_label()
+    #     verbose = utility.get_time_verbose_flag()
+    #     result = subprocess.run(["/usr/bin/time", verbose] + self.index_call(label,num),
+    #         stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    #     stderr_output = result.stderr
+    #     rss_value = utility.get_rss_from_stderr(stderr_output, rss_label)
+
+    #     if rss_value:
+    #         rss_value_mb = rss_value/(1000000)
+    #         return rss_value_mb
+    #     else:
+    #         return -1
+
     def create_index(self, label, num):
         """Tabix creates the index in the same folder as the input file."""
         print(f"Indexing {self.refdirs['ref']} with {label}:{num} intervals...")
-        self.index_call(label, num)
-        return duration
 
-    def create_index_mem(self, label, num):
-        """Monitor the memory usage of the index creation"""
-        print("\t... measuring memory requirements...")
-        rss_label = utility.get_time_rss_label()
-        verbose = utility.get_time_verbose_flag()
-        result = subprocess.run(["/usr/bin/time", verbose] + self.index_call(label,num),
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        stderr_output = result.stderr
-        rss_value = utility.get_rss_from_stderr(stderr_output, rss_label)
-
-        if rss_value:
-            rss_value_mb = rss_value/(1000000)
-            return rss_value_mb
-        else:
-            return -1
-
-    def index_call(self, label, num):
         runtime = 0
         mem = 0
-        idx_size = 0
+        idx_size_mb = 0
         if self.options.tool == "tabix":
-            sort_rt, sort_mem = self.program_call(f"sort -k1,1 -k2,2 -k3,3n {self.refdirs['ref'] / f'{label}.bed'} > {self.refdirs['idx'] / f'{label}.bed'}")
+            sort_rt, sort_mem = self.program_call(f"sort -k1,1 -k2,2n -k3,3n {self.refdirs['ref'] / f'{label}.bed'} > {self.refdirs['idx'] / f'{label}.bed'}")
             runtime += sort_rt
             if sort_mem > mem:
                 mem = sort_mem
 
-            bgzip_rt, bgzip_mem = self.program_call(f"bgzig -f {self.refdirs['idx'] / f'{label}.bed'} -o {self.refdirs['idx'] / f'{label}.bed'}.gz")
+            bgzip_rt, bgzip_mem = self.program_call(f"bgzip -f {self.refdirs['idx'] / f'{label}.bed'} -o {self.refdirs['idx'] / f'{label}.bed'}.gz")
             runtime += bgzip_rt
             if bgzip_mem > mem:
                 mem = bgzip_mem
@@ -160,6 +170,7 @@ class BenchTool:
             idx_size = os.stat(self.refdirs['idx'] / f'{label}.bed.gz.csi').st_size
             idx_size_mb = idx_size/(1024*1024)
 
+        return runtime, mem, idx_size_mb
 
     def query_call(self, reffiles, queryfile):
         call = []
