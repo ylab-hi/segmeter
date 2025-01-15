@@ -101,7 +101,6 @@ class BenchTool:
         mem = 0
 
         call_time = f"/usr/bin/time {verbose} {call}"
-        print(call_time)
         start_time = time.time()
         result = subprocess.run(
             call_time,
@@ -120,28 +119,6 @@ class BenchTool:
 
         return runtime, mem
 
-
-    # def create_index(self, label, num):
-    #     """Tabix creates the index in the same folder as the input file."""
-    #     print(f"Indexing {self.refdirs['ref']} with {label}:{num} intervals...")
-    #     self.index_call(label, num)
-    #     return duration
-
-    # def create_index_mem(self, label, num):
-    #     """Monitor the memory usage of the index creation"""
-    #     print("\t... measuring memory requirements...")
-    #     rss_label = utility.get_time_rss_label()
-    #     verbose = utility.get_time_verbose_flag()
-    #     result = subprocess.run(["/usr/bin/time", verbose] + self.index_call(label,num),
-    #         stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    #     stderr_output = result.stderr
-    #     rss_value = utility.get_rss_from_stderr(stderr_output, rss_label)
-
-    #     if rss_value:
-    #         rss_value_mb = rss_value/(1000000)
-    #         return rss_value_mb
-    #     else:
-    #         return -1
 
     def create_index(self, label, num):
         """Tabix creates the index in the same folder as the input file."""
@@ -168,18 +145,24 @@ class BenchTool:
 
             # determine size of the index (in MB)
             idx_size = os.stat(self.refdirs['idx'] / f'{label}.bed.gz.csi').st_size
-            idx_size_mb = idx_size/(1024*1024)
+            idx_size_mb = round(idx_size/(1024*1024), 5)
 
         return runtime, mem, idx_size_mb
 
-    def query_call(self, reffiles, queryfile):
-        call = []
-        if self.options.tool == "tabix":
-            call = ["tabix", f"{reffiles['idx']}", "-R", f"{queryfile}"]
-        elif self.options.tool == "bedtools":
-            call = ["bedtools", "intersect", "-a", f"{reffiles['ref-unsrt']}", "-b", f"{queryfile}"]
 
-        return call
+    def query_interval(self, label, num, reffiles, queryfile):
+        tmpfile = tempfile.NamedTemporaryFile(mode='w', delete=False)
+
+        query_rt = 0
+        query_mem = 0
+        if self.options.tool == "tabix":
+            query_rt, query_mem = self.program_call(f"tabix {reffiles['idx']} -R {queryfile} > {tmpfile.name}")
+        elif self.options.tool == "bedtools":
+            query_rt, query_mem = self.program_call(f"bedtools intersect -a {reffiles['ref-unsrt']} -b {queryfile} > {tmpfile.name}")
+
+        tmpfile.close()
+
+        return query_rt, query_mem, tmpfile
 
 
     def query_intervals(self, label, num):
@@ -205,15 +188,15 @@ class BenchTool:
                     print(f"\rSearching for overlaps in {subset}% of {num} {dtype} '{qtype}' queries...", end="")
                     query_times[dtype][qtype][subset] = 0 # initialize the time
                     query_memory[dtype][qtype][subset] = 0 # initialize the memory
-                    tmpfile = tempfile.NamedTemporaryFile(mode='w', delete=False)
-                    start_time = time.time()
-                    subprocess.run(self.query_call(reffiles, queryfiles[dtype][qtype][subset]), stdout=tmpfile)
-                    # subprocess.run(["tabix", f"{reffiles['idx']}", "-R", f"{queryfiles[dtype][qtype][subset]}"], stdout=tmpfile)
-                    end_time = time.time()
-                    tmpfile.close()
-                    query_times[dtype][qtype][subset] += round(end_time - start_time, 5)
 
-                    precision = self.get_precision(queryfiles[dtype][qtype][subset], tmpfile, truth[dtype], dtype, qtype)
+                    # determine the runtime and memory requirements
+                    query_rt, query_mem, query_result = self.query_interval(label, num, reffiles, queryfiles[dtype][qtype][subset])
+                    query_times[dtype][qtype][subset] += round(query_rt, 5)
+                    if query_mem > query_memory[dtype][qtype][subset]:
+                        query_memory[dtype][qtype][subset] = query_mem
+
+                    # determine the precision of the tool
+                    precision = self.get_precision(queryfiles[dtype][qtype][subset], query_result, truth[dtype], dtype, qtype)
                     if dtype == "basic":
                         query_precision[dtype][subset]["TP"] += precision["basic"]["TP"]
                         query_precision[dtype][subset]["FP"] += precision["basic"]["FP"]
@@ -222,10 +205,6 @@ class BenchTool:
                     elif dtype == "complex":
                         query_precision[dtype][subset]["dist"] += precision["complex"]["dist"]
 
-                    # repeat the process for the memory measurement
-                    query_memory[dtype][qtype][subset] = self.query_intervals_mem(
-                        reffiles,
-                        queryfiles[dtype][qtype][subset])
 
                 print("done!")
 

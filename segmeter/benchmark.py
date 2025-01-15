@@ -16,51 +16,36 @@ class BenchBase:
         benchpath = Path(options.outdir) / "bench" / options.tool
         benchpath.mkdir(parents=True, exist_ok=True)
 
+        # list of index-based tools
+        index_based = [
+            "tabix"
+        ]
+
         self.tool = BenchTool(options)
-        if options.tool == "tabix":
-            for i, (label, num) in enumerate(intvlnums.items()):
-                outfile = Path(options.outdir) / "bench" / "tabix" / f"{label}_idx_stats.txt"
-                idx_time = self.tool.create_index(label, num)
-                idx_mem = self.tool.create_index_mem(label, num)
-                self.save_idx_stats(num, idx_time, idx_mem, outfile) # write stats for the index creation
-                print(f"Detect overlaps for {num} intervals...({i+1} out of {len(intvlnums)})")
-                query_time, query_memory, query_precision = self.tool.query_intervals(label, num)
 
-                outfile_query = Path(options.outdir) / "bench" / "tabix" / f"{label}_query_stats.txt"
-                self.save_query_stats(num, query_time, query_memory, outfile_query)
+        for i, (label, num) in enumerate(intvlnums.items()):
+            print(f"Detect overlaps using bedtools for {num} intervals...({i+1} out of {len(intvlnums)})")
 
-                outfile_precision = Path(options.outdir) / "bench" / "tabix" / f"{label}_query_precision.txt"
-                self.save_query_prec_stats(num, query_precision, outfile_precision)
+            # if the tool is index-based, create index (and record stats)
+            if options.tool in index_based:
+                outfile_idx = benchpath / f"{label}_idx_stats.txt"
+                idx_time, idx_mem, idx_size = self.tool.create_index(label, num)
+                self.save_idx_stats(num, idx_time, idx_mem, idx_size, outfile_idx)
 
-        elif options.tool == "bedtools":
-            for i, (label, num) in enumerate(intvlnums.items()):
-                print(f"Detect overlaps using bedtools for {num} intervals...({i+1} out of {len(intvlnums)})")
-                query_time, query_memory, query_precision = self.tool.query_intervals(label, num)
+            # query intervals (and record stats)
+            outfile_query = benchpath / f"{label}_query_stats.txt"
+            query_time, query_memory, query_precision = self.tool.query_intervals(label, num)
+            self.save_query_stats(num, query_time, query_memory, outfile_query)
 
-                outfile_query = Path(options.outdir) / "bench" / "bedtools" / f"{label}_query_stats.txt"
-                self.save_query_stats(num, query_time, query_memory, outfile_query)
-
-                outfile_precision = Path(options.outdir) / "bench" / "bedtools" / f"{label}_query_precision.txt"
-                self.save_query_prec_stats(num, query_precision, outfile_precision)
-
-        elif options.tool == "bedtools_sorted":
-            for i, (label, num) in enumerate(intvlnums.items()):
-                outfile = Path(options.outdir) / "bench" / "bedtools_sorted" / f"{label}_idx_stats.txt"
-                idx_time = self.tool.create_index(label, num)
-                idx_mem = self.tool.create_index_mem(label, num)
+            # save query precision stats
+            outfile_precision = benchpath / f"{label}_query_precision.txt"
+            self.save_query_prec_stats(num, query_precision, outfile_precision)
 
 
-
-
-                # print(f"Detect overlaps using bedtools w/ --sorted for {num} intervals...({i+1} out of {len(intvlnums)})")
-                # query_time, query_memory, query_precision = self.tool.query_intervals(label, num)
-
-
-
-    def save_idx_stats(self, num, idx_time, idx_mem, filename):
+    def save_idx_stats(self, num, idx_time, idx_mem, idx_size, filename):
         fh = open(filename, "w")
-        fh.write("intvlnum\ttime(s)\tmax_RSS(MB)\n")
-        fh.write(f"{num}\t{idx_time}\t{idx_mem}\n")
+        fh.write("intvlnum\ttime(s)\tmax_RSS(MB)\tindex_size(MB)\n")
+        fh.write(f"{num}\t{idx_time}\t{idx_mem}\t{idx_size}\n")
         fh.close()
 
     def save_query_stats(self, num, query_time, query_mem, filename):
