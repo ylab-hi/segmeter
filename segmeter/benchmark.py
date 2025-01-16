@@ -24,7 +24,7 @@ class BenchBase:
         self.tool = BenchTool(options)
 
         for i, (label, num) in enumerate(intvlnums.items()):
-            print(f"Detect overlaps using bedtools for {num} intervals...({i+1} out of {len(intvlnums)})")
+            print(f"Detect overlaps using {options.tool} for {num} intervals...({i+1} out of {len(intvlnums)})")
 
             # if the tool is index-based, create index (and record stats)
             if options.tool in index_based:
