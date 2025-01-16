@@ -34,6 +34,12 @@ RUN apt-get install -y bedtools
 #install granges
 RUN cargo install granges
 
+# install bedops by link
+RUN curl -L -o  bedops.tar.bz2 https://github.com/bedops/bedops/releases/download/v2.4.41/bedops_linux_x86_64-v2.4.41.tar.bz2
+RUN mkdir bedops
+RUN tar -xvf bedops.tar.bz2 -C bedops
+RUN cp bedops/bin/* /usr/local/bin/
+
 # load segmeter
 ADD segmeter /segmeter
 RUN chmod +x /segmeter/main.py

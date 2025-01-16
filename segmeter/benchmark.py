@@ -62,9 +62,13 @@ class BenchBase:
         fh = open(filename, "w")
         fh.write("intvlnum\tsubset\tTP\tFP\tTN\tFN\tPrecision\tRecall\tF1\n")
         for key, value in query_precision["basic"].items():
-            precision = value["TP"] / (value["TP"] + value["FP"])
-            recall = value["TP"] / (value["TP"] + value["FN"])
-            f1 = 2 * ((precision * recall) / (precision + recall))
+            precision = 0
+            recall = 0
+            f1 = 0
+            if value["TP"] > 0:
+                precision = value["TP"] / (value["TP"] + value["FP"])
+                recall = value["TP"] / (value["TP"] + value["FN"])
+                f1 = 2 * ((precision * recall) / (precision + recall))
             fh.write(f"{num}\t{key}%\t{value['TP']}\t{value['FP']}\t{value['TN']}\t{value['FN']}\t")
             fh.write(f"{precision}\t{recall}\t{f1}\n")
         fh.write("\nintvlnum\tbin\tdistance\n")

@@ -40,6 +40,7 @@ class BenchTool:
     def get_reffiles(self, label):
         reffiles = {}
         reffiles["ref-unsrt"] = self.refdirs["ref"] / f"{label}.bed"
+        reffiles["ref-srt"] = self.refdirs["ref"] / f"{label}_sorted.bed"
         reffiles["ref"] = self.refdirs["ref"] / f"{label}.bed.gz"
         reffiles["idx"] = self.refdirs["idx"] / f"{label}.bed.gz"
         reffiles["truth-basic"] = self.refdirs["truth-basic"] / f"{label}.bed"
@@ -147,6 +148,14 @@ class BenchTool:
             idx_size = os.stat(self.refdirs['idx'] / f'{label}.bed.gz.csi').st_size
             idx_size_mb = round(idx_size/(1024*1024), 5)
 
+        elif self.options.tool == "bedtools_sorted":
+            sort_rt, sort_mem = self.program_call(f"sort -k1,1 -k2,2n -k3,3n {self.refdirs['ref'] / f'{label}.bed'} > {self.refdirs['idx'] / f'{label}.bed'}")
+            runtime = sort_rt
+            mem = sort_mem
+
+            idx_size = os.stat(self.refdirs['idx'] / f'{label}.bed').st_size
+            idx_size_mb = round(idx_size/(1024*1024), 5)
+
         return runtime, mem, idx_size_mb
 
 
@@ -157,8 +166,26 @@ class BenchTool:
         query_mem = 0
         if self.options.tool == "tabix":
             query_rt, query_mem = self.program_call(f"tabix {reffiles['idx']} -R {queryfile} > {tmpfile.name}")
+
         elif self.options.tool == "bedtools":
-            query_rt, query_mem = self.program_call(f"bedtools intersect -a {reffiles['ref-unsrt']} -b {queryfile} > {tmpfile.name}")
+            query_rt, query_mem = self.program_call(f"bedtools intersect -wa -a {reffiles['ref-unsrt']} -b {queryfile} > {tmpfile.name}")
+
+        elif self.options.tool == "bedtools_sorted":
+            # first sort the query file
+            query_sorted = tempfile.NamedTemporaryFile(mode='w', delete=False)
+            sort_rt, sort_mem = self.program_call(f"sort -k1,1 -k2,2n -k3,3n {queryfile} > {query_sorted.name}")
+
+            query_rt += sort_rt
+            if query_mem > query_mem:
+                query_mem = query_mem
+            # query intervals
+            query_rt, query_mem = self.program_call(f"bedtools intersect -wa -a {reffiles['ref-srt']} -b {query_sorted.name} > {tmpfile.name}")
+
+            query_sorted.close()
+
+        elif self.options.tool == "bedops":
+            query_rt, query_mem = self.program_call(f"bedops --intersect {queryfile} {reffiles['ref-srt']} > {tmpfile.name}")
+
 
         tmpfile.close()
 
