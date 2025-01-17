@@ -194,7 +194,15 @@ class BenchTool:
             query_sorted.close()
 
         elif self.options.tool == "bedtools_tabix":
-            query_rt, query_mem = self.program_call(f"tabix {reffiles['idx']} | bedtools intersect -wa -a stdin -b {queryfile} > {tmpfile.name}")
+            # first sort the query file
+            query_sorted = tempfile.NamedTemporaryFile(mode='w', delete=False)
+            sort_rt, sort_mem = self.program_call(f"sort -k1,1 -k2,2n -k3,3n {queryfile} > {query_sorted.name}")
+
+            query_rt += sort_rt
+            if query_mem > query_mem:
+                query_mem = query_mem
+
+            query_rt, query_mem = self.program_call(f"bedtools intersect -wa -a {reffiles['ref-srt']} -b {queryfile} > {tmpfile.name}")
 
         elif self.options.tool == "bedops":
             # first sort the query file
