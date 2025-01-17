@@ -144,7 +144,7 @@ class BenchTool:
                 if sort_mem > mem:
                     mem = sort_mem
 
-                bgzip_rt, bgzip_mem = self.program_call(f"bgzip -f {self.refdirs['idx'] / f'{label}.bed'} -o {self.refdirs['idx'] / f'{label}.bed'}.gz")
+                bgzip_rt, bgzip_mem = self.program_call(f"bgzip -f {self.refdirs['idx'] / f'{label}.bed'} -o {self.refdirs['idx'] / f'{label}.bed.gz'}")
                 runtime += bgzip_rt
                 if bgzip_mem > mem:
                     mem = bgzip_mem

@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# [0.5.1]
+## Fix
+- f-string wrongly formatted caused file not found error
+
 # [0.5.0]
 ## Feature
 - added bedtools (with tabix and on sorted files) to benchmark
