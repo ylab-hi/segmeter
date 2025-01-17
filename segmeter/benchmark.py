@@ -17,8 +17,10 @@ class BenchBase:
         benchpath.mkdir(parents=True, exist_ok=True)
 
         # list of index-based tools
-        index_based = [
-            "tabix"
+        self.options.idx_based_tools = [
+            "tabix",
+            "bedtools_sorted",
+            "bedtools_tabix"
         ]
 
         self.tool = BenchTool(options)
@@ -27,7 +29,7 @@ class BenchBase:
             print(f"Detect overlaps using {options.tool} for {num} intervals...({i+1} out of {len(intvlnums)})")
 
             # if the tool is index-based, create index (and record stats)
-            if options.tool in index_based:
+            if options.tool in self.options.idx_based_tools:
                 outfile_idx = benchpath / f"{label}_idx_stats.txt"
                 idx_time, idx_mem, idx_size = self.tool.create_index(label, num)
                 self.save_idx_stats(num, idx_time, idx_mem, idx_size, outfile_idx)

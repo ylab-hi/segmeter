@@ -16,10 +16,13 @@ class BenchTool:
         """returns the input directories for the reference and query intervals"""
         refdirs = {}
         refdirs["ref"] = Path(self.options.outdir) / "sim" / self.options.format / "ref"
-        refdirs["idx"] = Path(self.options.outdir) / "bench" / self.options.tool / "idx"
-        refdirs["idx"].mkdir(parents=True, exist_ok=True) # need to be created (store the index files)
         refdirs["truth-basic"] = Path(self.options.outdir) / "sim" / self.options.format / "basic" / "truth"
         refdirs["truth-complex"] = Path(self.options.outdir) / "sim" / self.options.format / "complex" / "truth"
+
+        # create directories for the index (if necessary - specified in idx_based_tools)
+        if self.options.tool in self.options.idx_based_tools:
+            refdirs["idx"] = Path(self.options.outdir) / "bench" / self.options.tool / "idx"
+            refdirs["idx"].mkdir(parents=True, exist_ok=True) # need to be created (store the index files)
 
         return refdirs
 
@@ -42,9 +45,14 @@ class BenchTool:
         reffiles["ref-unsrt"] = self.refdirs["ref"] / f"{label}.bed"
         reffiles["ref-srt"] = self.refdirs["ref"] / f"{label}_sorted.bed"
         reffiles["ref"] = self.refdirs["ref"] / f"{label}.bed.gz"
-        reffiles["idx"] = self.refdirs["idx"] / f"{label}.bed.gz"
         reffiles["truth-basic"] = self.refdirs["truth-basic"] / f"{label}.bed"
         reffiles["truth-complex"] = self.refdirs["truth-complex"] / f"{label}.bed"
+
+        # create index if necessary
+        if (self.options.tool == "tabix" or
+            self.options.tool == "bedtools_sorted" or
+            self.options.tool == "bedtools_tabix"):
+                reffiles["idx"] = self.refdirs["idx"] / f"{label}.bed.gz"
 
         return reffiles
 
@@ -128,33 +136,35 @@ class BenchTool:
         runtime = 0
         mem = 0
         idx_size_mb = 0
-        if self.options.tool == "tabix":
-            sort_rt, sort_mem = self.program_call(f"sort -k1,1 -k2,2n -k3,3n {self.refdirs['ref'] / f'{label}.bed'} > {self.refdirs['idx'] / f'{label}.bed'}")
-            runtime += sort_rt
-            if sort_mem > mem:
-                mem = sort_mem
+        if (self.options.tool == "tabix" or
+            self.options.tool == "bedtools_sorted" or
+            self.options.tool == "bedtools_tabix"):
+                sort_rt, sort_mem = self.program_call(f"sort -k1,1 -k2,2n -k3,3n {self.refdirs['ref'] / f'{label}.bed'} > {self.refdirs['idx'] / f'{label}.bed'}")
+                runtime += sort_rt
+                if sort_mem > mem:
+                    mem = sort_mem
 
-            bgzip_rt, bgzip_mem = self.program_call(f"bgzip -f {self.refdirs['idx'] / f'{label}.bed'} -o {self.refdirs['idx'] / f'{label}.bed'}.gz")
-            runtime += bgzip_rt
-            if bgzip_mem > mem:
-                mem = bgzip_mem
+                bgzip_rt, bgzip_mem = self.program_call(f"bgzip -f {self.refdirs['idx'] / f'{label}.bed'} -o {self.refdirs['idx'] / f'{label}.bed'}.gz")
+                runtime += bgzip_rt
+                if bgzip_mem > mem:
+                    mem = bgzip_mem
 
-            tabix_rt, tabix_mem = self.program_call(f"tabix -f -C -p bed {self.refdirs['idx'] / f'{label}.bed'}.gz")
-            runtime += tabix_rt
-            if tabix_mem > mem:
-                mem = tabix_mem
+                # determine size of the index (in MB) - gzipped and tabixed
+                bgzip_size = os.stat(self.refdirs['idx'] / f'{label}.bed.gz').st_size
+                bgzip_size_mb = round(bgzip_size/(1024*1024), 5)
+                idx_size_mb += bgzip_size_mb
 
-            # determine size of the index (in MB)
-            idx_size = os.stat(self.refdirs['idx'] / f'{label}.bed.gz.csi').st_size
-            idx_size_mb = round(idx_size/(1024*1024), 5)
+                # create tabix index
+                if self.options.tool == "tabix" or self.options.tool == "bedtools_tabix":
+                    tabix_rt, tabix_mem = self.program_call(f"tabix -f -C -p bed {self.refdirs['idx'] / f'{label}.bed'}.gz")
+                    runtime += tabix_rt
+                    if tabix_mem > mem:
+                        mem = tabix_mem
 
-        elif self.options.tool == "bedtools_sorted":
-            sort_rt, sort_mem = self.program_call(f"sort -k1,1 -k2,2n -k3,3n {self.refdirs['ref'] / f'{label}.bed'} > {self.refdirs['idx'] / f'{label}.bed'}")
-            runtime = sort_rt
-            mem = sort_mem
+                    csi_size = os.stat(self.refdirs['idx'] / f'{label}.bed.gz.csi').st_size
+                    csi_size_mb = round(csi_size/(1024*1024), 5)
+                    idx_size_mb += csi_size_mb
 
-            idx_size = os.stat(self.refdirs['idx'] / f'{label}.bed').st_size
-            idx_size_mb = round(idx_size/(1024*1024), 5)
 
         return runtime, mem, idx_size_mb
 
@@ -183,9 +193,46 @@ class BenchTool:
 
             query_sorted.close()
 
-        elif self.options.tool == "bedops":
-            query_rt, query_mem = self.program_call(f"bedops --intersect {queryfile} {reffiles['ref-srt']} > {tmpfile.name}")
+        elif self.options.tool == "bedtools_tabix":
+            query_rt, query_mem = self.program_call(f"tabix {reffiles['idx']} | bedtools intersect -wa -a stdin -b {queryfile} > {tmpfile.name}")
 
+        elif self.options.tool == "bedops":
+            # first sort the query file
+            query_sorted = tempfile.NamedTemporaryFile(mode='w', delete=False)
+            sort_rt, sort_mem = self.program_call(f"sort -k1,1 -k2,2n -k3,3n {queryfile} > {query_sorted.name}")
+            query_rt += sort_rt
+            if query_mem > query_mem:
+                query_mem = query_mem
+
+            bedops_rt = 0
+            bedops_mem = 0
+            if "basic" in str(queryfile):
+                bedops_rt, bedops_mem = self.program_call(f"bedops --element-of 1 {reffiles['ref-srt']} {query_sorted.name} > {tmpfile.name}")
+            elif "complex" in str(queryfile):
+                bedops_rt, bedops_mem = self.program_call(f"bedmap --echo-map --multidelim '\n' {query_sorted.name} {reffiles['ref-srt']} > {tmpfile.name}")
+            query_rt += bedops_rt
+            if bedops_mem > query_mem:
+                query_mem = bedops_mem
+
+            query_sorted.close()
+
+        elif self.options.tool == "bedmaps":
+            # first sort the query file
+            query_sorted = tempfile.NamedTemporaryFile(mode='w', delete=False)
+            sort_rt, sort_mem = self.program_call(f"sort -k1,1 -k2,2n -k3,3n {queryfile} > {query_sorted.name}")
+            query_rt += sort_rt
+            if query_mem > query_mem:
+                query_mem = query_mem
+
+            bedops_rt, bedops_mem = self.program_call(f"bedmap --echo-map --multidelim '\n' {query_sorted.name} {reffiles['ref-srt']} > {tmpfile.name}")
+            query_rt += bedops_rt
+            if bedops_mem > query_mem:
+                query_mem = bedops_mem
+
+            query_sorted.close()
+
+        elif self.options.tool == "giggle":
+            print()
 
         tmpfile.close()
 
@@ -237,22 +284,6 @@ class BenchTool:
 
         # print(f"memory {query_memory}")
         return query_times, query_memory, query_precision
-
-    def query_intervals_mem(self, reffiles, queryfile):
-        # print("\t... measuring memory requirements...")
-        rss_label = utility.get_time_rss_label()
-        verbose = utility.get_time_verbose_flag()
-
-        max_rss = 0
-        result = subprocess.run(["/usr/bin/time", verbose] + self.query_call(reffiles, queryfile),
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        stderr_output = result.stderr
-        rss_value = utility.get_rss_from_stderr(stderr_output, rss_label)
-        if rss_value:
-            rss_value_mb = rss_value/(1000000)
-            if rss_value_mb > max_rss:
-                max_rss = rss_value_mb
-        return max_rss
 
     def get_precision(self, queryfile, tmpfile, truth, dtype, qtype):
         """Check the file for the precision of the tool"""
