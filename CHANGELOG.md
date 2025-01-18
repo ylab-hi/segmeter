@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# [0.6.1]
+## Fix
+- It helps if the correct action is uploaded
+
+# [0.6.0]
+## Features
+- added giggle to benchmark (in docker)
+
 # [0.5.3]
 ## Fix
 - Fixed wrong call in bedtools using random access with tabix
