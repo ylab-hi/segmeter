@@ -247,7 +247,7 @@ class BenchTool:
         return query_rt, query_mem, tmpfile
 
 
-    def query_intervals(self, label, num):
+    def query_intervals(self, label, num, subset):
         reffiles = self.get_reffiles(label) # get the reference files
         queryfiles = self.get_queryfiles(label)
 
@@ -266,29 +266,28 @@ class BenchTool:
                 query_times[dtype][qtype] = {}
                 query_memory[dtype][qtype] = {}
 
-                for subset in queryfiles[dtype][qtype]:
-                    print(f"\rSearching for overlaps in {subset}% of {num} {dtype} '{qtype}' queries...", end="")
-                    query_times[dtype][qtype][subset] = 0 # initialize the time
-                    query_memory[dtype][qtype][subset] = 0 # initialize the memory
+                # for subset in queryfiles[dtype][qtype]:
+                print(f"\rSearching for overlaps in {subset}% of {num} {dtype} '{qtype}' queries...", end="")
+                query_times[dtype][qtype][subset] = 0 # initialize the time
+                query_memory[dtype][qtype][subset] = 0 # initialize the memory
 
-                    # determine the runtime and memory requirements
-                    query_rt, query_mem, query_result = self.query_interval(label, num, reffiles, queryfiles[dtype][qtype][subset])
-                    query_times[dtype][qtype][subset] += round(query_rt, 5)
-                    if query_mem > query_memory[dtype][qtype][subset]:
-                        query_memory[dtype][qtype][subset] = query_mem
+                # determine the runtime and memory requirements
+                query_rt, query_mem, query_result = self.query_interval(label, num, reffiles, queryfiles[dtype][qtype][subset])
+                query_times[dtype][qtype][subset] += round(query_rt, 5)
+                if query_mem > query_memory[dtype][qtype][subset]:
+                    query_memory[dtype][qtype][subset] = query_mem
 
-                    # determine the precision of the tool
-                    precision = self.get_precision(queryfiles[dtype][qtype][subset], query_result, truth[dtype], dtype, qtype)
-                    if dtype == "basic":
-                        query_precision[dtype][subset]["TP"] += precision["basic"]["TP"]
-                        query_precision[dtype][subset]["FP"] += precision["basic"]["FP"]
-                        query_precision[dtype][subset]["TN"] += precision["basic"]["TN"]
-                        query_precision[dtype][subset]["FN"] += precision["basic"]["FN"]
-                    elif dtype == "complex":
-                        query_precision[dtype][subset]["dist"] += precision["complex"]["dist"]
+                # determine the precision of the tool
+                precision = self.get_precision(queryfiles[dtype][qtype][subset], query_result, truth[dtype], dtype, qtype)
+                if dtype == "basic":
+                    query_precision[dtype][subset]["TP"] += precision["basic"]["TP"]
+                    query_precision[dtype][subset]["FP"] += precision["basic"]["FP"]
+                    query_precision[dtype][subset]["TN"] += precision["basic"]["TN"]
+                    query_precision[dtype][subset]["FN"] += precision["basic"]["FN"]
+                elif dtype == "complex":
+                    query_precision[dtype][subset]["dist"] += precision["complex"]["dist"]
 
-
-                print("done!")
+            print("done!")
 
         # print(f"memory {query_memory}")
         return query_times, query_memory, query_precision

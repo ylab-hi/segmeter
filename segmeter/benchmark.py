@@ -25,23 +25,40 @@ class BenchBase:
 
         self.tool = BenchTool(options)
 
+        # determine the subsets (to be used)
+        subsets = self.parse_param_subset()
+        print(subsets)
+
         for i, (label, num) in enumerate(intvlnums.items()):
             print(f"Detect overlaps using {options.tool} for {num} intervals...({i+1} out of {len(intvlnums)})")
-
             # if the tool is index-based, create index (and record stats)
             if options.tool in self.options.idx_based_tools:
                 outfile_idx = benchpath / f"{label}_idx_stats.txt"
                 idx_time, idx_mem, idx_size = self.tool.create_index(label, num)
                 self.save_idx_stats(num, idx_time, idx_mem, idx_size, outfile_idx)
 
-            # query intervals (and record stats)
-            outfile_query = benchpath / f"{label}_query_stats.txt"
-            query_time, query_memory, query_precision = self.tool.query_intervals(label, num)
-            self.save_query_stats(num, query_time, query_memory, outfile_query)
+            # parse queries - but separately for each subset (e.g, 10,20,30,40,...)
+            for subset in subsets:
+                outfile_query = benchpath / f"{label}_query_stats_{subset}.txt"
+                query_time, query_memory, query_precision = self.tool.query_intervals(label, num, subset)
+                self.save_query_stats(num, query_time, query_memory, outfile_query)
 
-            # save query precision stats
-            outfile_precision = benchpath / f"{label}_query_precision.txt"
-            self.save_query_prec_stats(num, query_precision, outfile_precision)
+
+
+
+
+
+
+
+
+            # # query intervals (and record stats)
+            # outfile_query = benchpath / f"{label}_query_stats.txt"
+            # query_time, query_memory, query_precision = self.tool.query_intervals(label, num)
+            # self.save_query_stats(num, query_time, query_memory, outfile_query)
+
+            # # save query precision stats
+            # outfile_precision = benchpath / f"{label}_query_precision.txt"
+            # self.save_query_prec_stats(num, query_precision, outfile_precision)
 
 
     def save_idx_stats(self, num, idx_time, idx_mem, idx_size, filename):
@@ -77,3 +94,14 @@ class BenchBase:
         for key, value in query_precision["complex"].items():
             fh.write(f"{num}\t{key}bin\t{value['dist']}\n")
         fh.close()
+
+    def parse_param_subset(self):
+        subset = []
+        for sub in self.options.subset.split(","):
+            if "-" in sub:
+                start, end = sub.split("-")
+                subset.append(int(start))
+                subset.append(int(end))
+            else:
+                subset.append(int(sub))
+        return subset
