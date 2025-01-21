@@ -90,7 +90,7 @@ class BenchTool:
         fh_basic = open(truth_basic_file)
         for line in fh_basic:
             fields = line.strip().split("\t")
-            truth["basic"][(fields[0], fields[1], fields[2])] = (fields[3], fields[4], fields[5])
+            truth["basic"][(fields[0], fields[1], fields[2])] = ((fields[3], fields[4], fields[5]), fields[6])
         fh_basic.close()
 
         fh_complex = open(truth_complex_file)
@@ -296,7 +296,7 @@ class BenchTool:
         """Check the file for the precision of the tool"""
         precision = {
             "basic": {"TP": 0, "FP": 0, "TN": 0, "FN": 0},
-            "complex": {"dist": 0}
+            "complex": {"dist": 0},
         }
 
         if dtype == "basic":
@@ -314,19 +314,24 @@ class BenchTool:
             for line in fhq:
                 cols = line.strip().split("\t")
                 query = tuple(cols[0:3])
-                truthquery = truth[query]
+                truth_intvl = truth[query][0]
+                truth_intvlid = truth[query][1]
 
                 qgroup = utility.get_query_group("basic", qtype)
                 if qgroup == "interval":
-                    if truthquery in results:
+                    if truth_intvl in results:
                         precision["basic"]["TP"] += 1
                     else:
                         precision["basic"]["FN"] += 1
+                        # precision["basic"]["negatives"].append(f"{truth_intvlid}\tFN\n")
+
                 elif qgroup == "gap":
-                    if truthquery in results:
+                    if truth_intvl in results:
                         precision["basic"]["FP"] += 1
+                        # precision["basic"]["negatives"].append(f"{truth_intvlid}\tFP\n")
                     else:
                         precision["basic"]["TN"] += 1
+                        # precision["basic"]["negatives"].append(f"{truth_intvlid}\tTN\n")
             fhq.close()
         elif dtype == "complex":
             # if queryfile is empty, skip the precision calculation

@@ -26,7 +26,7 @@ segmeter reads a dataset of intervals from a file and evaluates the performance 
 
 ## Docker
 
-In additon, we provide a ready-to-use Docker container that has segmeter preconfigured.
+In additon, we provide a ready-to-use Docker container that has segmeter preconfigured. It can be found at [dockerhub](https://hub.docker.com/r/yanglabinfo/segmeter)
 
 ## Singularity
 
