@@ -21,6 +21,6 @@ RUN git clone https://github.com/riasc/giggle.git \
 ENV GIGGLE_ROOT="/giggle" PATH="/giggle/bin/:$PATH"
 
 # now add segmeter
-ADD ../segmeter /segmeter
+ADD segmeter /segmeter
 RUN chmod +x /segmeter/main.py
 RUN ln -s /segmeter/main.py /usr/local/bin/segmeter && chmod +x /usr/local/bin/segmeter
