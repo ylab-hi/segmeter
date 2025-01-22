@@ -72,14 +72,14 @@ class BenchTool:
 
         return queryfiles
 
-    def init_stat(self):
+    def init_stat(self, subset):
         """this function initializes the precision fields for the different query types"""
         fields = {}
         fields["basic"] = {}
+        fields["basic"][subset] = {"TP": 0, "FP": 0, "TN": 0, "FN": 0, "negatives": []}
         fields["complex"] = {}
-        for subset in range(10,101,10):
-            fields["basic"][subset] = {"TP": 0, "FP": 0, "TN": 0, "FN":0}
-            fields["complex"][subset] = {"dist": 0}
+        fields["complex"][subset] = {"dist": 0}
+
         return fields
 
     def load_truth(self, truth_basic_file, truth_complex_file):
@@ -256,8 +256,11 @@ class BenchTool:
 
         query_times = {}
         query_memory = {}
-        query_precision = self.init_stat()
+        query_precision = self.init_stat(subset)
 
+        # print(f"Searching for overlaps in {subset}% of the queries in {num} intervals")
+
+        last_message_len = 0
         for dtype in ["basic", "complex"]:
             query_times[dtype] = {}
             query_memory[dtype] = {}
@@ -267,7 +270,12 @@ class BenchTool:
                 query_memory[dtype][qtype] = {}
 
                 # for subset in queryfiles[dtype][qtype]:
-                print(f"\rSearching for overlaps in {subset}% of {num} {dtype} '{qtype}' queries...", end="")
+                # print(f"\rSearching for overlaps in {subset}% {dtype} '{qtype}' queries from {num} intervals {' '*20}", end="")
+                current_message = f"\rSearching for overlaps in {subset}% {dtype} '{qtype}' queries from {num} intervals"
+                clear_message = current_message + " " * (last_message_len - len(current_message))
+                print(f"\r{clear_message}", end="")
+                last_message_len = len(current_message)
+
                 query_times[dtype][qtype][subset] = 0 # initialize the time
                 query_memory[dtype][qtype][subset] = 0 # initialize the memory
 
@@ -284,19 +292,24 @@ class BenchTool:
                     query_precision[dtype][subset]["FP"] += precision["basic"]["FP"]
                     query_precision[dtype][subset]["TN"] += precision["basic"]["TN"]
                     query_precision[dtype][subset]["FN"] += precision["basic"]["FN"]
+                    query_precision[dtype][subset]["negatives"] += precision["basic"]["negatives"]
                 elif dtype == "complex":
                     query_precision[dtype][subset]["dist"] += precision["complex"]["dist"]
 
-            print("done!")
 
-        # print(f"memory {query_memory}")
+        # final done message
+        current_message = f"\rMatching all queries for {num} intervals using {self.options.tool} done!"
+        clear_message = current_message + " " * (last_message_len - len(current_message))
+        print(f"{clear_message}")
+        last_message_len = len(current_message)
+
         return query_times, query_memory, query_precision
 
     def get_precision(self, queryfile, tmpfile, truth, dtype, qtype):
         """Check the file for the precision of the tool"""
         precision = {
-            "basic": {"TP": 0, "FP": 0, "TN": 0, "FN": 0},
-            "complex": {"dist": 0},
+            "basic": {"TP": 0, "FP": 0, "TN": 0, "FN": 0, "negatives": []},
+            "complex": {"dist": 0}
         }
 
         if dtype == "basic":
@@ -323,15 +336,14 @@ class BenchTool:
                         precision["basic"]["TP"] += 1
                     else:
                         precision["basic"]["FN"] += 1
-                        # precision["basic"]["negatives"].append(f"{truth_intvlid}\tFN\n")
+                        precision["basic"]["negatives"].append(f"{truth_intvlid}\tFN\n")
 
                 elif qgroup == "gap":
                     if truth_intvl in results:
                         precision["basic"]["FP"] += 1
-                        # precision["basic"]["negatives"].append(f"{truth_intvlid}\tFP\n")
+                        precision["basic"]["negatives"].append(f"{truth_intvlid}\tFP\n")
                     else:
                         precision["basic"]["TN"] += 1
-                        # precision["basic"]["negatives"].append(f"{truth_intvlid}\tTN\n")
             fhq.close()
         elif dtype == "complex":
             # if queryfile is empty, skip the precision calculation

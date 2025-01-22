@@ -240,9 +240,9 @@ class SimBED:
 
         # write partial (5' and 3') overlaps
         start_partial_5p = random.randint(chroms["leftgap"][chrom]["mid"]+1, start_intvl-1)
-        end_partial_5p = random.randint(start_intvl, mid_intvl)
+        end_partial_5p = random.randint(start_intvl+1, mid_intvl)
         datafiles["queries-basic"]["5p-partial"].write(f"{chrom}\t{start_partial_5p}\t{end_partial_5p}\t{intvl_id}_5p\n")
-        start_partial_3p = random.randint(mid_intvl+1, end_intvl)
+        start_partial_3p = random.randint(mid_intvl+1, end_intvl-1)
         end_partial_3p = random.randint(end_intvl+1, rightgap["mid"])
         datafiles["queries-basic"]["3p-partial"].write(f"{chrom}\t{start_partial_3p}\t{end_partial_3p}\t{intvl_id}_3p\n")
 

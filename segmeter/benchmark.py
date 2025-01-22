@@ -27,7 +27,6 @@ class BenchBase:
 
         # determine the subsets (to be used)
         subsets = self.parse_param_subset()
-        print(subsets)
 
         for i, (label, num) in enumerate(intvlnums.items()):
             print(f"Detect overlaps using {options.tool} for {num} intervals...({i+1} out of {len(intvlnums)})")
@@ -43,22 +42,10 @@ class BenchBase:
                 query_time, query_memory, query_precision = self.tool.query_intervals(label, num, subset)
                 self.save_query_stats(num, query_time, query_memory, outfile_query)
 
-
-
-
-
-
-
-
-
-            # # query intervals (and record stats)
-            # outfile_query = benchpath / f"{label}_query_stats.txt"
-            # query_time, query_memory, query_precision = self.tool.query_intervals(label, num)
-            # self.save_query_stats(num, query_time, query_memory, outfile_query)
-
-            # # save query precision stats
-            # outfile_precision = benchpath / f"{label}_query_precision.txt"
-            # self.save_query_prec_stats(num, query_precision, outfile_precision)
+                # save query precision stats
+                outfile_precision = benchpath / f"{label}_query_precision_{subset}.txt"
+                outfile_negatives = benchpath / f"{label}_query_precision_negatives_{subset}.txt"
+                self.save_query_prec_stats(num, query_precision, outfile_precision, outfile_negatives)
 
 
     def save_idx_stats(self, num, idx_time, idx_mem, idx_size, filename):
@@ -77,7 +64,7 @@ class BenchBase:
             for key2, value2 in value.items():
                 fh.write(f"{num}\tcomplex\t{key}_{key2}bin\t{value2}\t{query_mem['complex'][key][key2]}\n")
 
-    def save_query_prec_stats(self, num, query_precision, filename):
+    def save_query_prec_stats(self, num, query_precision, filename, filename_negatives):
         fh = open(filename, "w")
         fh.write("intvlnum\tsubset\tTP\tFP\tTN\tFN\tPrecision\tRecall\tF1\n")
         for key, value in query_precision["basic"].items():
@@ -95,13 +82,27 @@ class BenchBase:
             fh.write(f"{num}\t{key}bin\t{value['dist']}\n")
         fh.close()
 
+        fh = open(filename_negatives, "w")
+        fh.write("intvlnum\tsubset\tFP\n")
+        for key, value in query_precision["basic"].items():
+            for key in value["negatives"]:
+                fh.write(key)
+        fh.close()
+
+
+
+
+
+
+
     def parse_param_subset(self):
         subset = []
         for sub in self.options.subset.split(","):
             if "-" in sub:
                 start, end = sub.split("-")
-                subset.append(int(start))
-                subset.append(int(end))
+                # add all values between start and end (by 10 increments)
+                for i in range(int(start), int(end)+1, 10):
+                    subset.append(i)
             else:
                 subset.append(int(sub))
         return subset
