@@ -19,6 +19,12 @@ jobs:
         with:
           ref: ${{ github.ref }}
 
+      - name: Debug Repository Contents
+        run: |
+          pwd
+          ls -la
+          echo "GitHub Workspace: $GITHUB_WORKSPACE"
+
       - name: setup QEMU
         uses: docker/setup-qemu-action@v3
 
@@ -40,7 +46,7 @@ jobs:
       - name: build and push
         uses: docker/build-push-action@v4
         with:
-          context: .
+          context: ../
           file: giggle/Dockerfile
           platforms: linux/amd64, linux/arm64
           push: true
