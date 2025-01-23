@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# [0.7.6]
+## Fix
+- changed context of github action for giggle container - this ensures that only the segmeter path is added (rather than the whole repo path)
+
 # [0.7.5]
 ## Fix
 - added correct call to giggle
