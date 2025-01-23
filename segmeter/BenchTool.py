@@ -173,7 +173,7 @@ class BenchTool:
                 if sort_mem > mem:
                     mem = sort_mem
 
-                giggle_rt, giggle_mem = self.program_call(f"giggle index -i {self.refdirs['idx'] / f'{label}.bed.gz'} -o {self.refdirs['idx'] / f'{label}_index'}")
+                giggle_rt, giggle_mem = self.program_call(f"giggle index -i {self.refdirs['idx'] / f'{label}.bed.gz'} -o {self.refdirs['idx'] / f'{label}_index'} -f -s")
                 runtime += giggle_rt
                 if giggle_mem > mem:
                     mem = giggle_mem
@@ -258,12 +258,14 @@ class BenchTool:
 
         elif self.options.tool == "giggle":
             query_sorted_dir = tempfile.TemporaryDirectory()
-            sort_rt, sort_mem = self.program_call(f"/giggle/scripts/sort_bed {queryfile} {query_sorted_dir.name} 4")
+            sort_rt, sort_mem = self.program_call(f" bash /giggle/scripts/sort_bed {queryfile} {query_sorted_dir.name} 4")
             query_rt += sort_rt
             if query_mem > query_mem:
                 query_mem = query_mem
 
-            giggle_rt, giggle_mem = self.program_call(f"/giggle/bin/giggle search -i {self.refdirs['idx'] / f'{label}_index'} -q {Path(query_sorted_dir.name) / f'{label}.bed.gz'} > {tmpfile.name}")
+            indexpath = Path(self.options.outdir) / "bench" / self.options.tool
+            """For some reason the giggle index is not created in ./giggle/idx/<index> but in ./giggle/<index> - so use this path"""
+            giggle_rt, giggle_mem = self.program_call(f"/giggle/bin/giggle search -i {indexpath / f'{label}_index'} -q {Path(query_sorted_dir.name) / f'{queryfile.name}.gz'} -v > {tmpfile.name}")
             query_rt += giggle_rt
             if giggle_mem > query_mem:
                 query_mem = giggle_mem
