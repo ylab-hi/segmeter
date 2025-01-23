@@ -20,7 +20,8 @@ class BenchBase:
         self.options.idx_based_tools = [
             "tabix",
             "bedtools_sorted",
-            "bedtools_tabix"
+            "bedtools_tabix",
+            "giggle"
         ]
 
         self.tool = BenchTool(options)
@@ -88,12 +89,6 @@ class BenchBase:
             for key in value["negatives"]:
                 fh.write(key)
         fh.close()
-
-
-
-
-
-
 
     def parse_param_subset(self):
         subset = []

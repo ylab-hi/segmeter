@@ -139,6 +139,7 @@ class BenchTool:
         if (self.options.tool == "tabix" or
             self.options.tool == "bedtools_sorted" or
             self.options.tool == "bedtools_tabix"):
+
                 sort_rt, sort_mem = self.program_call(f"sort -k1,1 -k2,2n -k3,3n {self.refdirs['ref'] / f'{label}.bed'} > {self.refdirs['idx'] / f'{label}.bed'}")
                 runtime += sort_rt
                 if sort_mem > mem:
@@ -164,6 +165,22 @@ class BenchTool:
                     csi_size = os.stat(self.refdirs['idx'] / f'{label}.bed.gz.csi').st_size
                     csi_size_mb = round(csi_size/(1024*1024), 5)
                     idx_size_mb += csi_size_mb
+
+
+        elif self.options.tool == "giggle":
+                sort_rt, sort_mem = self.program_call(f"bash /giggle/scripts/sort_bed {self.refdirs['ref'] / f'{label}.bed'} {self.refdirs['idx']} 4")
+                runtime += sort_rt
+                if sort_mem > mem:
+                    mem = sort_mem
+
+                giggle_rt, giggle_mem = self.program_call(f"giggle index -i {self.refdirs['idx'] / f'{label}.bed.gz'} -o {self.refdirs['idx'] / f'{label}_index'}")
+                runtime += giggle_rt
+                if giggle_mem > mem:
+                    mem = giggle_mem
+
+                giggle_size = os.stat(self.refdirs['idx'] / f'{label}_index').st_size
+                giggle_size_mb = round(giggle_size/(1024*1024), 5)
+                idx_size_mb += giggle_size_mb
 
 
         return runtime, mem, idx_size_mb
@@ -240,7 +257,18 @@ class BenchTool:
             query_sorted.close()
 
         elif self.options.tool == "giggle":
-            print()
+            query_sorted_dir = tempfile.TemporaryDirectory()
+            sort_rt, sort_mem = self.program_call(f"/giggle/scripts/sort_bed {queryfile} {query_sorted_dir.name} 4")
+            query_rt += sort_rt
+            if query_mem > query_mem:
+                query_mem = query_mem
+
+            giggle_rt, giggle_mem = self.program_call(f"/giggle/bin/giggle search -i {self.refdirs['idx'] / f'{label}_index'} -q {Path(query_sorted_dir.name) / f'{label}.bed.gz'} > {tmpfile.name}")
+            query_rt += giggle_rt
+            if giggle_mem > query_mem:
+                query_mem = giggle_mem
+
+            query_sorted_dir.cleanup()
 
         tmpfile.close()
 
