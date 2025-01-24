@@ -90,6 +90,7 @@ jobs:
           file: ./giggle/Dockerfile
           platforms: linux/amd64, linux/arm64
           push: true
+          memory: 4G
           tags: |
             yanglabinfo/segmeter:giggle-main
             yanglabinfo/segmeter:giggle-latest
