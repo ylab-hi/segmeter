@@ -23,7 +23,7 @@ RUN apt-get install -y \
 
 RUN git clone https://github.com/riasc/giggle.git \
     && cd giggle \
-    ls -la && \
+    ls -la \
     && make
 
 ENV GIGGLE_ROOT="/giggle" PATH="/giggle/bin/:$PATH"
