@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# [0.7.13]
+## Fix
+-  modify the Dockerfile to use the relative path from the root
+
 # [0.7.12]
 ## Fix
 - made some changes to the Dockerfile for giggle and its corresponding action

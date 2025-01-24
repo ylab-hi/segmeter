@@ -46,8 +46,8 @@ jobs:
       - name: build and push
         uses: docker/build-push-action@v4
         with:
-          context: ./giggle
-          # file: giggle/Dockerfile
+          context: .
+          file: ./giggle/Dockerfile
           platforms: linux/amd64, linux/arm64
           push: true
           tags: |
