@@ -32,7 +32,8 @@ RUN git clone https://github.com/riasc/giggle.git \
 
 ENV GIGGLE_ROOT="/giggle" PATH="/giggle/bin/:$PATH"
 
-RUN cd / && git clone https://github.com/riasc/segmeter.git
+WORKDIR /
+RUN git clone https://github.com/riasc/segmeter.git
 
 # now add segmeter
 # ADD segmeter /segmeter
