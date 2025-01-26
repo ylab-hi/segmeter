@@ -22,6 +22,9 @@ RUN apt-get install -y \
     python3-wheel \
     time
 
+# create symlink to python3
+RUN ln -s /usr/bin/python3 /usr/bin/python
+
 RUN apt-get install -y \
     tabix
 
@@ -35,8 +38,5 @@ ENV GIGGLE_ROOT="/giggle" PATH="/giggle/bin/:$PATH"
 WORKDIR /
 RUN git clone https://github.com/ylab-hi/segmeter.git
 
-# now add segmeter
-# ADD segmeter /segmeter
-# RUN ls -l /segmeter
-# RUN chmod +x /segmeter/main.py
-# RUN ln -s /segmeter/main.py /usr/local/bin/segmeter && chmod +x /usr/local/bin/segmeter
+# create symlink to segmeter/segmeter/main.py
+RUN ln -s /segmeter/segmeter/main.py /usr/local/bin/segmeter && chmod +x /usr/local/bin/segmeter

@@ -178,7 +178,9 @@ class BenchTool:
                 if giggle_mem > mem:
                     mem = giggle_mem
 
-                giggle_size = os.stat(self.refdirs['idx'] / f'{label}_index').st_size
+                indexpath = Path(self.options.outdir) / "bench" / self.options.tool
+                """For some reason the giggle index is not created in ./giggle/idx/<index> but in ./giggle/<index> - so use this path"""
+                giggle_size = os.stat(indexpath / f'{label}_index').st_size
                 giggle_size_mb = round(giggle_size/(1024*1024), 5)
                 idx_size_mb += giggle_size_mb
 
