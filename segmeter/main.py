@@ -30,7 +30,7 @@ def parse_arguments():
     parser.add_argument("-m", "--max_chromlen", type=int, help="maximum length of the simulated chromosomes", default=1000000000)
     parser.add_argument("-o", "--outdir", type=str, help="output folder for the benchmark/simulation results. ", required=True)
     parser.add_argument("-t", "--tool", type=str, help="tool to benchmark",
-        choices=["tabix", "bedtools", "bedtools_sorted", "bedtools_tabix", "bedops", "bedmaps", "giggle"])
+        choices=["tabix", "bedtools", "bedtools_sorted", "bedtools_tabix", "bedops", "bedmaps", "giggle", "granges"])
     parser.add_argument("-g", "--gapsize", type=str, help="random size of the gaps (min and max) between the intervals", default="100-5000")
     parser.add_argument("-i", "--intvlsize", type=str, help="random size (min and max) of the intervals", default="100-10000")
 

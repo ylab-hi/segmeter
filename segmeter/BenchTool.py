@@ -3,6 +3,7 @@ import time
 import os
 import tempfile
 from pathlib import Path
+import shutil
 
 import utility
 
@@ -53,6 +54,10 @@ class BenchTool:
             self.options.tool == "bedtools_sorted" or
             self.options.tool == "bedtools_tabix"):
                 reffiles["idx"] = self.refdirs["idx"] / f"{label}.bed.gz"
+
+        # add genome length
+        simpath = Path(self.options.outdir) / "sim" / self.options.format
+        reffiles["chromlens"] =  simpath / f"{label}_chromlens.txt"
 
         return reffiles
 
@@ -205,10 +210,13 @@ class BenchTool:
             sort_rt, sort_mem = self.program_call(f"sort -k1,1 -k2,2n -k3,3n {queryfile} > {query_sorted.name}")
 
             query_rt += sort_rt
-            if query_mem > query_mem:
-                query_mem = query_mem
+            if sort_mem > query_mem:
+                query_mem = sort_mem
             # query intervals
-            query_rt, query_mem = self.program_call(f"bedtools intersect -wa -a {reffiles['ref-srt']} -b {query_sorted.name} > {tmpfile.name}")
+            bedtools_rt, bedtools_mem = self.program_call(f"bedtools intersect -wa -a {reffiles['ref-srt']} -b {query_sorted.name} > {tmpfile.name}")
+            query_rt += bedtools_rt
+            if bedtools_mem > query_mem:
+                query_mem = bedtools_mem
 
             query_sorted.close()
 
@@ -218,10 +226,13 @@ class BenchTool:
             sort_rt, sort_mem = self.program_call(f"sort -k1,1 -k2,2n -k3,3n {queryfile} > {query_sorted.name}")
 
             query_rt += sort_rt
-            if query_mem > query_mem:
-                query_mem = query_mem
+            if sort_mem > query_mem:
+                query_mem = sort_mem
 
-            query_rt, query_mem = self.program_call(f"bedtools intersect -wa -a {reffiles['ref-srt']} -b {queryfile} > {tmpfile.name}")
+            bedtools_rt, bedtools_mem = self.program_call(f"bedtools intersect -wa -a {reffiles['ref-srt']} -b {queryfile} > {tmpfile.name}")
+            query_rt += bedtools_rt
+            if bedtools_mem > query_mem:
+                query_mem = bedtools_mem
 
         elif self.options.tool == "bedops":
             # first sort the query file
@@ -248,8 +259,8 @@ class BenchTool:
             query_sorted = tempfile.NamedTemporaryFile(mode='w', delete=False)
             sort_rt, sort_mem = self.program_call(f"sort -k1,1 -k2,2n -k3,3n {queryfile} > {query_sorted.name}")
             query_rt += sort_rt
-            if query_mem > query_mem:
-                query_mem = query_mem
+            if sort_mem > query_mem:
+                query_mem = sort_mem
 
             bedops_rt, bedops_mem = self.program_call(f"bedmap --echo-map --multidelim '\n' {query_sorted.name} {reffiles['ref-srt']} > {tmpfile.name}")
             query_rt += bedops_rt
@@ -262,8 +273,8 @@ class BenchTool:
             query_sorted_dir = tempfile.TemporaryDirectory()
             sort_rt, sort_mem = self.program_call(f" bash /giggle/scripts/sort_bed {queryfile} {query_sorted_dir.name} 4")
             query_rt += sort_rt
-            if query_mem > query_mem:
-                query_mem = query_mem
+            if sort_mem > query_mem:
+                query_mem = sort_mem
 
             indexpath = Path(self.options.outdir) / "bench" / self.options.tool
             """For some reason the giggle index is not created in ./giggle/idx/<index> but in ./giggle/<index> - so use this path"""
@@ -273,6 +284,23 @@ class BenchTool:
                 query_mem = giggle_mem
 
             query_sorted_dir.cleanup()
+
+        elif self.options.tool == "granges":
+            # rename reference and query to .tsv
+            ref_tsv = tempfile.NamedTemporaryFile(mode='w', delete=False)
+            query_tsv = tempfile.NamedTemporaryFile(mode='w', delete=False)
+
+            ref_tsv_name = ref_tsv.name + ".tsv"
+            query_tsv_name = query_tsv.name + ".tsv"
+
+            shutil.copy2(reffiles['ref-srt'], ref_tsv_name)
+            shutil.copy2(queryfile, query_tsv_name)
+
+            granges_rt, granges_mem = self.program_call(f"granges filter --genome {reffiles['chromlens']} --left {ref_tsv_name} --right {query_tsv_name} > {tmpfile.name}")
+            query_rt += granges_rt
+            if granges_mem > query_mem:
+                query_mem = granges_mem
+
 
         tmpfile.close()
 
