@@ -41,6 +41,7 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: .
+          file: ./containers/rust-tools/Dockerfile
           platforms: linux/amd64, linux/arm64
           push: true
           # tags: yanglabinfo/segmeter:${{ steps.extract_version.outputs.VERSION }}, yanglabinfo/segmeter:latest
