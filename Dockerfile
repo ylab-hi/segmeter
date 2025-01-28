@@ -33,12 +33,26 @@ RUN apt-get install -y bedtools
 
 #install granges
 RUN cargo install granges
+# install gia
+RUN cargo install gia
 
 # install bedops by link
 RUN curl -L -o  bedops.tar.bz2 https://github.com/bedops/bedops/releases/download/v2.4.41/bedops_linux_x86_64-v2.4.41.tar.bz2
 RUN mkdir bedops
 RUN tar -xvf bedops.tar.bz2 -C bedops
 RUN cp bedops/bin/* /usr/local/bin/
+
+# install bedtk
+RUN curl -L -o bedtk.tar.gz https://github.com/riasc/bedtk/releases/download/2025-01-27/bedtk-v2025-01-27.tar.gz
+RUN tar -xvf bedtk.tar.gz
+RUN cd bedtk && make
+RUN cp /bedtk/bedtk /usr/local/bin/
+
+# install IGD
+RUN curl -L -o IGD.tar.gz https://github.com/riasc/IGD/releases/download/2025-01-27/IGD-2025-01-27.tar.gz
+RUN tar -xvf IGD.tar.gz
+RUN cd IGD && make
+RUN cp /IGD/bin/igd /usr/local/bin/
 
 # load segmeter
 ADD segmeter /segmeter

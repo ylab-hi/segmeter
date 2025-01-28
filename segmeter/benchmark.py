@@ -21,7 +21,10 @@ class BenchBase:
             "tabix",
             "bedtools_sorted",
             "bedtools_tabix",
-            "giggle"
+            "giggle",
+            "gia_sorted",
+            "bedtk_sorted",
+            "igd"
         ]
 
         self.tool = BenchTool(options)
@@ -37,15 +40,20 @@ class BenchBase:
                 idx_time, idx_mem, idx_size = self.tool.create_index(label, num)
                 self.save_idx_stats(num, idx_time, idx_mem, idx_size, outfile_idx)
 
+            statspath = benchpath / label / "stats"
+            precisionpath = benchpath / label / "precision"
+            statspath.mkdir(parents=True, exist_ok=True)
+            precisionpath.mkdir(parents=True, exist_ok=True)
+
             # parse queries - but separately for each subset (e.g, 10,20,30,40,...)
             for subset in subsets:
-                outfile_query = benchpath / f"{label}_query_stats_{subset}.txt"
+                outfile_stats = statspath / f"{label}_query_stats_{subset}.txt"
                 query_time, query_memory, query_precision = self.tool.query_intervals(label, num, subset)
-                self.save_query_stats(num, query_time, query_memory, outfile_query)
+                self.save_query_stats(num, query_time, query_memory, outfile_stats)
 
                 # save query precision stats
-                outfile_precision = benchpath / f"{label}_query_precision_{subset}.txt"
-                outfile_negatives = benchpath / f"{label}_query_precision_negatives_{subset}.txt"
+                outfile_precision = precisionpath / f"{label}_query_precision_{subset}.txt"
+                outfile_negatives = precisionpath / f"{label}_query_precision_negatives_{subset}.txt"
                 self.save_query_prec_stats(num, query_precision, outfile_precision, outfile_negatives)
 
 
