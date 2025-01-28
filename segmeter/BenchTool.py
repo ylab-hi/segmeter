@@ -1,11 +1,11 @@
-import subprocess
-import time
+# standard
 import os
-import tempfile
 from pathlib import Path
-import shutil
 
+# class
 import utility
+import calls
+
 
 class BenchTool:
     def __init__(self, options):
@@ -111,283 +111,10 @@ class BenchTool:
 
         return truth
 
-    def program_call(self, call):
-        rss_label = utility.get_time_rss_label()
-        verbose = utility.get_time_verbose_flag()
-
-        # initialize runtime and memory requirements
-        runtime = 0
-        mem = 0
-
-        call_time = f"/usr/bin/time {verbose} {call}"
-        start_time = time.time()
-        result = subprocess.run(
-            call_time,
-            shell=True, # allows handling of '>' redirection
-            stdout=subprocess.PIPE, # captures stdout of '/usr/bin/time'
-            stderr=subprocess.PIPE, # captures stderr of '/usr/bin/time'
-            text=True # decodes stdout/stderr as strings
-        )
-        end_time = time.time()
-        runtime = round(end_time - start_time, 5)
-        stderr_output = result.stderr
-        rss_value = utility.get_rss_from_stderr(stderr_output, rss_label)
-        if rss_value:
-            rss_value_mb = rss_value/(1000000)
-            mem = rss_value_mb
-
-        return runtime, mem
-
 
     def create_index(self, label, num):
-        """Tabix creates the index in the same folder as the input file."""
-        print(f"Indexing {self.refdirs['ref']} with {label}:{num} intervals...")
-
-        runtime = 0
-        mem = 0
-        idx_size_mb = 0
-        if (self.options.tool == "tabix" or
-            self.options.tool == "bedtools_sorted" or
-            self.options.tool == "bedtools_tabix" or
-            self.options.tool == "gia_sorted" or
-            self.options.tool == "bedtk_sorted"):
-
-                sort_rt, sort_mem = self.program_call(f"sort -k1,1 -k2,2n -k3,3n {self.refdirs['ref'] / f'{label}.bed'} > {self.refdirs['idx'] / f'{label}.bed'}")
-                runtime += sort_rt
-                if sort_mem > mem:
-                    mem = sort_mem
-
-                bgzip_rt, bgzip_mem = self.program_call(f"bgzip -f {self.refdirs['idx'] / f'{label}.bed'} > {self.refdirs['idx'] / f'{label}.bed.gz'}")
-                runtime += bgzip_rt
-                if bgzip_mem > mem:
-                    mem = bgzip_mem
-
-                # determine size of the index (in MB) - gzipped and tabixed
-                bgzip_size = os.stat(self.refdirs['idx'] / f'{label}.bed.gz').st_size
-                bgzip_size_mb = round(bgzip_size/(1024*1024), 5)
-                idx_size_mb += bgzip_size_mb
-
-                # create tabix index
-                if self.options.tool == "tabix" or self.options.tool == "bedtools_tabix":
-                    tabix_rt, tabix_mem = self.program_call(f"tabix -f -C -p bed {self.refdirs['idx'] / f'{label}.bed'}.gz")
-                    runtime += tabix_rt
-                    if tabix_mem > mem:
-                        mem = tabix_mem
-
-                    csi_size = os.stat(self.refdirs['idx'] / f'{label}.bed.gz.csi').st_size
-                    csi_size_mb = round(csi_size/(1024*1024), 5)
-                    idx_size_mb += csi_size_mb
-
-
-        elif self.options.tool == "giggle":
-            sort_rt, sort_mem = self.program_call(f"bash /giggle/scripts/sort_bed {self.refdirs['ref'] / f'{label}.bed'} {self.refdirs['idx']} 4")
-            runtime += sort_rt
-            if sort_mem > mem:
-                mem = sort_mem
-
-            giggle_rt, giggle_mem = self.program_call(f"giggle index -i {self.refdirs['idx'] / f'{label}.bed.gz'} -o {self.refdirs['idx'] / f'{label}_index'} -f -s")
-            runtime += giggle_rt
-            if giggle_mem > mem:
-                mem = giggle_mem
-
-            indexpath = Path(self.options.outdir) / "bench" / self.options.tool
-            """For some reason the giggle index is not created in ./giggle/idx/<index> but in ./giggle/<index> - so use this path"""
-            giggle_size = os.stat(indexpath / f'{label}_index').st_size
-            giggle_size_mb = round(giggle_size/(1024*1024), 5)
-            idx_size_mb += giggle_size_mb
-
-        elif self.options.tool == "igd":
-            # copy the reference file to its own index directory
-            idxindir = self.refdirs['idx'] / f'{label}_in'
-            idxoutdir = self.refdirs['idx'] / f'{label}_out'
-            idxindir.mkdir(parents=True, exist_ok=True)
-            idxoutdir.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(self.refdirs['ref'] / f'{label}.bed', idxindir / f'{label}.bed')
-
-            igd_rt, igd_mem = self.program_call(f"igd create {idxindir} {idxoutdir} {label}")
-            runtime += igd_rt
-            if igd_mem > mem:
-                mem = igd_mem
-
-            igd_size = os.stat(idxoutdir).st_size
-            igd_size_mb = round(igd_size/(1024*1024), 5)
-            idx_size_mb += igd_size_mb
-
-
-        return runtime, mem, idx_size_mb
-
-
-    def query_interval(self, label, num, reffiles, queryfile):
-        tmpfile = tempfile.NamedTemporaryFile(mode='w', delete=False)
-
-        query_rt = 0
-        query_mem = 0
-        if self.options.tool == "tabix":
-            query_rt, query_mem = self.program_call(f"tabix {reffiles['idx']} -R {queryfile} > {tmpfile.name}")
-
-        elif self.options.tool == "bedtools":
-            query_rt, query_mem = self.program_call(f"bedtools intersect -wa -a {reffiles['ref-unsrt']} -b {queryfile} > {tmpfile.name}")
-
-        elif self.options.tool == "bedtools_sorted":
-            # first sort the query file
-            query_sorted = tempfile.NamedTemporaryFile(mode='w', delete=False)
-            sort_rt, sort_mem = self.program_call(f"sort -k1,1 -k2,2n -k3,3n {queryfile} > {query_sorted.name}")
-
-            query_rt += sort_rt
-            if sort_mem > query_mem:
-                query_mem = sort_mem
-            # query intervals
-            bedtools_rt, bedtools_mem = self.program_call(f"bedtools intersect -wa -a {reffiles['ref-srt']} -b {query_sorted.name} > {tmpfile.name}")
-            query_rt += bedtools_rt
-            if bedtools_mem > query_mem:
-                query_mem = bedtools_mem
-
-            query_sorted.close()
-
-        elif self.options.tool == "bedtools_tabix":
-            # first sort the query file
-            query_sorted = tempfile.NamedTemporaryFile(mode='w', delete=False)
-            sort_rt, sort_mem = self.program_call(f"sort -k1,1 -k2,2n -k3,3n {queryfile} > {query_sorted.name}")
-
-            query_rt += sort_rt
-            if sort_mem > query_mem:
-                query_mem = sort_mem
-
-            bedtools_rt, bedtools_mem = self.program_call(f"bedtools intersect -wa -a {reffiles['ref-srt']} -b {queryfile} > {tmpfile.name}")
-            query_rt += bedtools_rt
-            if bedtools_mem > query_mem:
-                query_mem = bedtools_mem
-
-        elif self.options.tool == "bedops":
-            # first sort the query file
-            query_sorted = tempfile.NamedTemporaryFile(mode='w', delete=False)
-            sort_rt, sort_mem = self.program_call(f"sort -k1,1 -k2,2n -k3,3n {queryfile} > {query_sorted.name}")
-            query_rt += sort_rt
-            if query_mem > query_mem:
-                query_mem = query_mem
-
-            bedops_rt = 0
-            bedops_mem = 0
-            if "basic" in str(queryfile):
-                bedops_rt, bedops_mem = self.program_call(f"bedops --element-of 1 {reffiles['ref-srt']} {query_sorted.name} > {tmpfile.name}")
-            elif "complex" in str(queryfile):
-                bedops_rt, bedops_mem = self.program_call(f"bedmap --echo-map --multidelim '\n' {query_sorted.name} {reffiles['ref-srt']} > {tmpfile.name}")
-            query_rt += bedops_rt
-            if bedops_mem > query_mem:
-                query_mem = bedops_mem
-
-            query_sorted.close()
-
-        elif self.options.tool == "bedmaps":
-            # first sort the query file
-            query_sorted = tempfile.NamedTemporaryFile(mode='w', delete=False)
-            sort_rt, sort_mem = self.program_call(f"sort -k1,1 -k2,2n -k3,3n {queryfile} > {query_sorted.name}")
-            query_rt += sort_rt
-            if sort_mem > query_mem:
-                query_mem = sort_mem
-
-            bedops_rt, bedops_mem = self.program_call(f"bedmap --echo-map --multidelim '\n' {query_sorted.name} {reffiles['ref-srt']} > {tmpfile.name}")
-            query_rt += bedops_rt
-            if bedops_mem > query_mem:
-                query_mem = bedops_mem
-
-            query_sorted.close()
-
-        elif self.options.tool == "giggle":
-            query_sorted_dir = tempfile.TemporaryDirectory()
-            sort_rt, sort_mem = self.program_call(f" bash /giggle/scripts/sort_bed {queryfile} {query_sorted_dir.name} 4")
-            query_rt += sort_rt
-            if sort_mem > query_mem:
-                query_mem = sort_mem
-
-            indexpath = Path(self.options.outdir) / "bench" / self.options.tool
-            """For some reason the giggle index is not created in ./giggle/idx/<index> but in ./giggle/<index> - so use this path"""
-            giggle_rt, giggle_mem = self.program_call(f"/giggle/bin/giggle search -i {indexpath / f'{label}_index'} -q {Path(query_sorted_dir.name) / f'{queryfile.name}.gz'} -v > {tmpfile.name}")
-            query_rt += giggle_rt
-            if giggle_mem > query_mem:
-                query_mem = giggle_mem
-
-            query_sorted_dir.cleanup()
-
-        elif self.options.tool == "granges":
-            # rename reference and query to .tsv
-            ref_tsv = tempfile.NamedTemporaryFile(mode='w', delete=False)
-            query_tsv = tempfile.NamedTemporaryFile(mode='w', delete=False)
-
-            ref_tsv_name = ref_tsv.name + ".tsv"
-            query_tsv_name = query_tsv.name + ".tsv"
-
-            shutil.copy2(reffiles['ref-srt'], ref_tsv_name)
-            shutil.copy2(queryfile, query_tsv_name)
-
-            granges_rt, granges_mem = self.program_call(f"granges filter --genome {reffiles['chromlens']} --left {ref_tsv_name} --right {query_tsv_name} > {tmpfile.name}")
-            query_rt += granges_rt
-            if granges_mem > query_mem:
-                query_mem = granges_mem
-
-        elif self.options.tool == "gia":
-            query_rt, query_mem = self.program_call(f"gia intersect -a {queryfile} -b {reffiles['ref-unsrt']} -t > {tmpfile.name}")
-
-        elif self.options.tool == "gia_sorted":
-            query_sorted = tempfile.NamedTemporaryFile(mode='w', delete=False)
-            sort_rt, sort_mem = self.program_call(f"sort -k1,1 -k2,2n -k3,3n {queryfile} > {query_sorted.name}")
-            query_rt += sort_rt
-            if sort_mem > query_mem:
-                query_mem = sort_mem
-
-            gia_rt, gia_mem = self.program_call(f"gia intersect -a {query_sorted.name} -b {reffiles['idx']} -t > {tmpfile.name}")
-            query_rt += gia_rt
-            if gia_mem > query_mem:
-                query_mem = gia_mem
-
-            query_sorted.close()
-
-        elif self.options.tool == "bedtk":
-            query_rt, query_mem = self.program_call(f"bedtk isec {queryfile} {reffiles['ref-unsrt']} > {tmpfile.name}")
-
-        elif self.options.tool == "bedtk_sorted":
-            query_sorted = tempfile.NamedTemporaryFile(mode='w', delete=False)
-            sort_rt, sort_mem = self.program_call(f"sort -k1,1 -k2,2n -k3,3n {queryfile} > {query_sorted.name}")
-            query_rt += sort_rt
-            if sort_mem > query_mem:
-                query_mem = sort_mem
-
-            bedtk_rt, bedtk_mem = self.program_call(f"bedtk isec {query_sorted.name} {reffiles['ref-srt']} > {tmpfile.name}")
-            query_rt += bedtk_rt
-            if bedtk_mem > query_mem:
-                query_mem = bedtk_mem
-            query_sorted.close()
-
-        elif self.options.tool == "igd":
-            tmpfile2 = tempfile.NamedTemporaryFile(mode='w', delete=False)
-            igd_rt, igd_mem = self.program_call(f"igd search {self.refdirs['idx'] / f'{label}_out' / f'{label}.igd'} -q {queryfile} -f > {tmpfile2.name}")
-            query_rt += igd_rt
-            if igd_mem > query_mem:
-                query_mem = igd_mem
-
-            # process the igd output to match the output of other tools (e.g., BED format)
-            fh = open(tmpfile2.name)
-            entries = []
-            chrom = ""
-            for line in fh:
-                if line.startswith("Query"):
-                    chrom = line.split(",")[0].split()[1]
-                elif line[0].isdigit():
-                    # extract start/end positons
-                    parts = line.split()
-                    start = parts[1].strip()
-                    end = parts[2].strip()
-                    entries.append(f"{chrom}\t{start}\t{end}\n")
-            fh.close()
-
-            fh = open(tmpfile.name, "w")
-            for entry in entries:
-                fh.write(entry)
-            fh.close()
-
-        tmpfile.close()
-
-        return query_rt, query_mem, tmpfile
+        # runtime, mem, idx_size = calls.index_call(self.options, self.refdirs, label, num)
+        return calls.index_call(self.options, self.refdirs, label, num)
 
 
     def query_intervals(self, label, num, subset):
@@ -423,7 +150,7 @@ class BenchTool:
                 query_memory[dtype][qtype][subset] = 0 # initialize the memory
 
                 # determine the runtime and memory requirements
-                query_rt, query_mem, query_result = self.query_interval(label, num, reffiles, queryfiles[dtype][qtype][subset])
+                query_rt, query_mem, query_result = calls.query_call(self.options, label, num, reffiles, queryfiles[dtype][qtype][subset])
                 query_times[dtype][qtype][subset] += round(query_rt, 5)
                 if query_mem > query_memory[dtype][qtype][subset]:
                     query_memory[dtype][qtype][subset] = query_mem
@@ -511,3 +238,283 @@ class BenchTool:
                 precision["complex"]["dist"] = abs(results_entries_num - truth_entries_num)
 
         return precision
+
+
+    # def program_call(self, call):
+    #     rss_label = utility.get_time_rss_label()
+    #     verbose = utility.get_time_verbose_flag()
+
+    #     # initialize runtime and memory requirements
+    #     runtime = 0
+    #     mem = 0
+
+    #     call_time = f"/usr/bin/time {verbose} {call}"
+    #     start_time = time.time()
+    #     result = subprocess.run(
+    #         call_time,
+    #         shell=True, # allows handling of '>' redirection
+    #         stdout=subprocess.PIPE, # captures stdout of '/usr/bin/time'
+    #         stderr=subprocess.PIPE, # captures stderr of '/usr/bin/time'
+    #         text=True # decodes stdout/stderr as strings
+    #     )
+    #     end_time = time.time()
+    #     runtime = round(end_time - start_time, 5)
+    #     stderr_output = result.stderr
+    #     rss_value = utility.get_rss_from_stderr(stderr_output, rss_label)
+    #     if rss_value:
+    #         rss_value_mb = rss_value/(1000000)
+    #         mem = rss_value_mb
+
+    #     return runtime, mem
+    #
+
+
+    # def create_index(self, label, num):
+    #     """Tabix creates the index in the same folder as the input file."""
+    #     print(f"Indexing {self.refdirs['ref']} with {label}:{num} intervals...")
+
+    #     runtime = 0
+    #     mem = 0
+    #     idx_size_mb = 0
+    #     if (self.options.tool == "tabix" or
+    #         self.options.tool == "bedtools_sorted" or
+    #         self.options.tool == "bedtools_tabix" or
+    #         self.options.tool == "gia_sorted" or
+    #         self.options.tool == "bedtk_sorted"):
+
+    #             sort_rt, sort_mem = self.program_call(f"sort -k1,1 -k2,2n -k3,3n {self.refdirs['ref'] / f'{label}.bed'} > {self.refdirs['idx'] / f'{label}.bed'}")
+    #             runtime += sort_rt
+    #             if sort_mem > mem:
+    #                 mem = sort_mem
+
+    #             bgzip_rt, bgzip_mem = self.program_call(f"bgzip -f {self.refdirs['idx'] / f'{label}.bed'} > {self.refdirs['idx'] / f'{label}.bed.gz'}")
+    #             runtime += bgzip_rt
+    #             if bgzip_mem > mem:
+    #                 mem = bgzip_mem
+
+    #             # determine size of the index (in MB) - gzipped and tabixed
+    #             bgzip_size = os.stat(self.refdirs['idx'] / f'{label}.bed.gz').st_size
+    #             bgzip_size_mb = round(bgzip_size/(1024*1024), 5)
+    #             idx_size_mb += bgzip_size_mb
+
+    #             # create tabix index
+    #             if self.options.tool == "tabix" or self.options.tool == "bedtools_tabix":
+    #                 tabix_rt, tabix_mem = self.program_call(f"tabix -f -C -p bed {self.refdirs['idx'] / f'{label}.bed'}.gz")
+    #                 runtime += tabix_rt
+    #                 if tabix_mem > mem:
+    #                     mem = tabix_mem
+
+    #                 csi_size = os.stat(self.refdirs['idx'] / f'{label}.bed.gz.csi').st_size
+    #                 csi_size_mb = round(csi_size/(1024*1024), 5)
+    #                 idx_size_mb += csi_size_mb
+
+
+    #     elif self.options.tool == "giggle":
+    #         sort_rt, sort_mem = self.program_call(f"bash /giggle/scripts/sort_bed {self.refdirs['ref'] / f'{label}.bed'} {self.refdirs['idx']} 4")
+    #         runtime += sort_rt
+    #         if sort_mem > mem:
+    #             mem = sort_mem
+
+    #         giggle_rt, giggle_mem = self.program_call(f"giggle index -i {self.refdirs['idx'] / f'{label}.bed.gz'} -o {self.refdirs['idx'] / f'{label}_index'} -f -s")
+    #         runtime += giggle_rt
+    #         if giggle_mem > mem:
+    #             mem = giggle_mem
+
+    #         indexpath = Path(self.options.outdir) / "bench" / self.options.tool
+    #         """For some reason the giggle index is not created in ./giggle/idx/<index> but in ./giggle/<index> - so use this path"""
+    #         giggle_size = os.stat(indexpath / f'{label}_index').st_size
+    #         giggle_size_mb = round(giggle_size/(1024*1024), 5)
+    #         idx_size_mb += giggle_size_mb
+
+    #     elif self.options.tool == "igd":
+    #         # copy the reference file to its own index directory
+    #         idxindir = self.refdirs['idx'] / f'{label}_in'
+    #         idxoutdir = self.refdirs['idx'] / f'{label}_out'
+    #         idxindir.mkdir(parents=True, exist_ok=True)
+    #         idxoutdir.mkdir(parents=True, exist_ok=True)
+    #         shutil.copy2(self.refdirs['ref'] / f'{label}.bed', idxindir / f'{label}.bed')
+
+    #         igd_rt, igd_mem = self.program_call(f"igd create {idxindir} {idxoutdir} {label}")
+    #         runtime += igd_rt
+    #         if igd_mem > mem:
+    #             mem = igd_mem
+
+    #         igd_size = os.stat(idxoutdir).st_size
+    #         igd_size_mb = round(igd_size/(1024*1024), 5)
+    #         idx_size_mb += igd_size_mb
+
+
+    #     return runtime, mem, idx_size_mb
+
+
+    # def query_interval(self, label, num, reffiles, queryfile):
+    #     tmpfile = tempfile.NamedTemporaryFile(mode='w', delete=False)
+
+    #     query_rt = 0
+    #     query_mem = 0
+    #     if self.options.tool == "tabix":
+    #         query_rt, query_mem = self.program_call(f"tabix {reffiles['idx']} -R {queryfile} > {tmpfile.name}")
+
+    #     elif self.options.tool == "bedtools":
+    #         query_rt, query_mem = self.program_call(f"bedtools intersect -wa -a {reffiles['ref-unsrt']} -b {queryfile} > {tmpfile.name}")
+
+    #     elif self.options.tool == "bedtools_sorted":
+    #         # first sort the query file
+    #         query_sorted = tempfile.NamedTemporaryFile(mode='w', delete=False)
+    #         sort_rt, sort_mem = self.program_call(f"sort -k1,1 -k2,2n -k3,3n {queryfile} > {query_sorted.name}")
+
+    #         query_rt += sort_rt
+    #         if sort_mem > query_mem:
+    #             query_mem = sort_mem
+    #         # query intervals
+    #         bedtools_rt, bedtools_mem = self.program_call(f"bedtools intersect -wa -a {reffiles['ref-srt']} -b {query_sorted.name} > {tmpfile.name}")
+    #         query_rt += bedtools_rt
+    #         if bedtools_mem > query_mem:
+    #             query_mem = bedtools_mem
+
+    #         query_sorted.close()
+
+    #     elif self.options.tool == "bedtools_tabix":
+    #         # first sort the query file
+    #         query_sorted = tempfile.NamedTemporaryFile(mode='w', delete=False)
+    #         sort_rt, sort_mem = self.program_call(f"sort -k1,1 -k2,2n -k3,3n {queryfile} > {query_sorted.name}")
+
+    #         query_rt += sort_rt
+    #         if sort_mem > query_mem:
+    #             query_mem = sort_mem
+
+    #         bedtools_rt, bedtools_mem = self.program_call(f"bedtools intersect -wa -a {reffiles['ref-srt']} -b {queryfile} > {tmpfile.name}")
+    #         query_rt += bedtools_rt
+    #         if bedtools_mem > query_mem:
+    #             query_mem = bedtools_mem
+
+    #     elif self.options.tool == "bedops":
+    #         # first sort the query file
+    #         query_sorted = tempfile.NamedTemporaryFile(mode='w', delete=False)
+    #         sort_rt, sort_mem = self.program_call(f"sort -k1,1 -k2,2n -k3,3n {queryfile} > {query_sorted.name}")
+    #         query_rt += sort_rt
+    #         if query_mem > query_mem:
+    #             query_mem = query_mem
+
+    #         bedops_rt = 0
+    #         bedops_mem = 0
+    #         if "basic" in str(queryfile):
+    #             bedops_rt, bedops_mem = self.program_call(f"bedops --element-of 1 {reffiles['ref-srt']} {query_sorted.name} > {tmpfile.name}")
+    #         elif "complex" in str(queryfile):
+    #             bedops_rt, bedops_mem = self.program_call(f"bedmap --echo-map --multidelim '\n' {query_sorted.name} {reffiles['ref-srt']} > {tmpfile.name}")
+    #         query_rt += bedops_rt
+    #         if bedops_mem > query_mem:
+    #             query_mem = bedops_mem
+
+    #         query_sorted.close()
+
+    #     elif self.options.tool == "bedmaps":
+    #         # first sort the query file
+    #         query_sorted = tempfile.NamedTemporaryFile(mode='w', delete=False)
+    #         sort_rt, sort_mem = self.program_call(f"sort -k1,1 -k2,2n -k3,3n {queryfile} > {query_sorted.name}")
+    #         query_rt += sort_rt
+    #         if sort_mem > query_mem:
+    #             query_mem = sort_mem
+
+    #         bedops_rt, bedops_mem = self.program_call(f"bedmap --echo-map --multidelim '\n' {query_sorted.name} {reffiles['ref-srt']} > {tmpfile.name}")
+    #         query_rt += bedops_rt
+    #         if bedops_mem > query_mem:
+    #             query_mem = bedops_mem
+
+    #         query_sorted.close()
+
+    #     elif self.options.tool == "giggle":
+    #         query_sorted_dir = tempfile.TemporaryDirectory()
+    #         sort_rt, sort_mem = self.program_call(f" bash /giggle/scripts/sort_bed {queryfile} {query_sorted_dir.name} 4")
+    #         query_rt += sort_rt
+    #         if sort_mem > query_mem:
+    #             query_mem = sort_mem
+
+    #         indexpath = Path(self.options.outdir) / "bench" / self.options.tool
+    #         """For some reason the giggle index is not created in ./giggle/idx/<index> but in ./giggle/<index> - so use this path"""
+    #         giggle_rt, giggle_mem = self.program_call(f"/giggle/bin/giggle search -i {indexpath / f'{label}_index'} -q {Path(query_sorted_dir.name) / f'{queryfile.name}.gz'} -v > {tmpfile.name}")
+    #         query_rt += giggle_rt
+    #         if giggle_mem > query_mem:
+    #             query_mem = giggle_mem
+
+    #         query_sorted_dir.cleanup()
+
+    #     elif self.options.tool == "granges":
+    #         # rename reference and query to .tsv
+    #         ref_tsv = tempfile.NamedTemporaryFile(mode='w', delete=False)
+    #         query_tsv = tempfile.NamedTemporaryFile(mode='w', delete=False)
+
+    #         ref_tsv_name = ref_tsv.name + ".tsv"
+    #         query_tsv_name = query_tsv.name + ".tsv"
+
+    #         shutil.copy2(reffiles['ref-srt'], ref_tsv_name)
+    #         shutil.copy2(queryfile, query_tsv_name)
+
+    #         granges_rt, granges_mem = self.program_call(f"granges filter --genome {reffiles['chromlens']} --left {ref_tsv_name} --right {query_tsv_name} > {tmpfile.name}")
+    #         query_rt += granges_rt
+    #         if granges_mem > query_mem:
+    #             query_mem = granges_mem
+
+    #     elif self.options.tool == "gia":
+    #         query_rt, query_mem = self.program_call(f"gia intersect -a {queryfile} -b {reffiles['ref-unsrt']} -t > {tmpfile.name}")
+
+    #     elif self.options.tool == "gia_sorted":
+    #         query_sorted = tempfile.NamedTemporaryFile(mode='w', delete=False)
+    #         sort_rt, sort_mem = self.program_call(f"sort -k1,1 -k2,2n -k3,3n {queryfile} > {query_sorted.name}")
+    #         query_rt += sort_rt
+    #         if sort_mem > query_mem:
+    #             query_mem = sort_mem
+
+    #         gia_rt, gia_mem = self.program_call(f"gia intersect -a {query_sorted.name} -b {reffiles['idx']} -t > {tmpfile.name}")
+    #         query_rt += gia_rt
+    #         if gia_mem > query_mem:
+    #             query_mem = gia_mem
+
+    #         query_sorted.close()
+
+    #     elif self.options.tool == "bedtk":
+    #         query_rt, query_mem = self.program_call(f"bedtk isec {queryfile} {reffiles['ref-unsrt']} > {tmpfile.name}")
+
+    #     elif self.options.tool == "bedtk_sorted":
+    #         query_sorted = tempfile.NamedTemporaryFile(mode='w', delete=False)
+    #         sort_rt, sort_mem = self.program_call(f"sort -k1,1 -k2,2n -k3,3n {queryfile} > {query_sorted.name}")
+    #         query_rt += sort_rt
+    #         if sort_mem > query_mem:
+    #             query_mem = sort_mem
+
+    #         bedtk_rt, bedtk_mem = self.program_call(f"bedtk isec {query_sorted.name} {reffiles['ref-srt']} > {tmpfile.name}")
+    #         query_rt += bedtk_rt
+    #         if bedtk_mem > query_mem:
+    #             query_mem = bedtk_mem
+    #         query_sorted.close()
+
+    #     elif self.options.tool == "igd":
+    #         tmpfile2 = tempfile.NamedTemporaryFile(mode='w', delete=False)
+    #         igd_rt, igd_mem = self.program_call(f"igd search {self.refdirs['idx'] / f'{label}_out' / f'{label}.igd'} -q {queryfile} -f > {tmpfile2.name}")
+    #         query_rt += igd_rt
+    #         if igd_mem > query_mem:
+    #             query_mem = igd_mem
+
+    #         # process the igd output to match the output of other tools (e.g., BED format)
+    #         fh = open(tmpfile2.name)
+    #         entries = []
+    #         chrom = ""
+    #         for line in fh:
+    #             if line.startswith("Query"):
+    #                 chrom = line.split(",")[0].split()[1]
+    #             elif line[0].isdigit():
+    #                 # extract start/end positons
+    #                 parts = line.split()
+    #                 start = parts[1].strip()
+    #                 end = parts[2].strip()
+    #                 entries.append(f"{chrom}\t{start}\t{end}\n")
+    #         fh.close()
+
+    #         fh = open(tmpfile.name, "w")
+    #         for entry in entries:
+    #             fh.write(entry)
+    #         fh.close()
+
+    #     tmpfile.close()
+
+    #     return query_rt, query_mem, tmpfile
