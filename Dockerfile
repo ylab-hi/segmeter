@@ -19,7 +19,8 @@ RUN apt-get install -y \
     time \
     curl \
     git \
-    ca-certificates
+    ca-certificates \
+    libc6-dev
 
 # install rust
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
