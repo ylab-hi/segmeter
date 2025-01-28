@@ -3,7 +3,7 @@
 # This is only for rust-based tools: granges, gia
 ############################################################
 
-FROM debian:bullseye-slim
+FROM ubuntu:22.04
 LABEL authors="Richard A. Schäfer"
 
 RUN apt-get -y update && apt-get install -y
