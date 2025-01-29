@@ -50,6 +50,11 @@ RUN tar -xvf AIList.tar.gz
 RUN cd AIList && make
 RUN cp /AIList/bin/ailist /usr/local/bin/
 
+# load UCSC tools (bedIntersect)
+RUN curl -LO http://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64/bedIntersect
+RUN chmod +x bedIntersect
+RUN mv bedIntersect /usr/local/bin/
+
 # load segmeter
 RUN git clone https://github.com/ylab-hi/segmeter.git
 RUN ln -s /segmeter/segmeter/main.py /usr/local/bin/segmeter && chmod +x /usr/local/bin/segmeter
