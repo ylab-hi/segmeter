@@ -281,6 +281,24 @@ def query_call(options, label, num, reffiles, queryfile):
             fh.write(entry)
         fh.close()
 
+    elif options.tool == "ailist":
+        tmpfile2 = tempfile.NamedTemporaryFile(mode='w', delete=False)
+        ailist_rt, alilist_mem = tool_call(f"ailist {reffiles['ref-unsrt']} {queryfile} > {tmpfile2.name}")
+        query_rt += ailist_rt
+        if alilist_mem > query_mem:
+            query_mem = alilist_mem
+
+        # process the ailist output to match the output of other tools (e.g., BED format)
+        # extract the lines that contain the overlaps (4th column contains the number of overlaps)
+        fh = open(tmpfile2.name)
+        for line in fh:
+            if line.split()[3] != "0":
+                tmpfile.write(line)
+        fh.close()
+
+
     tmpfile.close()
+
+
 
     return query_rt, query_mem, tmpfile
