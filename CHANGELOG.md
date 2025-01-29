@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added support for GIA (unsorted and sorted)
 - Added support for bedtk (unsorted and sorted)
 - Added support for igd
+- Added support for AIList
+- Added support for gia (unsorted and sorted)
 - Sort output of bench into label subfolders
 
 # [0.8.0]

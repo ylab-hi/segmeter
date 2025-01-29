@@ -225,12 +225,12 @@ def query_call(options, label, num, reffiles, queryfile):
 
     elif options.tool == "gia_sorted":
         query_sorted = tempfile.NamedTemporaryFile(mode='w', delete=False)
-        sort_rt, sort_mem = tool_call(f"sort -k1,1 -k2,2n -k3,3n {queryfile} > {query_sorted.name}")
+        sort_rt, sort_mem = tool_call(f"gia sort -i {queryfile} -T bed4 -o {query_sorted.name}")
         query_rt += sort_rt
         if sort_mem > query_mem:
             query_mem = sort_mem
 
-        gia_rt, gia_mem = tool_call(f"gia intersect -a {query_sorted.name} -b {reffiles['idx']} -t > {tmpfile.name}")
+        gia_rt, gia_mem = tool_call(f"gia intersect --stream --sorted -a {query_sorted.name} -b {reffiles['idx']} -t > {tmpfile.name}")
         query_rt += gia_rt
         if gia_mem > query_mem:
             query_mem = gia_mem
