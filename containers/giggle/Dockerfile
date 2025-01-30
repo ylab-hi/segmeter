@@ -29,10 +29,9 @@ RUN apt-get install -y \
     tabix
 
 RUN git clone https://github.com/riasc/giggle.git
-RUN cd giggle
-RUN cd lib/htslib
+RUN cd /giggle/lib/htslib
 RUN autoreconf --install
-RUN cd ../.. && make
+RUN cd /giggle && make
 
 ENV GIGGLE_ROOT="/giggle" PATH="/giggle/bin/:$PATH"
 
