@@ -37,9 +37,6 @@ def parse_arguments():
 
     args = parser.parse_args()
 
-    # Get the directory of the script
-    script_dir = Path(__file__).parent.resolve()
-
     return args
 
 

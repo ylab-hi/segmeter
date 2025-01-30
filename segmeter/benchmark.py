@@ -30,6 +30,9 @@ class BenchBase:
             "igd"
         ]
 
+        # open log file
+        options.logfile = open(benchpath / "log.txt", "w")
+
         self.tool = BenchTool(options)
 
         # determine the subsets (to be used)
@@ -61,6 +64,9 @@ class BenchBase:
                 outfile_precision = precisionpath / f"{label}_query_precision_{subset}.txt"
                 outfile_negatives = precisionpath / f"{label}_query_precision_negatives_{subset}.txt"
                 self.save_query_prec_stats(num, query_precision, outfile_precision, outfile_negatives)
+
+
+        options.logfile.close()
 
 
     def save_idx_stats(self, num, idx_time, idx_mem, idx_size, filename):
