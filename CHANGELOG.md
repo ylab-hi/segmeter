@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# [0.11.0]
+## Features
+- Added support for individual sim/bench runs (output defined by name)
+- Renamed outputdir to datadir
+
 # [0.10.0]
 ## Fix
 - Benchmarking name can be specified (to allow multiple benchmarks)

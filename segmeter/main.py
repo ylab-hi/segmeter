@@ -9,7 +9,7 @@ from benchmark import BenchBase
 def main():
     options = parse_arguments()
 
-    output = Path(options.outdir) / options.modus
+    output = Path(options.datadir) / options.modus
     output.mkdir(parents=True, exist_ok=True)
     intvlnums = det_intvlnums(options.intvlnums)
 
@@ -22,12 +22,13 @@ def main():
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Benchmarking tool for interval files")
     parser.add_argument("modus", type=str, help="modus in benchmarking", choices=["sim", "bench"])
+    parser.add_argument("-o", "--datadir", type=str, help="output folder for the benchmark/simulation results. Note this also serves as input folder for the benchmarking", required=True)
     parser.add_argument("-f", "--format", type=str, help="format of the files to benchmark", choices=["BED"], default="BED")
     parser.add_argument("-n", "--intvlnums", type=str, help="""Number of intervals to simulate (should be divisible by 10).""", default="10")
     parser.add_argument("-s", "--subset", type=str, help="subset of the intervals to use for benchmarking. Format should be either XX-YY or XX,YY-ZZ", default="10-100")
     parser.add_argument("-m", "--max_chromlen", type=int, help="maximum length of the simulated chromosomes", default=1000000000)
-    parser.add_argument("-o", "--outdir", type=str, help="output folder for the benchmark/simulation results. Note this also serves as input folder for the benchmarking", required=True)
     parser.add_argument("-b", "--benchname", type=str, help="name of the benchmark, used for the output folder", default="bench_001")
+    parser.add_argument("-c", "--simname", type=str, help="name of the simulation, used for the output folder. Only used in simulation mode", default="sim_001")
     parser.add_argument("-t", "--tool", type=str, help="tool to benchmark",
         choices=["tabix", "bedtools", "bedtools_sorted", "bedtools_tabix", "bedops", "bedmaps", "giggle", "granges", "gia",
             "gia_sorted", "bedtk", "bedtk_sorted", "igd", "ailist", "ucsc"])

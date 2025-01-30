@@ -13,7 +13,10 @@ class BenchBase:
         query_precision = {}
         query_memory = {}
 
-        benchpath = Path(options.outdir) / self.options.benchname / options.tool
+        if not self.validate():
+            raise ValueError("Validation failed - check the input parameters")
+
+        benchpath = Path(options.datadir) / "bench" / self.options.benchname / options.tool
         benchpath.mkdir(parents=True, exist_ok=True)
 
         # list of index-based tools
@@ -34,14 +37,17 @@ class BenchBase:
 
         for i, (label, num) in enumerate(intvlnums.items()):
             print(f"Detect overlaps using {options.tool} for {num} intervals...({i+1} out of {len(intvlnums)})")
+            labelpath = benchpath / label
+            labelpath.mkdir(parents=True, exist_ok=True)
+
             # if the tool is index-based, create index (and record stats)
             if options.tool in self.options.idx_based_tools:
-                outfile_idx = benchpath / f"{label}_idx_stats.txt"
+                outfile_idx = labelpath / f"{label}_idx_stats.txt"
                 idx_time, idx_mem, idx_size = self.tool.create_index(label, num)
                 self.save_idx_stats(num, idx_time, idx_mem, idx_size, outfile_idx)
 
-            statspath = benchpath / label / "stats"
-            precisionpath = benchpath / label / "precision"
+            statspath = labelpath / "stats"
+            precisionpath = labelpath / "precision"
             statspath.mkdir(parents=True, exist_ok=True)
             precisionpath.mkdir(parents=True, exist_ok=True)
 
@@ -109,3 +115,14 @@ class BenchBase:
             else:
                 subset.append(int(sub))
         return subset
+
+    def validate(self):
+        if not Path(self.options.datadir).exists():
+            raise FileNotFoundError(f"Directory {self.options.datadir} does not exist")
+        simpath = Path(self.options.datadir) / "sim" / self.options.simname
+        if not simpath.exists():
+            raise FileNotFoundError(f"Directory {simpath} does not exist")
+        if self.options.tool is None:
+            raise ValueError("Tool not specified")
+
+        return True

@@ -96,22 +96,22 @@ class SimBED:
             rightmost[chr] = random.randint(100, 10000)
         return rightmost
 
-    def create_datadirs(self, outdir):
-        refdir = outdir / "ref"
+    def create_datadirs(self, datadir):
+        refdir = datadir / "ref"
 
         truthdirs = {}
-        truthdirs["basic"] = outdir / "basic" / "truth"
-        truthdirs["complex"] = outdir / "complex" / "truth"
+        truthdirs["basic"] = datadir / "basic" / "truth"
+        truthdirs["complex"] = datadir / "complex" / "truth"
 
         querydirs = {}
         querydirs["basic"] = {}
         for query_pos in ["perfect", "5p-partial", "3p-partial", "enclosed", "contained"]:
-            querydirs["basic"][query_pos] = outdir / "basic" / "query" / query_pos
+            querydirs["basic"][query_pos] = datadir / "basic" / "query" / query_pos
         for query_neg in ["perfect-gap", "left-adjacent-gap", "right-adjacent-gap", "mid-gap1", "mid-gap2"]:
-            querydirs["basic"][query_neg] = outdir / "basic" / "query" / query_neg
+            querydirs["basic"][query_neg] = datadir / "basic" / "query" / query_neg
         querydirs["complex"] = {}
         for query_pos in ["mult"]:
-            querydirs["complex"][query_pos] = outdir / "complex" / "query" / query_pos
+            querydirs["complex"][query_pos] = datadir / "complex" / "query" / query_pos
 
         # create folder
         refdir.mkdir(parents=True, exist_ok=True)
@@ -172,7 +172,7 @@ class SimBED:
                 utility.sort_BED(outfile, sorted)
 
     def sim_intervals(self):
-        outpath = Path(self.options.outdir) / "sim" / "BED"
+        outpath = Path(self.options.datadir) / "sim" / self.options.simname / "BED"
         refdir, truthdirs, querydirs = self.create_datadirs(outpath)
         is_start, is_end = [int(x) for x in self.options.intvlsize.split("-")]
 
@@ -288,7 +288,7 @@ class SimBED:
         truthfile = truthdirs["complex"] / f"{label}.bed"
 
         maxchrms = 0 # maximum number of intervals on a chromosome
-        outpath = Path(self.options.outdir) / "sim" / "BED"
+        outpath = Path(self.options.datadir) / "sim" / self.options.simname / "BED"
         fh = open(outpath / f"{label}_chrnums.txt")
         for line in fh:
             splitted = line.strip().split("\t")

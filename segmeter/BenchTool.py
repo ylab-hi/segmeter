@@ -16,13 +16,13 @@ class BenchTool:
     def get_refdirs(self):
         """returns the input directories for the reference and query intervals"""
         refdirs = {}
-        refdirs["ref"] = Path(self.options.outdir) / "sim" / self.options.format / "ref"
-        refdirs["truth-basic"] = Path(self.options.outdir) / "sim" / self.options.format / "basic" / "truth"
-        refdirs["truth-complex"] = Path(self.options.outdir) / "sim" / self.options.format / "complex" / "truth"
+        refdirs["ref"] = Path(self.options.datadir) / "sim" / self.options.simname / self.options.format / "ref"
+        refdirs["truth-basic"] = Path(self.options.datadir) / "sim" / self.options.simname / self.options.format / "basic" / "truth"
+        refdirs["truth-complex"] = Path(self.options.datadir) / "sim" / self.options.simname / self.options.format / "complex" / "truth"
 
         # create directories for the index (if necessary - specified in idx_based_tools)
         if self.options.tool in self.options.idx_based_tools:
-            refdirs["idx"] = Path(self.options.outdir) / self.options.benchname / self.options.tool / "idx"
+            refdirs["idx"] = Path(self.options.datadir) / "bench" / self.options.benchname / self.options.tool / "idx"
             refdirs["idx"].mkdir(parents=True, exist_ok=True) # need to be created (store the index files)
 
         return refdirs
@@ -32,12 +32,12 @@ class BenchTool:
         querydirs = {}
         querydirs["basic"] = {}
         for query in ["perfect", "5p-partial", "3p-partial", "enclosed", "contained"]:
-            querydirs["basic"][query] = Path(self.options.outdir) / "sim" / self.options.format / "basic" / "query" / query
+            querydirs["basic"][query] = Path(self.options.datadir) / "sim" / self.options.simname / self.options.format / "basic" / "query" / query
         for query in ["perfect-gap", "left-adjacent-gap", "right-adjacent-gap", "mid-gap1", "mid-gap2"]:
-            querydirs["basic"][query] = Path(self.options.outdir) / "sim" / self.options.format / "basic" / "query" / query
+            querydirs["basic"][query] = Path(self.options.datadir) / "sim" / self.options.simname / self.options.format / "basic" / "query" / query
         querydirs["complex"] = {}
         for query in ["mult"]:
-            querydirs["complex"]["mult"] = Path(self.options.outdir) / "sim" / self.options.format / "complex" / "query" / query
+            querydirs["complex"]["mult"] = Path(self.options.datadir) / "sim" / self.options.simname / self.options.format / "complex" / "query" / query
 
         return querydirs
 
@@ -60,7 +60,7 @@ class BenchTool:
             reffiles["idx"] = self.refdirs["idx"] / f"{label}.bed"
 
         # add genome length
-        simpath = Path(self.options.outdir) / "sim" / self.options.format
+        simpath = Path(self.options.datadir) / "sim" / self.options.simname / self.options.format
         reffiles["chromlens"] =  simpath / f"{label}_chromlens.txt"
 
         return reffiles
