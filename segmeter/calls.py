@@ -234,7 +234,7 @@ def query_call(options, label, num, reffiles, queryfile):
         if sort_mem > query_mem:
             query_mem = sort_mem
 
-        gia_rt, gia_mem = tool_call(f"gia intersect --stream --sorted -a {query_sorted.name} -b {reffiles['idx']} -t > {tmpfile.name}")
+        gia_rt, gia_mem = tool_call(f"gia intersect --sorted -a {query_sorted.name} -b {reffiles['idx']} -t > {tmpfile.name}")
         query_rt += gia_rt
         if gia_mem > query_mem:
             query_mem = gia_mem

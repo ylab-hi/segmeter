@@ -235,6 +235,8 @@ class BenchTool:
             fht.close()
             if results_entries_num != 0:
                 precision["complex"]["dist"] = abs(results_entries_num - truth_entries_num)
+            else:
+                precision["complex"]["dist"] = truth_entries_num
 
         return precision
 
