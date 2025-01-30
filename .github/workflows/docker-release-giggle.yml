@@ -31,7 +31,8 @@ jobs:
         with:
           context: .
           file: ./containers/giggle/Dockerfile
-          platforms: linux/amd64, linux/arm64
+          platforms: linux/amd64
+          #, linux/arm64
           push: true
           memory: 4G
           tags: |
