@@ -28,9 +28,11 @@ RUN ln -s /usr/bin/python3 /usr/bin/python
 RUN apt-get install -y \
     tabix
 
-RUN git clone https://github.com/riasc/giggle.git \
-    && cd giggle \
-    && make
+RUN git clone https://github.com/riasc/giggle.git
+RUN cd giggle
+RUN cd lib/htslib
+RUN autoreconf --install
+RUN cd ../.. && make
 
 ENV GIGGLE_ROOT="/giggle" PATH="/giggle/bin/:$PATH"
 
