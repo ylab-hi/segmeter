@@ -46,7 +46,6 @@ def index_call(options, refdirs, label, num):
     if (options.tool == "tabix" or
         options.tool == "bedtools_sorted" or
         options.tool == "bedtools_tabix" or
-        options.tool == "gia_sorted" or
         options.tool == "bedtk_sorted"):
             sort_rt, sort_mem = tool_call(f"sort -k1,1 -k2,2n -k3,3n {refdirs['ref'] / f'{label}.bed'} > {refdirs['idx'] / f'{label}.bed'}")
             runtime += sort_rt
@@ -109,6 +108,11 @@ def index_call(options, refdirs, label, num):
         igd_size_mb = round(igd_size/(1024*1024), 5)
         idx_size_mb += igd_size_mb
 
+    elif options.tool == "gia_sorted":
+        sort_rt, sort_mem = tool_call(f"gia sort -i {refdirs['ref'] / f'{label}.bed'} -T bed4 -o {refdirs['idx'] / f'{label}.bed'}")
+        runtime += sort_rt
+        if sort_mem > mem:
+            mem = sort_mem
 
     return runtime, mem, idx_size_mb
 

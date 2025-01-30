@@ -53,12 +53,11 @@ class BenchTool:
         if (self.options.tool == "tabix" or
             self.options.tool == "bedtools_sorted" or
             self.options.tool == "bedtools_tabix" or
-            self.options.tool == "gia_sorted" or
             self.options.tool == "bedtk_sorted"):
                 reffiles["idx"] = self.refdirs["idx"] / f"{label}.bed.gz"
 
-        # if self.options.tool == "igd":
-
+        elif self.options.tool == "gia_sorted":
+            reffiles["idx"] = self.refdirs["idx"] / f"{label}.bed"
 
         # add genome length
         simpath = Path(self.options.outdir) / "sim" / self.options.format
