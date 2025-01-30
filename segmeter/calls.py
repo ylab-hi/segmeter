@@ -85,7 +85,7 @@ def index_call(options, refdirs, label, num):
         if giggle_mem > mem:
             mem = giggle_mem
 
-        indexpath = Path(options.outdir) / options.benchname / options.tool
+        indexpath = Path(options.datadir) / "bench" / options.benchname / options.tool
         """For some reason the giggle index is not created in ./giggle/idx/<index> but in ./giggle/<index> - so use this path"""
         giggle_size = os.stat(indexpath / f'{label}_index').st_size
         giggle_size_mb = round(giggle_size/(1024*1024), 5)
@@ -117,6 +117,9 @@ def index_call(options, refdirs, label, num):
     return runtime, mem, idx_size_mb
 
 def query_call(options, label, num, reffiles, queryfile):
+    logfile =
+
+
     tmpfile = tempfile.NamedTemporaryFile(mode='w', delete=False)
 
     query_rt = 0
@@ -199,7 +202,7 @@ def query_call(options, label, num, reffiles, queryfile):
         if sort_mem > query_mem:
             query_mem = sort_mem
 
-        indexpath = Path(options.outdir) / options.benchname / options.tool
+        indexpath = Path(options.datadir) / "bench" / options.benchname / options.tool
         """For some reason the giggle index is not created in ./giggle/idx/<index> but in ./giggle/<index> - so use this path"""
         giggle_rt, giggle_mem = tool_call(f"/giggle/bin/giggle search -i {indexpath / f'{label}_index'} -q {Path(query_sorted_dir.name) / f'{queryfile.name}.gz'} -v > {tmpfile.name}")
         query_rt += giggle_rt
