@@ -13,7 +13,7 @@ class BenchBase:
         query_precision = {}
         query_memory = {}
 
-        benchpath = Path(options.outdir) / "bench" / options.tool
+        benchpath = Path(options.outdir) / self.options.benchname / options.tool
         benchpath.mkdir(parents=True, exist_ok=True)
 
         # list of index-based tools

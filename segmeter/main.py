@@ -26,7 +26,8 @@ def parse_arguments():
     parser.add_argument("-n", "--intvlnums", type=str, help="""Number of intervals to simulate (should be divisible by 10).""", default="10")
     parser.add_argument("-s", "--subset", type=str, help="subset of the intervals to use for benchmarking. Format should be either XX-YY or XX,YY-ZZ", default="10-100")
     parser.add_argument("-m", "--max_chromlen", type=int, help="maximum length of the simulated chromosomes", default=1000000000)
-    parser.add_argument("-o", "--outdir", type=str, help="output folder for the benchmark/simulation results. ", required=True)
+    parser.add_argument("-o", "--outdir", type=str, help="output folder for the benchmark/simulation results. Note this also serves as input folder for the benchmarking", required=True)
+    parser.add_argument("-b", "--benchname", type=str, help="name of the benchmark, used for the output folder", default="bench_001")
     parser.add_argument("-t", "--tool", type=str, help="tool to benchmark",
         choices=["tabix", "bedtools", "bedtools_sorted", "bedtools_tabix", "bedops", "bedmaps", "giggle", "granges", "gia",
             "gia_sorted", "bedtk", "bedtk_sorted", "igd", "ailist", "ucsc"])
