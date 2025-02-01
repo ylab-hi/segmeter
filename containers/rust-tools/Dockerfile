@@ -24,7 +24,8 @@ RUN apt-get install -y \
     libc6-dev
 
 # install rust
-RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
+# RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --no-modify-path --default-toolchain stable
 ENV PATH="/root/.cargo/bin:${PATH}"
 
 RUN cargo install granges # install granges
