@@ -16,7 +16,7 @@ intvlmap["1K"] <- 1000
 intvlmap["10K"] <- 10000
 intvlmap["100K"] <- 100000
 
-tools <- c("tabix", "bedtools", "bedtools_sorted", "bedtools_tabix", "giggle", "bedtk", "bedtk_sorted", "ucsc", "gia", "gia_sorted", "granges", "bedops", "bedmaps", "igd", "ailist")
+tools <- c("tabix", "bedtools", "giggle", "bedtk", "ucsc", "gia", "granges", "bedops", "igd", "ailist")
 
 # queries
 intvlqueries <- c("perfect", "5p-partial", "3p-partial", "enclosed", "contained")
@@ -105,7 +105,7 @@ for (i in c(intvlqueries, gapqueries)) {
   tmpdata <- data_complete[data_complete$query_type == i & data_complete$subset == 100,]
   p <- ggplot(tmpdata, aes(x = intvlnum, y = mean_time, color = toolname, group = toolname)) + 
     geom_errorbar(aes(ymin=mean_time-se_time, ymax=mean_time+se_time), width=.1, position=pd) +
-    geom_line(size = .5, position = pd) + geom_point(size = 3, position = pd, aes(shape = toolname)) + 
+    geom_line(size = .75, position = pd) + geom_point(size = 7, position = pd, aes(shape = toolname)) + 
     scale_x_log10(
       breaks = scales::trans_breaks("log10", function(x) 10^x),
       labels = scales::trans_format("log10", scales::math_format(10^.x))
@@ -126,8 +126,66 @@ for (i in c(intvlqueries, gapqueries)) {
     theme_minimal()
   
   ggsave(paste0(plotsdir, "/", i, "_time_queries_100.pdf"), plot = p)
-  
-} 
+}
+
+# do the same but for total time
+all_runtime <- data_complete[data_complete$query_type == "all" & data_complete$subset == 100 & data_complete$data_type == "basic",]
+p_all <- ggplot(all_runtime, aes(x = intvlnum, y = mean_time, color = toolname, group = toolname)) + 
+  geom_errorbar(aes(ymin=mean_time-se_time, ymax=mean_time+se_time), width=.1, position=pd) +
+  geom_line(size = .75, position = pd) + geom_point(size = 7, position = pd, aes(shape = toolname)) + 
+    scale_x_log10(
+      breaks = scales::trans_breaks("log10", function(x) 10^x),
+      labels = scales::trans_format("log10", scales::math_format(10^.x))
+    ) +
+    scale_y_log10(
+      breaks = scales::trans_breaks("log10", function(x) 10^x),
+      labels = scales::trans_format("log10", scales::math_format(10^.x))
+    ) +
+    scale_x_log10() + # Use log scale for better visualization of interval numbers
+    scale_y_log10() + # Use log scale for better visualization of time
+    scale_shape_manual(values = c(0:14)) +
+    labs(
+      title = paste0(i, " queries ", "100%"),
+      x = "interval Number",
+      y = "time in seconds (log scale)",
+      color = "Tool"
+    ) +
+    theme_minimal()
+ggsave(paste0(plotsdir, "/all_time_queries_100.pdf"), plot = p_all)
+
+
+
+
+# stacked bar plot for basic queries (to see the fraction for each type to the total runtime)
+# this is average over all intvlnums
+stackeddata <- data_complete[data_complete$query_type %in% c(intvlqueries,gapqueries),]
+stacked_order <- c(intvlqueries, gapqueries)
+
+query_fraction_data <- stackeddata %>%
+  group_by(toolname, query_type) %>%  # group by both variables at once
+  summarise(mean_time_per_query = mean(mean_time), .groups = "drop") %>%  # calculate means
+  group_by(toolname) %>%  # regroup by tool for proportion calculation
+  mutate(total = sum(mean_time_per_query),
+         proportion = mean_time_per_query/total * 100) %>%
+  ungroup()
+
+ps <- ggplot(query_fraction_data, aes(x=toolname, y=proportion, 
+                                      fill=factor(query_type, levels=stacked_order))) +  # use factor to set order
+  geom_bar(stat="identity", position="fill") +
+  scale_y_continuous(labels=scales::percent_format(scale=1)) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position="right"
+  ) +
+  labs(x="Tool", 
+       y="Percentage", 
+       fill="Query Type")
+ggsave(paste0(plotsdir, "/basic_query_fraction.pdf"), plot = ps)
+
+
+
+
 
 
   
