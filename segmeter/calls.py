@@ -303,7 +303,7 @@ def query_call(options, label, num, reffiles, queryfile):
         fh.close()
 
     elif options.tool == "ucsc":
-        query_rt, query_mem = tool_call(f"bedIntersect {reffiles['ref-unsrt']} {queryfile} {tmpfile.name}", options.logfile)
+        query_rt, query_mem = tool_call(f"bedIntersect -aHitAny {reffiles['ref-unsrt']} {queryfile} {tmpfile.name}", options.logfile)
 
     tmpfile.close()
 
