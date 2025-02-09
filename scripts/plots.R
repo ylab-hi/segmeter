@@ -24,7 +24,7 @@ gapqueries <- c("perfect-gap", "left-adjacent-gap", "right-adjacent-gap", "mid-g
 cmplxqueries <- c("mult")
 
 # percent <- paste0(seq(10,100, by=10), '%')
-percent <- c(100)
+percent <- c(90,100)
 replicates <- c("bench_001", "bench_002", "bench_003")
 
 
@@ -182,6 +182,8 @@ ps <- ggplot(query_fraction_data, aes(x=toolname, y=proportion,
        y="Percentage", 
        fill="Query Type")
 ggsave(paste0(plotsdir, "/basic_query_fraction.pdf"), plot = ps)
+
+### complex runtime 
 
 
 
