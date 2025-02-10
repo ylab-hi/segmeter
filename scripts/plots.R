@@ -24,7 +24,7 @@ gapqueries <- c("perfect-gap", "left-adjacent-gap", "right-adjacent-gap", "mid-g
 cmplxqueries <- c("mult")
 
 # percent <- paste0(seq(10,100, by=10), '%')
-percent <- c(90,100)
+percent <- seq(10,100,10)
 replicates <- c("bench_001", "bench_002", "bench_003")
 
 
@@ -183,7 +183,26 @@ ps <- ggplot(query_fraction_data, aes(x=toolname, y=proportion,
        fill="Query Type")
 ggsave(paste0(plotsdir, "/basic_query_fraction.pdf"), plot = ps)
 
-### complex runtime 
+### complex runtime
+# plot all
+tmpdata <- data_complete[data_complete$data_type == "complex" & data_complete$query_type == "all",]
+# merge data for different subset (in new data.frame)
+
+for (i in tools) {
+  for (j in intvlnums) {
+    tmpdata <- data_complete[data_complete$data_type == "complex" & data_complete$query_type == "all" & data_complete$toolname == i & data_complete$intvlnum == intvlmap[[j]],]
+  }
+}
+
+
+
+
+
+
+
+for (i in intvlnums) {
+  
+}
 
 
 
