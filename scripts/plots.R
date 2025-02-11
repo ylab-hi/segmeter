@@ -16,7 +16,7 @@ intvlmap["1K"] <- 1000
 intvlmap["10K"] <- 10000
 intvlmap["100K"] <- 100000
 
-tools <- c("tabix", "bedtools", "giggle", "bedtk", "ucsc", "gia", "granges", "bedops", "igd", "ailist")
+tools <- c("tabix", "bedtools", "giggle", "bedtk", "ucsc", "gia", "granges", "bedops", "bedmaps", "igd", "ailist")
 
 # queries
 intvlqueries <- c("perfect", "5p-partial", "3p-partial", "enclosed", "contained")
@@ -30,7 +30,6 @@ replicates <- c("bench_001", "bench_002", "bench_003")
 
 data_complete <- NULL
 for (i in intvlnums) {
-  data_intvl[[i]] <- list()
   for (j in tools) {
     for (k in percent) { # 
       repldata <- NULL
@@ -188,21 +187,87 @@ ggsave(paste0(plotsdir, "/basic_query_fraction.pdf"), plot = ps)
 tmpdata <- data_complete[data_complete$data_type == "complex" & data_complete$query_type == "all",]
 # merge data for different subset (in new data.frame)
 
+intvlnums_numeric <- unname(mapply(function(x) intvlmap[[x]], intvlnums))
+all_complex <- data.frame(toolname = rep(tools, each=length(intvlnums)),
+                                         intvlnums = rep(intvlnums_numeric, times=length(tools)))
+for (r in replicates) {
+  zero_col <- rep(0.0, length(tools)*length(intvlnums_numeric))
+  time_col <- paste0("time_", r)
+  mem_col <- paste0("mem_", r)
+  all_complex <- cbind(all_complex, setNames(list(zero_col), time_col))
+  all_complex <- cbind(all_complex, setNames(list(zero_col), mem_col))
+}
+
 for (i in tools) {
   for (j in intvlnums) {
-    tmpdata <- data_complete[data_complete$data_type == "complex" & data_complete$query_type == "all" & data_complete$toolname == i & data_complete$intvlnum == intvlmap[[j]],]
+    entry <- data_complete[data_complete$data_type == "complex" & 
+                             data_complete$query_type == "all" & 
+                             data_complete$toolname == i & 
+                             data_complete$intvlnum == intvlmap[[j]],]
+    
+    print(entry)
+     
+    for (r in replicates) {
+      timecolumn <- paste0("time_", r)
+      memcolumn <- paste0("mem_", r)
+      coltime_sum <- sum(entry[,timecolumn])
+      colmax_mem <- max(entry[,memcolumn])
+      
+      print(colsum)
+      
+      all_complex[all_complex$toolname == i & all_complex$intvlnums == intvlmap[[j]], timecolumn] <- coltime_sum
+      all_complex[all_complex$toolname == i & all_complex$intvlnums == intvlmap[[j]], memcolumn] <- colmax_mem
+      
+    }
   }
 }
 
 
 
+# calculate stats
+idx_time <- seq(3, 3+length(replicates)*2-1, by=2)
+all_complex$mean_time <- rowMeans(all_complex[,idx_time])
+all_complex$sd_time <- apply(all_complex[,idx_time], 1, sd)
+all_complex$se_time <- all_complex$sd_time/sqrt(length(replicates))
+all_complex$ci_time <- all_complex$se_time*1.96
+
+# filter tools (only keep the ones with perfect precision)
+tools_to_keep <- c("tabix", "bedmaps", "bedops", "gia", "igd", "giggle")
+all_complex <- all_complex[all_complex$toolname %in% tools_to_keep,]
+                
+p_all_complex <- ggplot(all_complex, aes(x = intvlnums, y = mean_time, color = toolname, group = toolname)) + 
+  geom_line(size = .75) + geom_point(size = 7, aes(shape = toolname)) + 
+  scale_x_log10(
+    breaks = scales::trans_breaks("log10", function(x) 10^x),
+    labels = scales::trans_format("log10", scales::math_format(10^.x))
+  ) +
+  scale_y_log10(
+    breaks = scales::trans_breaks("log10", function(x) 10^x),
+    labels = scales::trans_format("log10", scales::math_format(10^.x))
+  ) +
+  scale_x_log10() + # Use log scale for better visualization of interval numbers
+  scale_y_log10() + # Use log scale for better visualization of time
+  scale_shape_manual(values = c(0:14)) +
+  labs(
+    title = paste0(i, " queries ", "100%"),
+    x = "interval Number",
+    y = "time in seconds (log scale)",
+    color = "Tool"
+  ) +
+  theme_minimal()
 
 
 
 
-for (i in intvlnums) {
-  
-}
+
+
+
+
+
+
+
+
+
 
 
 
@@ -215,114 +280,3 @@ for (i in intvlnums) {
         
         
 #         
-#         filename <- paste0(datapath, "bench/",k,"/",i,"/stats/",i,"_query_stats_",l,".txt")
-#         tmpdata <- read.csv(filename, header=TRUE,sep="\t")
-#         
-#         toolname <- rep(j, nrow(tmpdata)) # toolname column
-#         tmpdata <- cbind(toolname, tmpdata)
-#         
-#         data_intvl[[i]] <- rbind(data_intvl[[i]], tmpdata)
-#       }
-#       
-#       
-#       
-#       filename <- paste0(datapath, "bench/",k,"/",i,"/stats/",i,"_query_stats_")
-#       
-#       
-#       
-#       filename <- paste0(getwd(),"/bench/",j,"/",i,"_query_stats_100.txt")
-#       tmpdata <- read.csv(paste(getwd(),"/bench/",j,"/",i,"_query_stats_100.txt",sep=""), header=TRUE,sep="\t")
-#       
-#       toolname <- rep(j, nrow(tmpdata)) # toolname column
-#       tmpdata <- cbind(toolname, tmpdata)
-#       print(tmpdata) 
-#       
-#       all[[k]] <- tmpdata
-#     }
-#     
-#     
-#     
-#     
-#     
-#     filename <- paste0(getwd(),"/bench/",j,"/",i,"_query_stats_100.txt")
-#     tmpdata <- read.csv(paste(getwd(),"/bench/",j,"/",i,"_query_stats_100.txt",sep=""), header=TRUE,sep="\t")
-#     
-#     
-#     toolname <- rep(j, nrow(tmpdata)) # toolname column
-#     tmpdata <- cbind(toolname, tmpdata)
-#     print(tmpdata) 
-#     
-#     intvl <- tmpdata[tmpdata$query_type %in% paste0(intvlqueries,"_100%"), ]
-#     gap <- tmpdata[tmpdata$query_type %in% paste0(gapqueries,"_100%"), ]
-#    
-#     print(intvl)
-# 
-#     data_intvl[[i]] <- rbind(data_intvl[[i]], intvl)
-#     data_intvl[[i]] <- rbind(data_intvl[[i]], gap)
-#   }
-# }
-# 
-# data_queries <- list()
-# data_queries[["total"]] <- data.frame(toolname = rep(tools, each=length(intvlnums)),
-#                     intvlnum = rep(intvlnums_numeric, times=length(tools)),
-#                     data_type = rep("both", times=length(tools)*length(intvlnums)),
-#                     query_type = rep("total", times=length(tools)*length(intvlnums)),
-#                     time = rep(0, times=length(tools)*length(intvlnums)),
-#                     max_RSS.MB. = rep(0, times=length(tools)*length(intvlnums)))
-# 
-# for (i in c(intvlqueries,gapqueries)) {
-#   data_queries[[i]] <- list()
-#   for (j in intvlnums) {
-#     tmpdata <- data_intvl[[j]]
-#     qtype <- tmpdata[tmpdata$query_type %in% paste0(i,"_100%"), ]
-#     data_queries[[i]] <- rbind(data_queries[[i]], qtype)
-# 
-#     for (k in 1:nrow(qtype)) {
-#       total <- data_queries[["total"]]
-#       qtype_toolname <- qtype[k,]$toolname
-#       qtype_intvlnum <- qtype[k,]$intvlnum
-# 
-#       time <- qtype[k,]$time
-#       mem <- qtype[k,]$max_RSS.MB.
-#       tmp <- total[total$intvlnum == qtype_intvlnum & total$toolname == qtype_toolname,]$time
-#       tmp <- tmp + time
-#       total[total$intvlnum == qtype_intvlnum & total$toolname == qtype_toolname,]$time <- tmp
-#       data_queries[["total"]] <- total
-#     }
-#   }
-# }
-# # 
-# # 
-# # create folder plots
-# dir.create("plots", showWarnings = FALSE)
-# 
-# ##### PLOTS #######
-# for (i in 1:length(data_queries)) {
-#   p <- ggplot(data_queries[[i]], aes(x = intvlnum, y = time, color = toolname)) +
-#     geom_line(size = 1) +
-#     geom_point(size = 2) +
-#     scale_x_log10(
-#       breaks = scales::trans_breaks("log10", function(x) 10^x),
-#       labels = scales::trans_format("log10", scales::math_format(10^.x))
-#     ) +
-#     scale_y_log10(
-#       breaks = scales::trans_breaks("log10", function(x) 10^x),
-#       labels = scales::trans_format("log10", scales::math_format(10^.x))
-#     ) +
-#     scale_x_log10() + # Use log scale for better visualization of interval numbers
-#     scale_y_log10() + # Use log scale for better visualization of time
-#     labs(
-#       title = paste0(names(data_queries)[[i]], " queries"),
-#       x = "Interval Number (log scale)",
-#       y = "Time (log seconds)",
-#       color = "Tool"
-#     ) +
-#     theme_minimal()
-# 
-#   ggsave(paste0(getwd(),"/plots/", names(data_queries)[i], "time_queries", ".pdf"), plot = p)
-# }
-# 
-# 
-# 
-# 
-# # ggplot(data_intvl$`100K`, aes(x=toolname, y=time, fill=query_type)) + geom_bar(stat="identity")
