@@ -33,7 +33,7 @@ def tool_call(call, logfile):
     logfile.write(stderr_output)
     rss_value = utility.get_rss_from_stderr(stderr_output, rss_label)
     if rss_value:
-        rss_value_mb = rss_value/(1000000)
+        rss_value_mb = rss_value/(1024)
         mem = rss_value_mb
 
     return runtime, mem
@@ -295,11 +295,13 @@ def query_call(options, label, num, reffiles, queryfile):
             query_mem = alilist_mem
 
         # process the ailist output to match the output of other tools (e.g., BED format)
-        # extract the lines that contain the overlaps (4th column contains the number of overlaps)
+        # extract the lines that contain the overlaps (4th column contains the number of overlaps) - repeat lines
         fh = open(tmpfile2.name)
         for line in fh:
-            if line.split()[3] != "0":
-                tmpfile.write(line)
+            count = int(line.split()[3])
+            if count != 0:
+                for i in range(count):
+                    tmpfile.write(line)
         fh.close()
 
     elif options.tool == "ucsc":
