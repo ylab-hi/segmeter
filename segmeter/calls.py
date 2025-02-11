@@ -244,7 +244,7 @@ def query_call(options, label, num, reffiles, queryfile):
         query_sorted.close()
 
     elif options.tool == "bedtk":
-        query_rt, query_mem = tool_call(f"bedtk isec {queryfile} {reffiles['ref-unsrt']} > {tmpfile.name}", options.logfile)
+        query_rt, query_mem = tool_call(f"bedtk flt {queryfile} {reffiles['ref-unsrt']} > {tmpfile.name}", options.logfile)
 
     elif options.tool == "bedtk_sorted":
         query_sorted = tempfile.NamedTemporaryFile(mode='w', delete=False)
@@ -253,7 +253,7 @@ def query_call(options, label, num, reffiles, queryfile):
         if sort_mem > query_mem:
             query_mem = sort_mem
 
-        bedtk_rt, bedtk_mem = tool_call(f"bedtk isec {query_sorted.name} {reffiles['ref-srt']} > {tmpfile.name}", options.logfile)
+        bedtk_rt, bedtk_mem = tool_call(f"bedtk flt {query_sorted.name} {reffiles['ref-srt']} > {tmpfile.name}", options.logfile)
         query_rt += bedtk_rt
         if bedtk_mem > query_mem:
             query_mem = bedtk_mem
