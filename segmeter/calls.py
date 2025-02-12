@@ -6,6 +6,7 @@ import tempfile
 import time
 import os
 
+
 # class
 import utility
 
@@ -244,7 +245,15 @@ def query_call(options, label, num, reffiles, queryfile):
         query_sorted.close()
 
     elif options.tool == "bedtk":
-        query_rt, query_mem = tool_call(f"bedtk flt {queryfile} {reffiles['ref-unsrt']} > {tmpfile.name}", options.logfile)
+        tmpfile2 = tempfile.NamedTemporaryFile(mode='w', delete=False)
+        query_rt, query_mem = tool_call(f"bedtk flt {queryfile} {reffiles['ref-unsrt']} > {tmpfile2.name}", options.logfile)
+
+        # need to add duplicates to the results (ensures that the precision for complex queries is fair)
+        # bedtk is not able to report duplicates - we use bedtools for this
+        call = f"bedtools intersect -wa -a {tmpfile2.name} -b {queryfile} > {tmpfile.name}"
+        subprocess.run(call, shell=True)
+        tmpfile2.close()
+
 
     elif options.tool == "bedtk_sorted":
         query_sorted = tempfile.NamedTemporaryFile(mode='w', delete=False)
@@ -253,11 +262,17 @@ def query_call(options, label, num, reffiles, queryfile):
         if sort_mem > query_mem:
             query_mem = sort_mem
 
-        bedtk_rt, bedtk_mem = tool_call(f"bedtk flt {query_sorted.name} {reffiles['ref-srt']} > {tmpfile.name}", options.logfile)
+        tmpfile2 = tempfile.NamedTemporaryFile(mode='w', delete=False)
+        bedtk_rt, bedtk_mem = tool_call(f"bedtk flt {query_sorted.name} {reffiles['ref-srt']} > {tmpfile2.name}", options.logfile)
         query_rt += bedtk_rt
         if bedtk_mem > query_mem:
             query_mem = bedtk_mem
         query_sorted.close()
+        tmpfile2.close()
+
+        call = f"bedtools intersect -wa -a {tmpfile2.name} -b {queryfile} > {tmpfile.name}"
+        subprocess.run(call, shell=True)
+
 
     elif options.tool == "igd":
         tmpfile2 = tempfile.NamedTemporaryFile(mode='w', delete=False)
