@@ -11,7 +11,9 @@ RUN apt-get install -y \
     build-essential \
     zlib1g-dev \
     # pkg-config \
-    cmake \
+    cmake
+
+RUN apt-get install -y \
     python3-dev \
     python3-pip \
     python3-setuptools \
