@@ -27,7 +27,9 @@ class BenchBase:
             "giggle",
             "gia_sorted",
             "bedtk_sorted",
-            "igd"
+            "igd",
+            "bedops",
+            "bedmaps"
         ]
 
         # open log file
