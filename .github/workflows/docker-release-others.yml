@@ -1,11 +1,8 @@
 name: docker-release-others
 on:
   push:
-    branches:
-      - "main"
-  pull_request:
-    branches:
-      - "main"
+    tags:
+      - "*"
 env:
   REGISTRY: docker.io
   IMAGE_NAME: segmeter
@@ -31,11 +28,11 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # - name: extract version
-      #   id: extract_version
-      #   run: |
-      #     VERSION=${GITHUB_REF#refs/tags/}
-      #     echo "::set-output name=VERSION::$VERSION"
+      - name: extract version
+        id: extract_version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "::set-output name=VERSION::$VERSION"
 
       - name: build and push
         uses: docker/build-push-action@v4
@@ -44,5 +41,4 @@ jobs:
           file: ./containers/others/Dockerfile
           platforms: linux/amd64, linux/arm64
           push: true
-          # tags: yanglabinfo/segmeter:${{ steps.extract_version.outputs.VERSION }}, yanglabinfo/segmeter:latest
-          tags: yanglabinfo/segmeter:others-latest
+          tags: yanglabinfo/segmeter:others-${{ steps.extract_version.outputs.VERSION }}, yanglabinfo/segmeter:others-latest
