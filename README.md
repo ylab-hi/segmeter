@@ -21,11 +21,14 @@ segmeter currently supports two modes of operation: `sim` (e.g., simulate) and `
 In the `sim` mode, segmeter generates a synthetic dataset of intervals and writes it to a file. In the `bench` mode,
 segmeter reads a dataset of intervals from a file and evaluates the performance of a given interval retrieval algorithm.
 
+```
 usage: main.py [-h] -o DATADIR [-f {BED}] [-n INTVLNUMS] [-s SUBSET]
                [-m MAX_CHROMLEN] [-b BENCHNAME] [-c SIMNAME]
                [-t {tabix,bedtools,bedtools_sorted,bedtools_tabix,bedops,bedmaps,giggle,granges,gia,gia_sorted,bedtk,bedtk_sorted,igd,ailist,ucsc}]
                [-g GAPSIZE] [-i INTVLSIZE]
                {sim,bench}
+```
+
 
 Benchmarking tool for interval files
 
@@ -62,17 +65,23 @@ options:
                         random size (min and max) of the intervals
 
 
-
 ## Docker
 
-In additon, we provide a ready-to-use Docker container that has segmeter preconfigured. It can be found at [dockerhub](https://hub.docker.com/r/yanglabinfo/segmeter)
+In additon, we provide a ready-to-use Docker container that has segmeter preconfigured. It can be found at [dockerhub](https://hub.docker.com/r/yanglabinfo/segmeter). We provide three different containers that can be used for the different tools.
 
+| Container      | Tools      | Container tag |
+| ------------- | ------------- | ------------- |
+| giggle | giggle | segmeter:giggle-latest |
+| others | AIList, BEDops, bedtools, bedtk, IGD, tabix, UCSC utils | segmeter:others-latest |
+| rust-tools | gia, granges | segmeter:rust-tools-latest |
 
-
-Due to compability issues, the tools are available in different containers
-
+This can used with the following commands:
+```
+docker run -it -d -v /folder/on/host/:/folder/in/container/ yanglabinfo/segmeter:<container_tag> /bin/bash
+docker exec <container_id> segmeter <args>
+```
 
 
 ## Singularity
 
-Segmeter is provided as docker container that can be used using `docker pull yanglabinfo/segmeter`.
+Segmeter is provided as docker container that can be used using `docker pull yanglabinfo/segmeter`. Consequently, this can be also used
