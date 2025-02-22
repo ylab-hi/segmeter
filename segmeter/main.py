@@ -30,8 +30,7 @@ def parse_arguments():
     parser.add_argument("-b", "--benchname", type=str, help="name of the benchmark, used for the output folder", default="bench_001")
     parser.add_argument("-c", "--simname", type=str, help="name of the simulation, used for the output folder. Only used in simulation mode", default="sim_001")
     parser.add_argument("-t", "--tool", type=str, help="tool to benchmark",
-        choices=["tabix", "bedtools", "bedtools_sorted", "bedtools_tabix", "bedops", "bedmaps", "giggle", "granges", "gia",
-            "gia_sorted", "bedtk", "bedtk_sorted", "igd", "ailist", "ucsc"])
+        choices=["tabix", "bedtools", "bedtools_sorted", "bedtools_tabix", "bedops", "bedmaps", "giggle", "granges", "gia", "bedtk", "bedtk_sorted", "igd", "ailist", "ucsc"])
     parser.add_argument("-g", "--gapsize", type=str, help="random size of the gaps (min and max) between the intervals", default="100-5000")
     parser.add_argument("-i", "--intvlsize", type=str, help="random size (min and max) of the intervals", default="100-10000")
 
