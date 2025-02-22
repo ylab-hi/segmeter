@@ -47,6 +47,9 @@ DATADIR/simname/BED/basic/ # basic queries
 DATADIR/simname/BED/complex/ # complex queries
 ```
 
+In addition, segmeter generates for each specified `INTVLNUM`, a file with the length of each simulated chromosome (`DATADIR/simname/BED/<INTVLNUM>_chrlens.txt`),
+and the number of intervals per chromosome (`DATADIR/simname/BED/<INTVLNUM>_chrnums.txt`).
+
 #### Reference
 
 `DATADIR/simname/BED/ref` contains the reference intervals. This is a BED4 file with the interval ID in the fourth column.
@@ -89,68 +92,86 @@ chr13	584	4573	chr13	584	4573	intvl_1_perfect:intvl_1
 
 #### Complex queries
 
-`DATADIR/simname/BED/complex` contains the complex queries.
+`DATADIR/simname/BED/complex` contains the complex queries. Currently, this only includes `mult` queries which basically cover multiple reference intervals. According to the number of intervals that
+are covered in a complex query, the queries are stored in deciles (e.g., `DATADIR/simname/BED/complex/query/mult/<INTVLNUM>_<DECILE>bin.bed`). Again this contains the queries in BED4 format with and
+identifier in the fourth column. Note that `mult_13` indicates that this query covers 13 reference intervals:
+```
+chr12	45837	160962	mult_13
+chr12	146101	264093	mult_14
+chr12	87719	214921	mult_15
+chr12	122976	259591	mult_16
+chr14	20381	105691	mult_13
+```
 
+##### Truth
 
-
-
-
-
-
-
+The truth files for the complex queries are stored in `DATADIR/simname/BED/complex/truth/<INTVLNUM>.bed`. This consists of the query interval and the corresponding number of intervals that are covered by the query.
+```
+chr11	43495	63230	mult_2	2
+chr11	106913	119696	mult_3	3
+chr11	90920	113986	mult_4	4
+chr11	136183	172964	mult_5	5
+chr11	236310	283001	mult_6	6
+```
 
 ### Benchmark mode
 
 In the benchmark mode, segmeter reads a dataset of intervals from a file and evaluates the performance of a given interval retrieval algorithm. This can be used as follows:
-
-
-
-
-
-
 ```
-usage: main.py [-h] -o DATADIR [-f {BED}] [-n INTVLNUMS] [-s SUBSET]
-               [-m MAX_CHROMLEN] [-b BENCHNAME] [-c SIMNAME]
-               [-t {tabix,bedtools,bedtools_sorted,bedtools_tabix,bedops,bedmaps,giggle,granges,gia,gia_sorted,bedtk,bedtk_sorted,igd,ailist,ucsc}]
-               [-g GAPSIZE] [-i INTVLSIZE]
-               {sim,bench}
+segmeter bench -o DATADIR [-h] [-n INTVLNUMS] [-s SUBSET] [-b BENCHNAME] [-c SIMNAME] [-t TOOL]
 ```
 
+| Argument | Description |
+| -------- | ----------- |
+| -o, --datadir | input/output folder for the simulation results. Note that this folder must contains a subfolder `sim` that contains the simulated interval data |
+| -n, --intvlnums | Number of intervals to benchmark. When multiple datasets are benchmark, this should be a comma separated list (same in in simulation). Note that this should have been simulated before. |
+| -s, --subset | subset (in percentage) of the intervals to use for benchmarking. Format should be either XX-YY or XX,YY-ZZ. If this is left empty, all subsets/deciles are used |
+| -b, --benchname | name of the benchmark, used for the output folder. This allows to perform multiple benchmarks |
+| -c, --simname | name of the simulation data that is being used. Note that this should be the same as the name of the simulation data that was used for the simulation |
+| -t, --tool | tool to benchmark. Currently, the following tools are supported: `tabix`, `bedtools`, `bedtools_sorted`, `bedtools_tabix`, `bedops`, `bedmaps`, `giggle`, `granges`, `gia`, `bedtk`, `bedtk_sorted`, `igd`, `ailist`, `ucsc` |
 
-Benchmarking tool for interval files
+Note that `bedtools_sorted` and `bedtk_sorted` are the same as `bedtools` and `bedtk`, respectively, but the input files are sorted before the benchmarking.
+In the case of `bedtools_tabix`, the input files are sorted and indexed using `tabix` for random access and the queried using `bedtools`.
 
-positional arguments:
-  {sim,bench}           modus in benchmarking
+This generates a separate output folder for each benchmark tool in the folder `DATADIR/bench/benchname/` with a subfolder for each INTVLNUM.
+In additional subfolders (`precision` and `stats`), the precision and statistics are stored.
+The precision is stored in a file `DATADIR/bench/benchname/precision/<INTVLNUM>_<PERCENT>.txt` and the
+statistics in `DATADIR/bench/benchname/stats/<INTVLNUM>_<PERCENT>.txt`.
 
-options:
-  -h, --help            show this help message and exit
-  -o DATADIR, --datadir DATADIR
-                        output folder for the benchmark/simulation results.
-                        Note this also serves as input folder for the
-                        benchmarking
-  -f {BED}, --format {BED}
-                        format of the files to benchmark
-  -n INTVLNUMS, --intvlnums INTVLNUMS
-                        Number of intervals to simulate (should be divisible
-                        by 10).
-  -s SUBSET, --subset SUBSET
-                        subset of the intervals to use for benchmarking.
-                        Format should be either XX-YY or XX,YY-ZZ
-  -m MAX_CHROMLEN, --max_chromlen MAX_CHROMLEN
-                        maximum length of the simulated chromosomes
-  -b BENCHNAME, --benchname BENCHNAME
-                        name of the benchmark, used for the output folder
-  -c SIMNAME, --simname SIMNAME
-                        name of the simulation, used for the output folder.
-                        Only used in simulation mode
-  -t {tabix,bedtools,bedtools_sorted,bedtools_tabix,bedops,bedmaps,giggle,granges,gia,gia_sorted,bedtk,bedtk_sorted,igd,ailist,ucsc}, --tool {tabix,bedtools,bedtools_sorted,bedtools_tabix,bedops,bedmaps,giggle,granges,gia,gia_sorted,bedtk,bedtk_sorted,igd,ailist,ucsc}
-                        tool to benchmark
-  -g GAPSIZE, --gapsize GAPSIZE
-                        random size of the gaps (min and max) between the
-                        intervals
-  -i INTVLSIZE, --intvlsize INTVLSIZE
-                        random size (min and max) of the intervals
+#### Precision
 
+In the precision files, the precision of the tool on basic and complex queries is stored separately:
+```
+intvlnum	subset	TP	FP	TN	FN	Precision	Recall	F1
+1000	10%	500	0	500	0	1.0	1.0	1.0
+
+intvlnum	bin	distance
+1000	10bin	0
+```
+
+The upper part of the file contains the precision, recall, and F1 score for the basic queries and subset (e.g., 10% of the queries).
+The lower part contains the distance which is the absolute difference between expected and observed number of intervals covered by the complex query.
+Note this only represents a decile (e.g., 10bin), in other words, the queries that cover 10% of the reference intervals per chromosome.
+
+#### Statistics
+
+In the statistics files, the statistics of the tool on basic and complex queries is stored separately:
+```
+intvlnum	data_type	query_type	time	max_RSS(MB)
+1000	basic	perfect_100%	0.00279	1.2265625
+1000	basic	5p-partial_100%	0.00261	1.22265625
+1000	basic	3p-partial_100%	0.00282	1.1640625
+1000	basic	enclosed_100%	0.00255	1.2265625
+1000	basic	contained_100%	0.00294	1.22265625
+1000	basic	perfect-gap_100%	0.00329	1.2265625
+1000	basic	left-adjacent-gap_100%	0.00244	1.1640625
+1000	basic	right-adjacent-gap_100%	0.00211	1.1640625
+1000	basic	mid-gap1_100%	0.00215	1.2265625
+1000	basic	mid-gap2_100%	0.0022	1.2265625
+1000	complex	mult_100bin	0.00193	1.2265625
+```
+
+The file contains the time and memory usage of the tool for each query type and subset. The time is in seconds and the memory usage in MB.
 
 ## Docker
 

@@ -10,7 +10,7 @@ RUN apt-get -y update && apt-get install -y
 RUN apt-get install -y \
     build-essential \
     zlib1g-dev \
-    # pkg-config \
+    pkg-config \
     cmake
 
 RUN apt-get install -y \
