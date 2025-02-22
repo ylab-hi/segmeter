@@ -76,7 +76,7 @@ def index_call(options, refdirs, label, num):
                 csi_size_mb = round(csi_size/(1024*1024), 5)
                 idx_size_mb += csi_size_mb
 
-    elif options.tools == "bedops" or options.tool == "bedmaps":
+    elif options.tool == "bedops" or options.tool == "bedmaps":
         sort_rt, sort_mem = tool_call(f"sort -k1,1 -k2,2n -k3,3n {refdirs['ref'] / f'{label}.bed'} > {refdirs['idx'] / f'{label}.bed'}", options.logfile)
         runtime += sort_rt
         if sort_mem > mem:

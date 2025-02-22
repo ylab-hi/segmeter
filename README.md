@@ -189,7 +189,7 @@ docker run -it -d -v /folder/on/host/:/folder/in/container/ yanglabinfo/segmeter
 docker exec <container_id> segmeter <args>
 ```
 
-
 ## Singularity
 
-Segmeter is provided as docker container that can be used using `docker pull yanglabinfo/segmeter`. Consequently, this can be also used
+Segmeter is provided as docker container that can be pulled using `singularity pull docker://yanglabinfo/segmeter`, which creates the `segmeter_latest.sif` file.
+Consequently, this can be used with `singularity exec segmeter_latest.sif segmeter <args>`.

@@ -8,9 +8,12 @@ LABEL authors="Richard A. Schäfer"
 
 RUN apt-get -y update && apt-get install -y
 RUN apt-get install -y \
-    build-essential \
-    zlib1g-dev \
-    pkg-config \
+    build-essential
+RUN apt-get install -y \
+    zlib1g-dev
+RUN apt-get install -y \
+    pkg-config
+RUN apt-get install -y \
     cmake
 
 RUN apt-get install -y \
