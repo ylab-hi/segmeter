@@ -39,7 +39,7 @@ segmeter sim -o DATADIR [-h] [-n INVLNUMS] [-m MAX_CHROMLEN] [-c SIMNAME] [-g GA
 | -g, --gapsize | random size of the gaps (min and max) between the intervals. Default is 100-5000 |
 | -i, --intvlsize | random size (min and max) of the intervals. Default is 100-10000 |
 
-This will generates output files in the 'DATADIR/simname/BED' folder. The files are in BED format (currently the only format) and can be used for benchmarking. In particular, the filers are located in the following folders:
+This will generates output files in the 'DATADIR/simname/BED' folder. The files are in BED format (currently the only supported format) and can be used for benchmarking. In particular, the filers are located in the following folders:
 
 ```
 DATADIR/simname/BED/ref/ # reference intervals
@@ -55,16 +55,36 @@ For each value in `INTVLNUMS`, there is a corresponding file with the intervals.
 #### Basic queries
 
 `DATADIR/simname/BED/basic` contains the basic queries. In total, segmeter generates ten basic queries for each interval in the reference.
-For each value in `INTVLNUMS`, there is a corresponding folder with the basic queries. The files are located in the following folder:
+For each value in `INTVLNUMS`, there is a corresponding folder with the basic queries. In each folder, there is a  subfolders for the different
+types of basic queries:
 ```
 DATADIR/simname/BED/basic/perfect/ # perfect overlaps (boundaries are identical with reference)
 DATADIR/simname/BED/basic/5p-partial/ # partial overlaps on 5' end
 DATADIR/simname/BED/basic/3p-partial/ # partial overlaps on 3' end
 DATADIR/simname/BED/basic/contained/ # overlap is contained within the reference
 DATADIR/simname/BED/basic/enclosed/ # overlap encloses the reference
+DATADIR/simname/BED/basic/perfect-gap/ # perfect overlap with a gap between reference intervals
+DATADIR/simname/BED/basic/left-adjacent-gap/ # adjacent to the 5'-end of the interval (no overlap)
+DATADIR/simname/BED/basic/right-adjacent-gap/ # adjacent to the 3'-end of the interval (no overlap)
+DATADIR/simname/BED/basic/mid-gap1/ # random overlap with a gap
+DATADIR/simname/BED/basic/mid-gap2/ # random overlap with a gap
+```
 
+In each of the subfolders, there is a BED4 file for each of the specified INTVLNUMS (e.g., `DATADIR/simname/BED/basic/query/<query_type>/<INTVLNUM>.bed`).
+In addition, the queries are subsample to 10-100% of the queries and stored in corresponding files (e.g., `DATADIR/simname/BED/basic/query/<query_type>/INTVLNUM_<PERCENT>p.bed`).
 
+##### Truth
 
+In addition, the truth files are stored in `DATADIR/simname/BED/basic/truth/<INTVLNUM>.bed`. These files contain the queries and their corresponding reference intervals. In each line
+the query interval is followed by the reference interval. The reference interval is the interval that the query should overlap with. In the fourth column, the combined ID of the query and
+reference interval is stored.
+
+```
+chr13	309	1623	chr13	584	4573	intvl_1_5p:intvl_1
+chr13	3221	4662	chr13	584	4573	intvl_1_3p:intvl_1
+chr13	1823	2593	chr13	584	4573	intvl_1_contained:intvl_1
+chr13	519	4649	chr13	584	4573	intvl_1_enclosed:intvl_1
+chr13	584	4573	chr13	584	4573	intvl_1_perfect:intvl_1
 ```
 
 #### Complex queries
