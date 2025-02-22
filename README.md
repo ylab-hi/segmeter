@@ -21,6 +21,73 @@ segmeter currently supports two modes of operation: `sim` (e.g., simulate) and `
 In the `sim` mode, segmeter generates a synthetic dataset of intervals and writes it to a file. In the `bench` mode,
 segmeter reads a dataset of intervals from a file and evaluates the performance of a given interval retrieval algorithm.
 
+### Simulation mode
+
+In the simulation mode, segmeter generates of intervals (reference) and their corresponding basic and complex queries. This can be used as follows:
+
+```
+segmeter sim -o DATADIR [-h] [-n INVLNUMS] [-m MAX_CHROMLEN] [-c SIMNAME] [-g GAPSIZE] [-i INTVLSIZE]
+
+```
+
+| Argument | Description |
+| -------- | ----------- |
+| -o, --datadir | output folder for the benchmark/simulation results. Note this also serves as input folder for the benchmarking |
+| -n, --intvlnums | Number of intervals to simulate (should be divisible by 10). Can be a comma separated list of intervals (for different datasets). Can be abbreviated for thousands, millions (e.g., 10K, 1M). Default is 10.|
+| -m, --max_chromlen | maximum length (in base pairs) of the simulated chromosomes. The default maximum length is set to one billion (e.g., 1000000000). In this is exceeded in the simulation, segmeter creates new scaffolds. |
+| -c, --simname | name of the simulation, used for the output folder |
+| -g, --gapsize | random size of the gaps (min and max) between the intervals. Default is 100-5000 |
+| -i, --intvlsize | random size (min and max) of the intervals. Default is 100-10000 |
+
+This will generates output files in the 'DATADIR/simname/BED' folder. The files are in BED format (currently the only format) and can be used for benchmarking. In particular, the filers are located in the following folders:
+
+```
+DATADIR/simname/BED/ref/ # reference intervals
+DATADIR/simname/BED/basic/ # basic queries
+DATADIR/simname/BED/complex/ # complex queries
+```
+
+#### Reference
+
+`DATADIR/simname/BED/ref` contains the reference intervals. This is a BED4 file with the interval ID in the fourth column.
+For each value in `INTVLNUMS`, there is a corresponding file with the intervals.
+
+#### Basic queries
+
+`DATADIR/simname/BED/basic` contains the basic queries. In total, segmeter generates ten basic queries for each interval in the reference.
+For each value in `INTVLNUMS`, there is a corresponding folder with the basic queries. The files are located in the following folder:
+```
+DATADIR/simname/BED/basic/perfect/ # perfect overlaps (boundaries are identical with reference)
+DATADIR/simname/BED/basic/5p-partial/ # partial overlaps on 5' end
+DATADIR/simname/BED/basic/3p-partial/ # partial overlaps on 3' end
+DATADIR/simname/BED/basic/contained/ # overlap is contained within the reference
+DATADIR/simname/BED/basic/enclosed/ # overlap encloses the reference
+
+
+
+```
+
+#### Complex queries
+
+`DATADIR/simname/BED/complex` contains the complex queries.
+
+
+
+
+
+
+
+
+
+### Benchmark mode
+
+In the benchmark mode, segmeter reads a dataset of intervals from a file and evaluates the performance of a given interval retrieval algorithm. This can be used as follows:
+
+
+
+
+
+
 ```
 usage: main.py [-h] -o DATADIR [-f {BED}] [-n INTVLNUMS] [-s SUBSET]
                [-m MAX_CHROMLEN] [-b BENCHNAME] [-c SIMNAME]
