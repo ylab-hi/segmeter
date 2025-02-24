@@ -18,8 +18,8 @@ intvlmap["1K"] <- 1000
 intvlmap["10K"] <- 10000
 intvlmap["100K"] <- 100000
 
-# tools <- c("tabix", "bedtools", "giggle", "bedtk", "ucsc", "gia", "granges", "bedops", "igd", "ailist")
-tools <- c("bedops", "bedmaps")
+#tools <- c("tabix", "bedtools", "giggle", "bedtk", "ucsc", "gia", "granges", "bedops", "igd", "ailist")
+tools <- c("gia", "bedtk", "bedtools", "tabix", "bedops")
 
 # queries
 intvlqueries <- c("perfect", "5p-partial", "3p-partial", "enclosed", "contained")
@@ -237,14 +237,6 @@ ps <- ggplot(query_fraction_data, aes(x=toolname, y=proportion,
        fill="Query Type")
 ggsave(paste0(plotsdir_runtime, "/basic_query_fraction.pdf"), plot = ps)
 
-
-
-
-
-
-
-
-
 ##### complex runtime
 # determine number of interval in each subset (simdata)
 cmplx_subset_size = data.frame(intvlnums=rep(intvlnums, each=length(percent)),
@@ -309,11 +301,6 @@ for (i in intvlnums) {
 }
 
 
-
-
-
-
-
 # plot all
 tmpdata <- data_complete[data_complete$data_type == "complex" & data_complete$query_type == "all",]
 # merge data for different subset (in new data.frame)
@@ -363,8 +350,8 @@ all_complex$se_mem <- all_complex$sd_mem/sqrt(length(replicates))
 all_complex$ci_mem <- all_complex$se_mem*1.96
 
 # filter tools (only keep the ones with perfect precision)
-# tools_to_keep <- c("tabix", "bedops", "gia", "igd", "giggle", "bedtk", "ailist", "bedtools", "ucsc", "granges")
-tools_to_keep <- c("bedops", "bedmaps")
+tools_to_keep <- c("tabix", "bedops", "gia", "igd", "giggle", "bedtk", "ailist", "bedtools", "ucsc", "granges")
+# tools_to_keep <- c("bedops", "bedmaps")
 all_complex <- all_complex[all_complex$toolname %in% tools_to_keep,]
                 
 p_all_complex <- ggplot(all_complex, aes(x = intvlnums, y = mean_time, color = toolname, group = toolname)) + 
@@ -406,7 +393,7 @@ ggsave(paste0(plotsdir_memory, "/memory_complex_allintervals.pdf"), plot = p_mem
 
 
 #### INDEX ######
-tools_idx <- c("tabix", "bedtools_sorted", "giggle", "igd")
+tools_idx <- c("tabix", "bedtools_sorted", "giggle", "igd", "bedops")
 
 df_idx <- data.frame()
   
@@ -449,19 +436,24 @@ df_idx$sd_mem <- apply(df_idx[,idx_mem], 1, sd)
 df_idx$se_mem <- df_idx$sd_mem/sqrt(length(replicates))
 df_idx$ci_mem <- df_idx$se_mem*1.96
 
+df_idx$intvlnum <- factor(df_idx$intvlnum, levels = intvlnums)
+
 plotsdir_index <- normalizePath(file.path(getwd(), "..", "plots/", "index"), mustWork = FALSE)
 dir.create(plotsdir_index, showWarnings = FALSE, recursive = TRUE)
 
 #barplot index time
-plot_idx_time <- ggplot(df_idx, aes(x = toolname, y = mean_time, fill = toolname)) + 
-  geom_bar(stat="identity", position = pd) + 
-  geom_errorbar(aes(ymin=mean_time-se_time, ymax=mean_time+se_time), width=.1)
+plot_idx_time <- ggplot(df_idx, aes(x = intvlnum, y = mean_time, fill = toolname)) + 
+  geom_bar(stat="identity", position = "dodge") + 
+  geom_errorbar(aes(ymin=mean_time-se_time, ymax=mean_time+se_time), width=.1, position = position_dodge(width = 0.9)) +
+  # make y axis log scale
+  theme_minimal()
 ggsave(paste0(plotsdir_index, "/index_time.pdf"), plot = plot_idx_time)
 
+plot_idx_mem <- ggplot(df_idx, aes(x = intvlnum, y = mean_mem, fill = toolname)) + 
+  geom_bar(stat="identity", position = "dodge") + 
+  geom_errorbar(aes(ymin=mean_mem-se_time, ymax=mean_mem+se_time), width=.1,  position = position_dodge(width = 0.9)) +
+  theme_minimal()
 
-plot_idx_mem <- ggplot(df_idx, aes(x = toolname, y = mean_mem, fill = toolname)) + 
-  geom_bar(stat="identity", position = pd) + 
-  geom_errorbar(aes(ymin=mean_mem-se_time, ymax=mean_mem+se_time), width=.1)
 ggsave(paste0(plotsdir_index, "/index_mem.pdf"), plot = plot_idx_mem)
 
 
