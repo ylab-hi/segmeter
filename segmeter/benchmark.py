@@ -16,6 +16,10 @@ class BenchBase:
         if not self.validate():
             raise ValueError("Validation failed - check the input parameters")
 
+        # add routines for when benchmark is done on real data
+        if self.options.realdata:
+            print()
+
         benchpath = Path(options.datadir) / "bench" / self.options.benchname / options.tool
         benchpath.mkdir(parents=True, exist_ok=True)
 
