@@ -19,6 +19,7 @@ class BenchBase:
         # add routines for when benchmark is done on real data
         if self.options.realdata:
             print()
+            print("Benchmarking on real data is not yet implemented")
 
         benchpath = Path(options.datadir) / "bench" / self.options.benchname / options.tool
         benchpath.mkdir(parents=True, exist_ok=True)
