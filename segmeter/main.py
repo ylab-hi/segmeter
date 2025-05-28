@@ -19,6 +19,7 @@ def main():
     elif options.modus == "bench":
         bench = BenchBase(options, intvlnums)
 
+
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Benchmarking tool for interval files")
     parser.add_argument("modus", type=str, help="modus in benchmarking", choices=["sim", "bench"])
