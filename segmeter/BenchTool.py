@@ -10,8 +10,10 @@ import calls
 class BenchTool:
     def __init__(self, options):
         self.options = options
-        self.refdirs = self.get_refdirs() # get the reference directories
-        self.querydirs = self.get_querydirs() # get the query directories
+
+        if not self.options.realdata: # if not real data, load the simulated data
+            self.refdirs = self.get_refdirs() # get the reference directories
+            self.querydirs = self.get_querydirs() # get the query directories
 
     def get_refdirs(self):
         """returns the input directories for the reference and query intervals"""
