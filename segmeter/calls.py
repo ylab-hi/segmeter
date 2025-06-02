@@ -279,6 +279,9 @@ def query_call(options, label, num, reffiles, queryfile):
         call = f"bedtools intersect -wa -a {tmpfile2.name} -b {queryfile} > {tmpfile.name}"
         subprocess.run(call, shell=True)
 
+    elif options.tool == "awk":
+        query_rt, query_mem = tool_call(f"tools/awk.py -q {queryfile} {reffiles['ref-srt']} > {tmpfile.name}", options.logfile)
+
 
     elif options.tool == "igd":
         tmpfile2 = tempfile.NamedTemporaryFile(mode='w', delete=False)
