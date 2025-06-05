@@ -6,7 +6,6 @@ import tempfile
 import time
 import os
 
-
 # class
 import utility
 
@@ -282,6 +281,8 @@ def query_call(options, label, num, reffiles, queryfile):
     elif options.tool == "awk":
         query_rt, query_mem = tool_call(f"tools/awk.py -q {queryfile} {reffiles['ref-srt']} > {tmpfile.name}", options.logfile)
 
+    elif options.tools == "intervaltree":
+        query_rt, query_mem = tool_call(f"tools/intervaltree.py -q {queryfile} -t {reffiles['ref-srt']} > {tmpfile.name}", options.logfile)
 
     elif options.tool == "igd":
         tmpfile2 = tempfile.NamedTemporaryFile(mode='w', delete=False)
@@ -332,7 +333,6 @@ def query_call(options, label, num, reffiles, queryfile):
         query_rt, query_mem = tool_call(f"bedIntersect -aHitAny {reffiles['ref-unsrt']} {queryfile} {tmpfile.name}", options.logfile)
 
     tmpfile.close()
-
 
 
     return query_rt, query_mem, tmpfile
