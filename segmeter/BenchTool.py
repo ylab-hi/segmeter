@@ -188,6 +188,7 @@ class BenchTool:
             # iterate/store the results from the queries
             fht = open(tmpfile.name)
             for line in fht:
+                print(line)
                 cols = line.strip().split("\t")
                 result = tuple(cols[0:3])
                 results.append(result)

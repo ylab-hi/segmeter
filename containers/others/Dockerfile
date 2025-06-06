@@ -32,6 +32,9 @@ RUN mkdir bedops
 RUN tar -xvf bedops.tar.bz2 -C bedops
 RUN cp bedops/bin/* /usr/local/bin/
 
+# install intervaltree library
+RUN pip install intervaltree==3.1.0
+
 # install bedtk
 RUN curl -L -o bedtk.tar.gz https://github.com/ylab-hi/segmeter/raw/refs/heads/main/tools-src/bedtk-v2025-01-25.tar.gz
 RUN tar -xvf bedtk.tar.gz

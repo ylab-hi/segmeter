@@ -9,11 +9,10 @@ def main():
 
     # read input files
     # print(f"Reading target intervals from {options.target}...", file=sys.stderr)
-    target = read_target_intervals(options.target)
+    ref_intvls = read_target_intervals(options.target)
 
     # print(f"Reading query intervals from {options.query}...", file=sys.stderr)
-    query_intervals(target, options.query)
-
+    query_intervals(ref_intvls, options)
 
 def read_target_intervals(file_path):
     trees = {}
@@ -30,23 +29,29 @@ def read_target_intervals(file_path):
                 'chrom': chrom,
                 'start': start,
                 'end': end,
+                'intvlid': parts[3] if len(parts) > 3 else None
             }
     return trees
 
-def query_intervals(trees, query_file_path):
-    with open(query_file_path, 'r') as f:
+def query_intervals(trees, options):
+    ofh = open(options.output, 'w') # output file handle
+    with open(options.query, 'r') as f:
         for line in f:
             parts = line.strip().split("\t")
             chrom = parts[0]
             start = int(parts[1])
             end = int(parts[2])
+            intvlid = parts[3] if len(parts) > 3 else None
             if chrom in trees:
                 overlaps = trees[chrom][start:end]
                 for interval in overlaps:
                     t_data = interval.data
                     t_start, t_end = interval.begin, interval.end
 
-                    print(f"{chrom}\t{start}\t{end}")
+                    if options.report == "target":
+                        ofh.write(f"{t_data['chrom']}\t{t_start}\t{t_end}\t{t_data['intvlid']}\n")
+                    elif options.report == "query":
+                        ofh.write(f"{chrom}\t{start}\t{end}\t{intvlid}\n")
 
 def parse_arguments():
     parser = argparse.ArgumentParser(
@@ -63,8 +68,11 @@ def parse_arguments():
                         help="Target BED file with intervals to search in")
     parser.add_argument("-q", "--query", type=str, required=True,
                         help="Query BED file with intervals to find overlaps with")
-    parser.add_argument("--min-overlap", type=int, default=1,
-                        help="Minimum overlap length required (default: 1)")
+    parser.add_argument("-o", "--output", type=str, required=True,
+                        help="Output file to write overlaps to")
+    parser.add_argument("-r", "--report", type=str, default="target",
+                        choices=['target', 'query'],
+                        help="Report overlaps from target or query intervals (default: target)")
     parser.add_argument("--format", choices=['bed', 'detailed'], default='bed',
                         help="Output format (default: bed)")
     parser.add_argument("--stats", action='store_true',

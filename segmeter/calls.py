@@ -279,10 +279,14 @@ def query_call(options, label, num, reffiles, queryfile):
         subprocess.run(call, shell=True)
 
     elif options.tool == "awk":
-        query_rt, query_mem = tool_call(f"tools/awk.py -q {queryfile} {reffiles['ref-srt']} > {tmpfile.name}", options.logfile)
+        # determine the path to the awk script
+        script_path = Path(__file__).parent / "tools" / "intersect_awk.py"
+        query_rt, query_mem = tool_call(f"python3 {script_path} -q {queryfile} -t {reffiles['ref-srt']} > {tmpfile.name}", options.logfile)
 
-    elif options.tools == "intervaltree":
-        query_rt, query_mem = tool_call(f"tools/intervaltree.py -q {queryfile} -t {reffiles['ref-srt']} > {tmpfile.name}", options.logfile)
+    elif options.tool == "intervaltree":
+        # determine the path to the intervaltree script
+        script_path = Path(__file__).parent / "tools" / "intersect_intervaltree.py"
+        query_rt, query_mem = tool_call(f"python3 {script_path} -q {queryfile} -t {reffiles['ref-srt']} -r target -o {tmpfile.name}", options.logfile)
 
     elif options.tool == "igd":
         tmpfile2 = tempfile.NamedTemporaryFile(mode='w', delete=False)
