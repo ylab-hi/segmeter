@@ -281,7 +281,7 @@ def query_call(options, label, num, reffiles, queryfile):
     elif options.tool == "awk":
         # determine the path to the awk script
         script_path = Path(__file__).parent / "tools" / "intersect_awk.py"
-        query_rt, query_mem = tool_call(f"python3 {script_path} -q {queryfile} -t {reffiles['ref-srt']} > {tmpfile.name}", options.logfile)
+        query_rt, query_mem = tool_call(f"python3 {script_path} -t {queryfile} -q {reffiles['ref-srt']} > {tmpfile.name}", options.logfile)
 
     elif options.tool == "intervaltree":
         # determine the path to the intervaltree script
