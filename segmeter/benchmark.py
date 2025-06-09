@@ -3,6 +3,7 @@ from pathlib import Path
 
 # Class
 from BenchTool import BenchTool
+import calls
 
 class BenchBase:
     def __init__(self, options, intvlnums):
@@ -16,61 +17,77 @@ class BenchBase:
         if not self.validate():
             raise ValueError("Validation failed - check the input parameters")
 
-        # add routines for when benchmark is done on real data
-        if self.options.realdata:
-            print()
-            print("Benchmarking on real data is not yet implemented")
-
         benchpath = Path(options.datadir) / "bench" / self.options.benchname / options.tool
         benchpath.mkdir(parents=True, exist_ok=True)
 
         # list of index-based tools
         self.options.idx_based_tools = [
-            "tabix",
-            "bedtools_sorted",
-            "bedtools_tabix",
-            "giggle",
-            "gia_sorted",
-            "bedtk_sorted",
-            "igd",
-            "bedops",
-            "bedmaps"
+            "tabix", "bedtools_sorted", "bedtools_tabix", "giggle",
+            "gia_sorted", "bedtk_sorted", "igd", "bedops", "bedmaps"
         ]
 
         # open log file
         options.logfile = open(benchpath / "log.txt", "w")
-
         self.tool = BenchTool(options)
 
-        # determine the subsets (to be used)
-        subsets = self.parse_param_subset()
+        if not self.options.simdata:
+            # check if query and target files are provided
+            if not options.query or not options.target:
+                raise ValueError("Query and target files must be provided for benchmarking")
 
-        for i, (label, num) in enumerate(intvlnums.items()):
-            print(f"Detect overlaps using {options.tool} for {num} intervals...({i+1} out of {len(intvlnums)})")
-            labelpath = benchpath / label
-            labelpath.mkdir(parents=True, exist_ok=True)
+            # check if query and target files exist
+            if not Path(options.query).exists():
+                raise FileNotFoundError(f"Query file {options.query} does not exist")
+            if not Path(options.target).exists():
+                raise FileNotFoundError(f"Target file {options.target} does not exist")
 
-            # if the tool is index-based, create index (and record stats)
+            # determine if index has to be created
             if options.tool in self.options.idx_based_tools:
-                outfile_idx = labelpath / f"{label}_idx_stats.txt"
-                idx_time, idx_mem, idx_size = self.tool.create_index(label, num)
-                self.save_idx_stats(num, idx_time, idx_mem, idx_size, outfile_idx)
+                print(f"Create index for {options.tool}...")
+                idx_time, idx_mem, idx_size = self.tool.create_index("target", 100)
+                # save index stats
+                outfile_idx = benchpath / "index_stats.txt"
+                fh = open(outfile_idx, "w")
+                fh.write("time(s)\tmax_RSS(MB)\tindex_size(MB)\n")
+                fh.write(f"{idx_time}\t{idx_mem}\t{idx_size}\n")
+                fh.close()
+            print(f"Query intervals using {options.tool} for provided query and target...")
+            query_rt, query_mem, query_precision = self.tool.query_interval_file("target", options.target)
+            # save query stats
+            outfile = benchpath / "query_stats.txt"
+            fh = open(outfile, "w")
+            fh.write("time(s)\tmax_RSS(MB)\n")
+            fh.write(f"{query_rt}\t{query_mem}\n")
+            fh.close()
+        else:
+            # determine the subsets (to be used)
+            subsets = self.parse_param_subset()
+            for i, (label, num) in enumerate(intvlnums.items()):
+                print(f"Detect overlaps using {options.tool} for {num} intervals...({i+1} out of {len(intvlnums)})")
+                labelpath = benchpath / label
+                labelpath.mkdir(parents=True, exist_ok=True)
 
-            statspath = labelpath / "stats"
-            precisionpath = labelpath / "precision"
-            statspath.mkdir(parents=True, exist_ok=True)
-            precisionpath.mkdir(parents=True, exist_ok=True)
+                # if the tool is index-based, create index (and record stats)
+                if options.tool in self.options.idx_based_tools:
+                    outfile_idx = labelpath / f"{label}_idx_stats.txt"
+                    idx_time, idx_mem, idx_size = self.tool.create_index(label, num)
+                    self.save_idx_stats(num, idx_time, idx_mem, idx_size, outfile_idx)
 
-            # parse queries - but separately for each subset (e.g, 10,20,30,40,...)
-            for subset in subsets:
-                outfile_stats = statspath / f"{label}_query_stats_{subset}.txt"
-                query_time, query_memory, query_precision = self.tool.query_intervals(label, num, subset)
-                self.save_query_stats(num, query_time, query_memory, outfile_stats)
+                statspath = labelpath / "stats"
+                precisionpath = labelpath / "precision"
+                statspath.mkdir(parents=True, exist_ok=True)
+                precisionpath.mkdir(parents=True, exist_ok=True)
 
-                # save query precision stats
-                outfile_precision = precisionpath / f"{label}_query_precision_{subset}.txt"
-                outfile_negatives = precisionpath / f"{label}_query_precision_negatives_{subset}.txt"
-                self.save_query_prec_stats(num, query_precision, outfile_precision, outfile_negatives)
+                # parse queries - but separately for each subset (e.g, 10,20,30,40,...)
+                for subset in subsets:
+                    outfile_stats = statspath / f"{label}_query_stats_{subset}.txt"
+                    query_time, query_memory, query_precision = self.tool.query_intervals(label, num, subset)
+                    self.save_query_stats(num, query_time, query_memory, outfile_stats)
+
+                    # save query precision stats
+                    outfile_precision = precisionpath / f"{label}_query_precision_{subset}.txt"
+                    outfile_negatives = precisionpath / f"{label}_query_precision_negatives_{subset}.txt"
+                    self.save_query_prec_stats(num, query_precision, outfile_precision, outfile_negatives)
 
 
         options.logfile.close()

@@ -19,11 +19,12 @@ def main():
     elif options.modus == "bench":
         bench = BenchBase(options, intvlnums)
 
-
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Benchmarking tool for interval files")
     parser.add_argument("modus", type=str, help="modus in benchmarking", choices=["sim", "bench"])
-    parser.add_argument("-r", "--realdata", action="store_true", help="use real data for benchmarking. Note that this will overwrite the simulated data")
+    parser.add_argument("-r", "--simdata", action="store_true", help="use simulated data for benchmarking. Note that this will use the simulated data (mode sim) as input for the benchmarking")
+    parser.add_argument("-q", "--query", type=str, help="query file used for benchmarking (not used when benchmarking simulated data)")
+    parser.add_argument("--target", type=str, help="target file used for benchmarking (not used when benchmarking simulated data)")
     parser.add_argument("-o", "--datadir", type=str, help="output folder for the benchmark/simulation results. Note this also serves as input folder for the benchmarking", required=True)
     parser.add_argument("-f", "--format", type=str, help="format of the files to benchmark", choices=["BED"], default="BED")
     parser.add_argument("-n", "--intvlnums", type=str, help="""Number of intervals to simulate (should be divisible by 10).""", default="10")

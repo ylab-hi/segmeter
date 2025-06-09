@@ -5,27 +5,39 @@ from pathlib import Path
 # class
 import utility
 import calls
-
+import shutil
 
 class BenchTool:
     def __init__(self, options):
         self.options = options
 
-        if not self.options.realdata: # if not real data, load the simulated data
-            self.refdirs = self.get_refdirs() # get the reference directories
+        self.refdirs = self.get_refdirs() # get the reference directories
+        if not self.options.simdata: # load the simulated data
             self.querydirs = self.get_querydirs() # get the query directories
 
     def get_refdirs(self):
         """returns the input directories for the reference and query intervals"""
         refdirs = {}
-        refdirs["ref"] = Path(self.options.datadir) / "sim" / self.options.simname / self.options.format / "ref"
-        refdirs["truth-basic"] = Path(self.options.datadir) / "sim" / self.options.simname / self.options.format / "basic" / "truth"
-        refdirs["truth-complex"] = Path(self.options.datadir) / "sim" / self.options.simname / self.options.format / "complex" / "truth"
+        if self.options.simdata:
+            refdirs["ref"] = Path(self.options.datadir) / "sim" / self.options.simname / self.options.format / "ref"
+            refdirs["truth-basic"] = Path(self.options.datadir) / "sim" / self.options.simname / self.options.format / "basic" / "truth"
+            refdirs["truth-complex"] = Path(self.options.datadir) / "sim" / self.options.simname / self.options.format / "complex" / "truth"
 
-        # create directories for the index (if necessary - specified in idx_based_tools)
-        if self.options.tool in self.options.idx_based_tools:
-            refdirs["idx"] = Path(self.options.datadir) / "bench" / self.options.benchname / self.options.tool / "idx"
-            refdirs["idx"].mkdir(parents=True, exist_ok=True) # need to be created (store the index files)
+            # create directories for the index (if necessary - specified in idx_based_tools)
+            if self.options.tool in self.options.idx_based_tools:
+                refdirs["idx"] = Path(self.options.datadir) / "bench" / self.options.benchname / self.options.tool / "idx"
+                refdirs["idx"].mkdir(parents=True, exist_ok=True) # need to be created (store the index files)
+        else:
+            refdirs["ref"] = Path(self.options.datadir) / "ref"
+            refdirs["ref"].mkdir(parents=True, exist_ok=True) # need to be created (store the reference files)
+            # copy target file to the reference directory (cp target.bed)
+            target_file = Path(self.options.target)
+            shutil.copy(target_file, refdirs["ref"] / "target.bed")
+
+            #
+            if self.options.tool in self.options.idx_based_tools:
+                refdirs["idx"] = Path(self.options.datadir) / "bench" / self.options.benchname / self.options.tool / "idx"
+                refdirs["idx"].mkdir(parents=True, exist_ok=True)
 
         return refdirs
 
@@ -48,8 +60,10 @@ class BenchTool:
         reffiles["ref-unsrt"] = self.refdirs["ref"] / f"{label}.bed"
         reffiles["ref-srt"] = self.refdirs["ref"] / f"{label}_sorted.bed"
         reffiles["ref"] = self.refdirs["ref"] / f"{label}.bed.gz"
-        reffiles["truth-basic"] = self.refdirs["truth-basic"] / f"{label}.bed"
-        reffiles["truth-complex"] = self.refdirs["truth-complex"] / f"{label}.bed"
+
+        if self.options.simdata: # if simulated data, use the truth files
+            reffiles["truth-basic"] = self.refdirs["truth-basic"] / f"{label}.bed"
+            reffiles["truth-complex"] = self.refdirs["truth-complex"] / f"{label}.bed"
 
         # create index if necessary
         if (self.options.tool == "tabix" or
@@ -117,6 +131,12 @@ class BenchTool:
         # runtime, mem, idx_size = calls.index_call(self.options, self.refdirs, label, num)
         return calls.index_call(self.options, self.refdirs, label, num)
 
+    def query_interval_file(self, label, queryfile):
+        """This function queries the intervals in the reference file with the query files"""
+        reffiles = self.get_reffiles(label)
+        query_rt, query_mem, query_result = calls.query_call(self.options, label, 0, reffiles, queryfile)
+
+        return query_rt, query_mem, query_result
 
     def query_intervals(self, label, num, subset):
         reffiles = self.get_reffiles(label) # get the reference files
