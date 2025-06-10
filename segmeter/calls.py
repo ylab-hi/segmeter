@@ -180,6 +180,14 @@ def query_call(options, label, num, reffiles, queryfile):
             bedops_rt, bedops_mem = tool_call(f"bedops --element-of 1 {reffiles['ref-srt']} {query_sorted.name} > {tmpfile.name}", options.logfile)
         elif "complex" in str(queryfile):
             bedops_rt, bedops_mem = tool_call(f"bedmap --echo-map --multidelim '\n' {query_sorted.name} {reffiles['ref-srt']} > {tmpfile.name}", options.logfile)
+        else: # call when arbitary query/target pairs are provided
+            # sort ref file
+            reffiles['ref-srt'] = tempfile.NamedTemporaryFile(mode='w', delete=False)
+            sort_rt, sort_mem = tool_call(f"sort -k1,1 -k2,2n -k3,3n {reffiles['ref-unsrt']} > {reffiles['ref-srt']}", options.logfile)
+            query_rt += sort_rt
+            if sort_mem > query_mem:
+                query_mem = sort_mem
+            bedops_rt, bedops_mem = tool_call(f"bedops --element-of 1 {reffiles['ref-srt']} {query_sorted.name} > {tmpfile.name}", options.logfile)
         query_rt += bedops_rt
         if bedops_mem > query_mem:
             query_mem = bedops_mem
