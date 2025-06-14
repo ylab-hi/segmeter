@@ -32,6 +32,9 @@ segmeter sim -o DATADIR [-h] [-n INVLNUMS] [-m MAX_CHROMLEN] [-c SIMNAME] [-g GA
 
 | Argument | Description |
 | -------- | ----------- |
+| -r, --simdata | use simulated data for benchmarking. Note that this will use the simulated data (mode sim) as input for the benchmarking |
+| --query | query file used for benchmarking (not used when benchmarking simulated data) |
+| --target | target file used for benchmarking (not used when benchmarking simulated data) |
 | -o, --datadir | output folder for the benchmark/simulation results. Note this also serves as input folder for the benchmarking |
 | -n, --intvlnums | Number of intervals to simulate (should be divisible by 10). Can be a comma separated list of intervals (for different datasets). Can be abbreviated for thousands, millions (e.g., 10K, 1M). Default is 10.|
 | -m, --max_chromlen | maximum length (in base pairs) of the simulated chromosomes. The default maximum length is set to one billion (e.g., 1000000000). In this is exceeded in the simulation, segmeter creates new scaffolds. |
@@ -180,7 +183,7 @@ In additon, we provide a ready-to-use Docker container that has segmeter preconf
 | Container      | Tools      | Container tag |
 | ------------- | ------------- | ------------- |
 | giggle | giggle | segmeter:giggle-latest |
-| others | AIList, BEDops, bedtools, bedtk, IGD, tabix, UCSC utils | segmeter:others-latest |
+| others | ailist, bedops, bedtools, bedtk, igd, tabix, ucsc, hash, intervaltree | segmeter:others-latest |
 | rust-tools | gia, granges | segmeter:rust-tools-latest |
 
 This can used with the following commands:
