@@ -26,15 +26,18 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: extract version
+        id: extract_version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "::set-output name=VERSION::$VERSION"
+
       - name: build and push
         uses: docker/build-push-action@v4
         with:
           context: .
           file: ./containers/giggle/Dockerfile
-          platforms: linux/amd64
+          platforms: linux/amd64, linux/arm64
           #, linux/arm64
           push: true
-          memory: 4G
-          tags: |
-            yanglabinfo/segmeter:giggle-main
-            yanglabinfo/segmeter:giggle-latest
+          tags: yanglabinfo/segmeter:giggle-${{ steps.extract_version.outputs.VERSION }}, yanglabinfo/segmeter:giggle-latest
