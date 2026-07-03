@@ -7,10 +7,8 @@ def sort_BED(infile, outfile):
         subprocess.run(["sort", "-k1,1", "-k2,2n", "-k3,3n", str(infile)], stdout=out)
 
 def file_linecounter(filepath):
-    total = 0
     with open(filepath, "rb") as file:
-        total += 1
-    return total
+        return sum(1 for _ in file)
 
 def get_os():
     """returns the operating system"""
@@ -41,14 +39,6 @@ def get_rss_from_stderr(stderr_output, rss_label):
             if match:
                 return int(match.group(1))
     return -1
-
-
-def save_index_time(self, intvlnum, index_time, filename):
-    fh = open(filename, "w")
-    fh.write("intvlnum\ttime(s)\n")
-    for key, value in index_time.items():
-        fh.write(f"{key}\t{value}\n")
-    fh.close()
 
 
 def get_query_group(datatype, query):
