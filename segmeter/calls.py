@@ -32,7 +32,7 @@ def tool_call(call, logfile):
     stderr_output = result.stderr
     logfile.write(stderr_output)
     rss_value = utility.get_rss_from_stderr(stderr_output, rss_label)
-    if rss_value:
+    if rss_value > 0: # get_rss_from_stderr returns -1 when the RSS line is not found
         rss_value_mb = rss_value/(1024)
         mem = rss_value_mb
 
@@ -168,11 +168,12 @@ def query_call(options, label, num, reffiles, queryfile):
             bedops_rt, bedops_mem = tool_call(f"bedmap --echo-map --multidelim '\n' {query_sorted.name} {reffiles['ref-srt']} > {tmpfile.name}", options.logfile)
         else: # call when arbitary query/target pairs are provided
             # sort ref file
-            reffiles['ref-srt'] = tempfile.NamedTemporaryFile(mode='w', delete=False)
-            sort_rt, sort_mem = tool_call(f"sort -k1,1 -k2,2n -k3,3n {reffiles['ref-unsrt']} > {reffiles['ref-srt']}", options.logfile)
+            ref_srt = tempfile.NamedTemporaryFile(mode='w', delete=False)
+            sort_rt, sort_mem = tool_call(f"sort -k1,1 -k2,2n -k3,3n {reffiles['ref-unsrt']} > {ref_srt.name}", options.logfile)
             query_rt += sort_rt
             query_mem = max(query_mem, sort_mem)
-            bedops_rt, bedops_mem = tool_call(f"bedops --element-of 1 {reffiles['ref-srt']} {query_sorted.name} > {tmpfile.name}", options.logfile)
+            bedops_rt, bedops_mem = tool_call(f"bedops --element-of 1 {ref_srt.name} {query_sorted.name} > {tmpfile.name}", options.logfile)
+            ref_srt.close()
         query_rt += bedops_rt
         query_mem = max(query_mem, bedops_mem)
 
@@ -242,7 +243,7 @@ def query_call(options, label, num, reffiles, queryfile):
         # need to add duplicates to the results (ensures that the precision for complex queries is fair)
         # bedtk is not able to report duplicates - we use bedtools for this
         call = f"bedtools intersect -wa -a {tmpfile2.name} -b {queryfile} > {tmpfile.name}"
-        subprocess.run(call, shell=True)
+        subprocess.run(call, shell=True, check=True)
         tmpfile2.close()
 
 
@@ -260,7 +261,7 @@ def query_call(options, label, num, reffiles, queryfile):
         tmpfile2.close()
 
         call = f"bedtools intersect -wa -a {tmpfile2.name} -b {queryfile} > {tmpfile.name}"
-        subprocess.run(call, shell=True)
+        subprocess.run(call, shell=True, check=True)
 
     elif options.tool == "awk":
         # determine the path to the awk script

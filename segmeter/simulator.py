@@ -65,7 +65,7 @@ class SimBED:
                 else:
                     chroms["space-left"].remove(selection)
                     allchroms = list(chroms["leftgap"].keys())
-                    scaffolds = [chr for chr in allchroms if "SCF" in allchroms]
+                    scaffolds = [chr for chr in allchroms if "SCF" in chr]
                     scaffold_name = f"SCF{len(scaffolds)+1}"
                     chroms["space-left"].append(scaffold_name)
                     chroms["leftgap"][scaffold_name] = self.simulate_gap(1, random.randint(gs_start, gs_end))
