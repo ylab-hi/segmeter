@@ -5,8 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-# [0.13.1]
+# [Unreleased]
 ## Fix
+- Fixed four correctness bugs in the measurement path: scaffold-name filter, bedops temp-file redirect, negative RSS sentinel, and unchecked bedtk dedup exit code ([#1](https://github.com/ylab-hi/segmeter/issues/1), [#7](https://github.com/ylab-hi/segmeter/pull/7))
+- Fixed `file_linecounter` which always returned 1 instead of counting lines
+- Removed unused `save_index_time` and a no-op memory comparison in `calls.py`
+- Collapsed repeated max-memory blocks into `max()` calls
+- Added `.gitignore` for `__pycache__`, `.pyc`, `.DS_Store`, `.Rhistory`
 - Changed build container of rust-tools to new tag
 
 # [0.13.0]
