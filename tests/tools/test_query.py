@@ -15,7 +15,9 @@ import calls
 import utility
 from BenchTool import BenchTool
 
-TOOLS = [ # (tool, requirement, runs index_call, query directory: bedops picks its branch from the query path)
+# (tool, requirement, runs index_call, query directory: bedops picks its branch from the query path)
+# the index_call column mirrors idx_based_tools in benchmark.py
+TOOLS = [
     ("tabix", "tabix", True, "query"),
     ("bedtools", "bedtools", False, "query"),
     ("bedtools_sorted", "bedtools", True, "query"),
@@ -107,7 +109,7 @@ def test_query_tools():
             got = run_tool(tool, indexed, datadir, datadir / qdir / "Q.bed")
             print(f"{'ok' if got == expected else 'FAIL'} {tool} ({qdir}): {len(got)} of {len(expected)} overlaps")
             if got != expected:
-                failed.append(tool)
+                failed.append(f"{tool} ({qdir})")
         assert not failed, f"{failed} report other overlaps than expected"
 
 
