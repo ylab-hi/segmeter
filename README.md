@@ -15,6 +15,27 @@
 
 This is a tool for simulating interval data and benchmarking tool for interval retrieval.
 
+## Published benchmark
+
+segmeter is described in
+
+> Schäfer RA, Yang R. A comprehensive benchmark of tools for efficient genomic interval querying. *Briefings in Bioinformatics*. 2025;26(4):bbaf379. [doi:10.1093/bib/bbaf379](https://doi.org/10.1093/bib/bbaf379)
+
+The results in the article were produced with **segmeter v0.13.x** ([tags](https://github.com/ylab-hi/segmeter/tags)) and the following setup.
+The tools were run in the three containers listed in the [Docker](#docker) section (`others`, `giggle`, `rust-tools`), as not all tools
+build in the same environment: `yanglabinfo/segmeter:others-v0.13.2`, `yanglabinfo/segmeter:giggle-v0.13.2` and `yanglabinfo/segmeter:rust-tools-v0.13.2`.
+
+| Item | Setup |
+| --- | --- |
+| Simulated data | [doi:10.5281/zenodo.14880992](https://doi.org/10.5281/zenodo.14880992), created with `segmeter sim -o simdata -n 10,100,1K,10K,100K -c sim_001` |
+| Simulation parameters | defaults: interval size 100-10000 bp (`-i`), gap size 100-5000 bp (`-g`), maximum chromosome length 1000000000 bp (`-m`) |
+| Benchmark | `segmeter bench -o simdata -n 10,100,1K,10K,100K -c sim_001 -b bench_001 -t TOOL`, repeated three times (`bench_001`, `bench_002`, `bench_003`) with all subsets (`-s 10-100`, the default) |
+| `--tool` choices in v0.13.x | `tabix`, `bedtools`, `bedtools_sorted`, `bedtools_tabix`, `bedops`, `bedmaps`, `giggle`, `granges`, `gia`, `bedtk`, `bedtk_sorted`, `igd`, `ailist`, `ucsc`, `awk`, `intervaltree` |
+| Tool versions | bedtools 2.30.0, tabix (htslib) 1.16, BEDOPS 2.4.41, bedtk 0.0-r30, IGD 0.1.1, AIList 0.1.1, UCSC bedIntersect (kent source 482), intervaltree 3.1.0, GIGGLE 0.6.3, gia 0.2.23, granges 0.2.2 (as installed in the images above) |
+
+To redo the benchmark with a current release, use **v0.13.2** or later: it keeps these defaults, new options are off by default,
+and the `bench` command takes the additional flag `-r`/`--simdata` for simulated data.
+
 ## Usage
 
 segmeter currently supports two modes of operation: `sim` (e.g., simulate) and `bench` (e.g., benchmark).
@@ -183,7 +204,7 @@ In additon, we provide a ready-to-use Docker container that has segmeter preconf
 | Container      | Tools      | Container tag |
 | ------------- | ------------- | ------------- |
 | giggle | giggle | segmeter:giggle-latest |
-| others | ailist, bedops, bedtools, bedtk, igd, tabix, ucsc, hash, intervaltree | segmeter:others-latest |
+| others | ailist, bedops, bedtools, bedtk, igd, tabix, ucsc, intervaltree | segmeter:others-latest |
 | rust-tools | gia, granges | segmeter:rust-tools-latest |
 
 This can used with the following commands:
