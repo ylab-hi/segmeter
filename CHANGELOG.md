@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 # [Unreleased]
+## Changed
+- README: the "Published benchmark" section moved to the end and refers to the last patch release of v0.13.x; Singularity instructions pull a versioned image instead of the stale unqualified `latest` tag; argument tables corrected (`--tool` lists all 16 tools, bench-only options moved to the bench table, `awk` in the container table) ([#31](https://github.com/ylab-hi/segmeter/pull/31))
 
 # [0.13.2]
 ## Changed
