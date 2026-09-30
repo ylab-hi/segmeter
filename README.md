@@ -27,10 +27,11 @@ build in the same environment; the image of that version is `yanglabinfo/segmete
 | Simulated data | [doi:10.5281/zenodo.14880992](https://doi.org/10.5281/zenodo.14880992), created with `segmeter sim -o simdata -n 10,100,1K,10K,100K -c sim_001` |
 | Simulation parameters | defaults: interval size 100-10000 bp (`-i`), gap size 100-5000 bp (`-g`), maximum chromosome length 1000000000 bp (`-m`) |
 | Benchmark | `segmeter bench -o simdata -n 10,100,1K,10K,100K -c sim_001 -b bench_001 -t TOOL`, repeated three times (`bench_001`, `bench_002`, `bench_003`) with all subsets (`-s 10-100`, the default) |
-| Tools | `tabix`, `bedtools`, `bedtools_sorted`, `bedtools_tabix`, `bedops`, `bedmaps`, `giggle`, `granges`, `gia`, `bedtk`, `bedtk_sorted`, `igd`, `ailist`, `ucsc`, `awk`, `intervaltree` |
+| `--tool` choices in v0.13.0 | `tabix`, `bedtools`, `bedtools_sorted`, `bedtools_tabix`, `bedops`, `bedmaps`, `giggle`, `granges`, `gia`, `bedtk`, `bedtk_sorted`, `igd`, `ailist`, `ucsc`, `awk`, `intervaltree` |
+| Tool versions | as installed in the container images of v0.13.0: bedops 2.4.41, bedtk/IGD/AIList snapshots of 2025-01-25 (`tools-src/`), intervaltree 3.1.0; bedtools, tabix, giggle, gia, granges and UCSC bedIntersect at the version current when the image was built |
 
-Later versions keep these defaults. New options are off by default, so the same commands reproduce the published setup.
-Since v0.13.1, benchmarking simulated data requires the `-r`/`--simdata` flag.
+Later versions keep these defaults and new options are off by default, so the same commands reproduce the published setup;
+from v0.13.1 on, add `-r`/`--simdata` to the `bench` command (v0.13.1 itself crashes with it, see #21, use v0.13.2 or later).
 
 ## Usage
 
@@ -200,7 +201,7 @@ In additon, we provide a ready-to-use Docker container that has segmeter preconf
 | Container      | Tools      | Container tag |
 | ------------- | ------------- | ------------- |
 | giggle | giggle | segmeter:giggle-latest |
-| others | ailist, bedops, bedtools, bedtk, igd, tabix, ucsc, hash, intervaltree | segmeter:others-latest |
+| others | ailist, bedops, bedtools, bedtk, igd, tabix, ucsc, intervaltree | segmeter:others-latest |
 | rust-tools | gia, granges | segmeter:rust-tools-latest |
 
 This can used with the following commands:
