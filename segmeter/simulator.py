@@ -295,6 +295,8 @@ class SimBED:
             if int(splitted[1]) > maxchrms:
                 maxchrms = int(splitted[1])
         fh.close()
+        if self.options.max_span: # queries do not cover more than max_span intervals
+            maxchrms = min(maxchrms, self.options.max_span)
         bins = {}
         frac10 = int(maxchrms * 0.1)
         for i in range(1,11):
@@ -332,7 +334,7 @@ class SimBED:
         intvlnum = len(intvls)
         if intvlnum > 1:
             chr = intvls[0][0]
-            for i in range(2, intvlnum+1):
+            for i in range(2, min(intvlnum, self.options.max_span or intvlnum)+1):
                 start_intvl = random.randint(0, intvlnum-i)
                 end_intvl = start_intvl + i - 1
 
