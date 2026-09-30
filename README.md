@@ -32,9 +32,6 @@ segmeter sim -o DATADIR [-h] [-n INVLNUMS] [-m MAX_CHROMLEN] [-c SIMNAME] [-g GA
 
 | Argument | Description |
 | -------- | ----------- |
-| -r, --simdata | use simulated data for benchmarking. Note that this will use the simulated data (mode sim) as input for the benchmarking |
-| --query | query file used for benchmarking (not used when benchmarking simulated data) |
-| --target | target file used for benchmarking (not used when benchmarking simulated data) |
 | -o, --datadir | output folder for the benchmark/simulation results. Note this also serves as input folder for the benchmarking |
 | -n, --intvlnums | Number of intervals to simulate (should be divisible by 10). Can be a comma separated list of intervals (for different datasets). Can be abbreviated for thousands, millions (e.g., 10K, 1M). Default is 10.|
 | -m, --max_chromlen | maximum length (in base pairs) of the simulated chromosomes. The default maximum length is set to one billion (e.g., 1000000000). In this is exceeded in the simulation, segmeter creates new scaffolds. |
@@ -121,11 +118,14 @@ chr11	236310	283001	mult_6	6
 
 In the benchmark mode, segmeter reads a dataset of intervals from a file and evaluates the performance of a given interval retrieval algorithm. This can be used as follows:
 ```
-segmeter bench -o DATADIR [-h] [-n INTVLNUMS] [-s SUBSET] [-b BENCHNAME] [-c SIMNAME] [-t TOOL]
+segmeter bench -o DATADIR -t TOOL [-h] [-r] [-n INTVLNUMS] [-s SUBSET] [-b BENCHNAME] [-c SIMNAME] [--query QUERY] [--target TARGET]
 ```
 
 | Argument | Description |
 | -------- | ----------- |
+| -r, --simdata | use simulated data for benchmarking. Note that this will use the simulated data (mode sim) as input for the benchmarking |
+| --query | query file used for benchmarking (not used when benchmarking simulated data) |
+| --target | target file used for benchmarking (not used when benchmarking simulated data) |
 | -o, --datadir | input/output folder for the simulation results. Note that this folder must contains a subfolder `sim` that contains the simulated interval data |
 | -n, --intvlnums | Number of intervals to benchmark. When multiple datasets are benchmark, this should be a comma separated list (same in in simulation). Note that this should have been simulated before. |
 | -s, --subset | subset (in percentage) of the intervals to use for benchmarking. Format should be either XX-YY or XX,YY-ZZ. If this is left empty, all subsets/deciles are used |
@@ -183,10 +183,11 @@ In addition, we provide a ready-to-use Docker container that has segmeter precon
 | Container      | Tools      | Container tag |
 | ------------- | ------------- | ------------- |
 | giggle | giggle | segmeter:giggle-latest |
-| others | ailist, bedops, bedtools, bedtk, igd, tabix, ucsc, intervaltree | segmeter:others-latest |
+| others | ailist, bedops, bedtools, bedtk, igd, tabix, ucsc, awk, intervaltree | segmeter:others-latest |
 | rust-tools | gia, granges | segmeter:rust-tools-latest |
 
 The `latest` tags follow the most recent release; for reproducible runs use a version tag instead, e.g. `others-v0.13.2` (see [Published benchmark](#published-benchmark)).
+
 This can be used with the following commands:
 ```
 docker run -it -d -v /folder/on/host/:/folder/in/container/ yanglabinfo/segmeter:<container_tag> /bin/bash
