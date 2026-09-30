@@ -1,7 +1,9 @@
 """Checks for the simulator.
 Run with `python3 tests/test_simulator.py` (or pytest). No external tools needed."""
+import glob
 import io
 import sys
+import tempfile
 import types
 from pathlib import Path
 
@@ -20,6 +22,31 @@ def test_max_span():
         assert len(queries.getvalue().splitlines()) == expected
 
 
+def test_max_span_bins():
+    """The decile bins are computed from the capped span, and every bin query has a truth entry."""
+    intvls = 1005 # one chromosome with more intervals than the cap
+    with tempfile.TemporaryDirectory() as tmp:
+        out = Path(tmp) / "sim" / "sim_001" / "BED"
+        sim = SimBED(types.SimpleNamespace(max_span=1000, datadir=tmp, simname="sim_001"), {})
+        refdir, truthdirs, querydirs = sim.create_datadirs(out)
+        with open(refdir / "L_sorted.bed", "w") as fh:
+            fh.writelines(f"chr1\t{i * 100}\t{i * 100 + 50}\tintvl_{i}\n" for i in range(intvls))
+        (out / "L_chrnums.txt").write_text(f"chr1\t{intvls}\n")
+        sim.sim_complex_queries(refdir, truthdirs, querydirs, intvls, "L")
+
+        truth = {tuple(l.split("\t")[:3]) for l in open(truthdirs["complex"] / "L.bed")}
+        assert len(truth) == 999 # spans 2..1000
+        bins = {}
+        for f in glob.glob(str(querydirs["complex"]["mult"] / "L_*bin.bed")):
+            spans = [int(l.split("\t")[3].split("_")[1]) for l in open(f)]
+            bins[int(Path(f).stem.split("_")[1].rstrip("bin"))] = spans
+            assert all(tuple(l.split("\t")[:3]) in truth for l in open(f))
+        assert sorted(bins) == list(range(10, 101, 10))
+        assert (min(bins[100]), max(bins[100])) == (901, 1000)
+        assert sum(len(s) for s in bins.values()) == 999 # every span is in exactly one bin
+
+
 if __name__ == "__main__":
     test_max_span()
+    test_max_span_bins()
     print("ok")

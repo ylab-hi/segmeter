@@ -38,7 +38,7 @@ segmeter sim -o DATADIR [-h] [-n INVLNUMS] [-m MAX_CHROMLEN] [-c SIMNAME] [-g GA
 | -c, --simname | name of the simulation, used for the output folder |
 | -g, --gapsize | random size of the gaps (min and max) between the intervals. Default is 100-5000 |
 | -i, --intvlsize | random size (min and max) of the intervals. Default is 100-10000 |
-| --max_span | maximum number of reference intervals that a complex query covers (at least 10). Not limited by default. The output of the complex queries grows quadratically with the number of intervals per chromosome, so a limit (e.g., 1000) is recommended for more than 10K intervals |
+| --max_span | maximum number of reference intervals that a complex query covers (a multiple of 10, at least 10, so that every span falls into one of the ten bins). Not limited by default. The output of the complex queries grows quadratically with the number of intervals per chromosome, so a limit (e.g., 1000) is recommended for more than 10K intervals |
 
 This will generates output files in the 'DATADIR/simname/BED' folder. The files are in BED format (currently the only supported format) and can be used for benchmarking. In particular, the filers are located in the following folders:
 
