@@ -1,5 +1,5 @@
 """Checks for the simulator.
-Run with `python3 tests/test_simulator.py` (or pytest). No external tools needed."""
+Run with `python3 tests/core/test_simulator.py` (or pytest). No external tools needed."""
 import glob
 import io
 import sys
@@ -7,7 +7,7 @@ import tempfile
 import types
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent / "segmeter"))
+sys.path.insert(0, str(Path(__file__).parents[2] / "segmeter"))
 from simulator import SimBED
 
 
