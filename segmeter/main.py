@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # standard
 from pathlib import Path
 import argparse
