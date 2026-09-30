@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # [Unreleased]
 ## Changed
-- Added the README section "Published benchmark" with the article, the segmeter version, the Zenodo dataset, and the commands and parameters of the published benchmark ([#24](https://github.com/ylab-hi/segmeter/pull/24))
+- Added the README section "Published benchmark" with the article, the segmeter version (v0.13.0), the Zenodo dataset, and the commands and parameters of the published benchmark ([#24](https://github.com/ylab-hi/segmeter/pull/24))
 
 ## Fixed
 - Fixed quadratic precision scoring (tool results are looked up in a set) and count complex-query results without loading the output into memory; fixed the crash of `bench -r` since v0.13.1 (`querydirs` condition inverted when `--realdata` became `--simdata`) ([#13](https://github.com/ylab-hi/segmeter/issues/13), [#21](https://github.com/ylab-hi/segmeter/issues/21), [#22](https://github.com/ylab-hi/segmeter/pull/22))
