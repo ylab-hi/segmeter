@@ -2,7 +2,7 @@
 # Dockerfile to build the segmeter container
 ############################################################
 
-FROM python:3.10-slim
+FROM python:3.10-slim-bookworm
 LABEL authors="Richard A. Schäfer"
 
 RUN apt-get -y update && apt-get install -y
@@ -23,8 +23,8 @@ RUN apt-get install -y \
     libc6-dev
 
 # install tabix
-RUN apt-get install -y tabix
-RUN apt-get install -y bedtools
+# pinned to the versions of the published benchmark (Debian bookworm)
+RUN apt-get install -y tabix=1.16+ds-3 bedtools=2.30.0+dfsg-3
 
 # install bedops by link
 RUN curl -L -o  bedops.tar.bz2 https://github.com/bedops/bedops/releases/download/v2.4.41/bedops_linux_x86_64-v2.4.41.tar.bz2
@@ -53,11 +53,13 @@ RUN tar -xvf AIList.tar.gz
 RUN cd AIList && make
 RUN cp /AIList/bin/ailist /usr/local/bin/
 
-# load UCSC tools (bedIntersect)
+# load UCSC tools (bedIntersect) - UCSC offers no versioned download; the published benchmark used kent source version 482
 RUN curl -LO http://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64/bedIntersect
 RUN chmod +x bedIntersect
 RUN mv bedIntersect /usr/local/bin/
 
 # load segmeter
-RUN git clone https://github.com/ylab-hi/segmeter.git
+# pin segmeter to the release that the image is built for (the workflow passes the tag)
+ARG SEGMETER_REF=main
+RUN git clone --branch ${SEGMETER_REF} --depth 1 https://github.com/ylab-hi/segmeter.git
 RUN ln -s /segmeter/segmeter/main.py /usr/local/bin/segmeter && chmod +x /usr/local/bin/segmeter

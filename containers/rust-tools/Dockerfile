@@ -33,8 +33,11 @@ RUN apt-get install -y \
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --no-modify-path --default-toolchain stable
 ENV PATH="/root/.cargo/bin:${PATH}"
 
-RUN cargo install granges # install granges
-RUN cargo install gia # install gia
+# pinned to the versions of the published benchmark
+RUN cargo install granges --version 0.2.2 --locked
+RUN cargo install gia --version 0.2.23 --locked
 
-RUN git clone https://github.com/ylab-hi/segmeter.git
+# pin segmeter to the release that the image is built for (the workflow passes the tag)
+ARG SEGMETER_REF=main
+RUN git clone --branch ${SEGMETER_REF} --depth 1 https://github.com/ylab-hi/segmeter.git
 RUN ln -s /segmeter/segmeter/main.py /usr/local/bin/segmeter && chmod +x /usr/local/bin/segmeter

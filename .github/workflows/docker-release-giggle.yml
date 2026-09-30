@@ -37,7 +37,8 @@ jobs:
         with:
           context: .
           file: ./containers/giggle/Dockerfile
-          platforms: linux/amd64, linux/arm64
-          #, linux/arm64
+          # amd64 only: the multi-arch build never produced a versioned giggle image after v0.7.0
+          platforms: linux/amd64
+          build-args: SEGMETER_REF=${{ steps.extract_version.outputs.VERSION }}
           push: true
           tags: yanglabinfo/segmeter:giggle-${{ steps.extract_version.outputs.VERSION }}, yanglabinfo/segmeter:giggle-latest
