@@ -29,7 +29,7 @@ RUN apt-get install -y \
     tabix
 
 # pinned to the commit of the published benchmark (giggle 0.6.3)
-RUN git clone https://github.com/riasc/giggle.git && cd /giggle && git checkout 1b7cb90a65e8
+RUN git clone https://github.com/riasc/giggle.git && cd /giggle && git checkout 1b7cb90a65e89f4f2bfb8351b8191339acfc5616
 RUN cd /giggle && make
 
 ENV GIGGLE_ROOT="/giggle" PATH="/giggle/bin/:$PATH"

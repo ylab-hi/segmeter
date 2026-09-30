@@ -28,9 +28,9 @@ RUN apt-get install -y \
     ca-certificates \
     libc6-dev
 
-# install rust
+# install rust - toolchain pinned to the one of the published benchmark image
 # RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
-RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --no-modify-path --default-toolchain stable
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --no-modify-path --default-toolchain 1.87.0
 ENV PATH="/root/.cargo/bin:${PATH}"
 
 # pinned to the versions of the published benchmark

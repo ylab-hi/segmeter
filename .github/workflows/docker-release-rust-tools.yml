@@ -36,7 +36,7 @@ jobs:
         id: extract_version
         run: |
           VERSION=${GITHUB_REF#refs/tags/}
-          echo "::set-output name=VERSION::$VERSION"
+          echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: build and push
         uses: docker/build-push-action@v4

@@ -30,15 +30,14 @@ jobs:
         id: extract_version
         run: |
           VERSION=${GITHUB_REF#refs/tags/}
-          echo "::set-output name=VERSION::$VERSION"
+          echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: build and push
         uses: docker/build-push-action@v4
         with:
           context: .
           file: ./containers/giggle/Dockerfile
-          # amd64 only: the multi-arch build never produced a versioned giggle image after v0.7.0
-          platforms: linux/amd64
+          platforms: linux/amd64, linux/arm64
           build-args: SEGMETER_REF=${{ steps.extract_version.outputs.VERSION }}
           push: true
           tags: yanglabinfo/segmeter:giggle-${{ steps.extract_version.outputs.VERSION }}, yanglabinfo/segmeter:giggle-latest

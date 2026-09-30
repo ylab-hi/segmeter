@@ -35,28 +35,28 @@ RUN cp bedops/bin/* /usr/local/bin/
 # install intervaltree library
 RUN pip install intervaltree==3.1.0
 
-# install bedtk
-RUN curl -L -o bedtk.tar.gz https://github.com/ylab-hi/segmeter/raw/refs/heads/main/tools-src/bedtk-v2025-01-25.tar.gz
-RUN tar -xvf bedtk.tar.gz
-RUN cd bedtk && make
+# bedtk, IGD and AIList are pinned to the upstream commits of the published benchmark
+# (identical to the snapshots in tools-src/ of 2025-01-25); AIList is the 2019 version,
+# later upstream versions changed the command line and the output format
+RUN git clone https://github.com/lh3/bedtk.git && cd /bedtk && git checkout da1fb736ec6427d9021d9f586adbdd56aaf72330
+RUN cd /bedtk && make
 RUN cp /bedtk/bedtk /usr/local/bin/
 
-# install IGD
-RUN curl -L -o IGD.tar.gz https://github.com/ylab-hi/segmeter/raw/refs/heads/main/tools-src/IGD-v2025-01-25.tar.gz
-RUN tar -xvf IGD.tar.gz
-RUN cd IGD && make
+RUN git clone https://github.com/databio/IGD.git && cd /IGD && git checkout 4197c239380059e7e3d6eafce10011fc96047f5a
+RUN cd /IGD && make
 RUN cp /IGD/bin/igd /usr/local/bin/
 
-# install AIList
-RUN curl -L -o AIList.tar.gz https://github.com/ylab-hi/segmeter/raw/refs/heads/main/tools-src/AIList-v2025-01-25.tar.gz
-RUN tar -xvf AIList.tar.gz
-RUN cd AIList && make
+RUN git clone https://github.com/databio/AIList.git && cd /AIList && git checkout d7fcddcd08668352e8e2836dae1c9bc622496a3d
+RUN cd /AIList && make
 RUN cp /AIList/bin/ailist /usr/local/bin/
 
-# load UCSC tools (bedIntersect) - UCSC offers no versioned download; the published benchmark used kent source version 482
-RUN curl -LO http://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64/bedIntersect
-RUN chmod +x bedIntersect
-RUN mv bedIntersect /usr/local/bin/
+# build UCSC bedIntersect from the kent source of the published benchmark (version 482);
+# UCSC publishes only unversioned binaries (and x86_64 only), the sources are archived per version
+RUN apt-get install -y libpng-dev libssl-dev uuid-dev default-libmysqlclient-dev libbz2-dev
+RUN curl -L -o userApps.v482.src.tgz http://hgdownload.soe.ucsc.edu/admin/exe/userApps.archive/userApps.v482.src.tgz
+RUN tar -xzf userApps.v482.src.tgz
+RUN cd userApps/kent/src && MACHTYPE=local NOSQLTEST=1 make topLibs hgLib && MACHTYPE=local NOSQLTEST=1 make -C hg/bedIntersect compile
+RUN cp userApps/kent/src/hg/bedIntersect/bedIntersect /usr/local/bin/
 
 # load segmeter
 # pin segmeter to the release that the image is built for (the workflow passes the tag)
