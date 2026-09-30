@@ -20,7 +20,7 @@ This is a tool for simulating interval data and benchmarking tool for interval r
 segmeter is described in [Briefings in Bioinformatics 26(4), bbaf379 (2025)](https://academic.oup.com/bib/article/26/4/bbaf379/8216879).
 The results in the article were produced with **segmeter v0.13.0** ([source](https://github.com/ylab-hi/segmeter/tree/v0.13.0)) and the following setup.
 The tools were run in the three containers listed in the [Docker](#docker) section (`others`, `giggle`, `rust-tools`), as not all tools
-build in the same environment; the image of that version is `yanglabinfo/segmeter:others-v0.13.0`.
+build in the same environment: `yanglabinfo/segmeter:others-v0.13.0`, `yanglabinfo/segmeter:giggle-latest` and `yanglabinfo/segmeter:rust-tools-v0.13.1`.
 
 | Item | Setup |
 | --- | --- |
@@ -28,10 +28,10 @@ build in the same environment; the image of that version is `yanglabinfo/segmete
 | Simulation parameters | defaults: interval size 100-10000 bp (`-i`), gap size 100-5000 bp (`-g`), maximum chromosome length 1000000000 bp (`-m`) |
 | Benchmark | `segmeter bench -o simdata -n 10,100,1K,10K,100K -c sim_001 -b bench_001 -t TOOL`, repeated three times (`bench_001`, `bench_002`, `bench_003`) with all subsets (`-s 10-100`, the default) |
 | `--tool` choices in v0.13.0 | `tabix`, `bedtools`, `bedtools_sorted`, `bedtools_tabix`, `bedops`, `bedmaps`, `giggle`, `granges`, `gia`, `bedtk`, `bedtk_sorted`, `igd`, `ailist`, `ucsc`, `awk`, `intervaltree` |
-| Tool versions | as installed in the container images of v0.13.0: bedops 2.4.41, bedtk/IGD/AIList snapshots of 2025-01-25 (`tools-src/`), intervaltree 3.1.0; bedtools, tabix, giggle, gia, granges and UCSC bedIntersect at the version current when the image was built |
+| Tool versions | bedtools 2.30.0, tabix (htslib) 1.16, BEDOPS 2.4.41, bedtk 0.0-r30, IGD 0.1.1, AIList 0.1.1, UCSC bedIntersect (kent source 482), intervaltree 3.1.0, GIGGLE 0.6.3, gia 0.2.23, granges 0.2.2 (as installed in the images above) |
 
-Later versions keep these defaults and new options are off by default, so the same commands reproduce the published setup;
-from v0.13.1 on, add `-r`/`--simdata` to the `bench` command (v0.13.1 itself crashes with it, see #21, use v0.13.2 or later).
+To redo the benchmark with a current release, use **v0.13.2** or later: it keeps these defaults, new options are off by default,
+and the `bench` command takes the additional flag `-r`/`--simdata` for simulated data.
 
 ## Usage
 
