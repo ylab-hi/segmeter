@@ -5,6 +5,7 @@ import os
 import sys
 import tempfile
 import time
+import types
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "segmeter"))
@@ -46,7 +47,17 @@ def test_complex_scoring():
     assert bench.get_precision(queries.name, results, truth, "complex", "mult")["complex"]["dist"] == 2
 
 
+def test_simdata_querydirs():
+    """bench -r crashed since v0.13.1 because querydirs were only set without --simdata (#21)."""
+    options = types.SimpleNamespace(simdata=True, tool="bedtools", idx_based_tools=[],
+                                    datadir="data", simname="sim_001", format="BED")
+    bench = BenchTool(options)
+    assert set(bench.querydirs) == {"basic", "complex"}
+    assert bench.querydirs["basic"]["perfect"] == Path("data/sim/sim_001/BED/basic/query/perfect")
+
+
 if __name__ == "__main__":
     test_basic_scoring()
     test_complex_scoring()
+    test_simdata_querydirs()
     print("ok")
