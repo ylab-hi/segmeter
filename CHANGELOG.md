@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 # [Unreleased]
+## Changed
+- Pinned the tool versions in the containers to those of the published benchmark (bedtools 2.30.0, tabix 1.16, giggle 0.6.3, gia 0.2.23, granges 0.2.2; `others` on `python:3.10-slim-bookworm`) and build each image from the release tag it is named after; the giggle image is built for amd64 only ([#17](https://github.com/ylab-hi/segmeter/issues/17), [#26](https://github.com/ylab-hi/segmeter/pull/26))
+
 ## Fixed
 - Fixed quadratic precision scoring (tool results are looked up in a set) and count complex-query results without loading the output into memory; fixed the crash of `bench -r` since v0.13.1 (`querydirs` condition inverted when `--realdata` became `--simdata`) ([#13](https://github.com/ylab-hi/segmeter/issues/13), [#21](https://github.com/ylab-hi/segmeter/issues/21), [#22](https://github.com/ylab-hi/segmeter/pull/22))
 - Fixed four correctness bugs in the measurement path: scaffold-name filter, bedops temp-file redirect, negative RSS sentinel, and unchecked bedtk dedup exit code ([#1](https://github.com/ylab-hi/segmeter/issues/1), [#7](https://github.com/ylab-hi/segmeter/pull/7))
