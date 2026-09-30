@@ -23,7 +23,7 @@ segmeter is described in
 
 The results in the article were produced with **segmeter v0.13.x** ([tags](https://github.com/ylab-hi/segmeter/tags)) and the following setup.
 The tools were run in the three containers listed in the [Docker](#docker) section (`others`, `giggle`, `rust-tools`), as not all tools
-build in the same environment: `yanglabinfo/segmeter:others-v0.13.0`, `yanglabinfo/segmeter:giggle-latest` and `yanglabinfo/segmeter:rust-tools-v0.13.1`.
+build in the same environment: `yanglabinfo/segmeter:others-v0.13.2`, `yanglabinfo/segmeter:giggle-v0.13.2` and `yanglabinfo/segmeter:rust-tools-v0.13.2`.
 
 | Item | Setup |
 | --- | --- |
