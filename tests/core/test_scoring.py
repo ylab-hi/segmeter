@@ -1,5 +1,5 @@
 """Checks for the precision scoring.
-Run with `python3 tests/test_scoring.py` (or pytest). No external tools needed."""
+Run with `python3 tests/core/test_scoring.py` (or pytest). No external tools needed."""
 import atexit
 import os
 import sys
@@ -8,7 +8,7 @@ import time
 import types
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent / "segmeter"))
+sys.path.insert(0, str(Path(__file__).parents[2] / "segmeter"))
 from BenchTool import BenchTool
 
 
