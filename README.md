@@ -18,17 +18,18 @@ This is a tool for simulating interval data and benchmarking tool for interval r
 ## Published benchmark
 
 segmeter is described in [Briefings in Bioinformatics 26(4), bbaf379 (2025)](https://academic.oup.com/bib/article/26/4/bbaf379/8216879).
-The results in the article were produced with **segmeter v0.13.0** ([source](https://github.com/ylab-hi/segmeter/tree/v0.13.0),
-container `yanglabinfo/segmeter:others-v0.13.0`) and the following setup:
+The results in the article were produced with **segmeter v0.13.0** ([source](https://github.com/ylab-hi/segmeter/tree/v0.13.0)) and the following setup.
+The tools were run in the three containers listed in the [Docker](#docker) section (`others`, `giggle`, `rust-tools`), as not all tools
+build in the same environment; the image of that version is `yanglabinfo/segmeter:others-v0.13.0`.
 
-| | |
+| Item | Setup |
 | --- | --- |
 | Simulated data | [doi:10.5281/zenodo.14880992](https://doi.org/10.5281/zenodo.14880992), created with `segmeter sim -o simdata -n 10,100,1K,10K,100K -c sim_001` |
 | Simulation parameters | defaults: interval size 100-10000 bp (`-i`), gap size 100-5000 bp (`-g`), maximum chromosome length 1000000000 bp (`-m`) |
 | Benchmark | `segmeter bench -o simdata -n 10,100,1K,10K,100K -c sim_001 -b bench_001 -t TOOL`, repeated three times (`bench_001`, `bench_002`, `bench_003`) with all subsets (`-s 10-100`, the default) |
 | Tools | `tabix`, `bedtools`, `bedtools_sorted`, `bedtools_tabix`, `bedops`, `bedmaps`, `giggle`, `granges`, `gia`, `bedtk`, `bedtk_sorted`, `igd`, `ailist`, `ucsc`, `awk`, `intervaltree` |
 
-Later versions keep these defaults. New options (e.g., `--max_span`) are off by default, so the same commands reproduce the published setup.
+Later versions keep these defaults. New options are off by default, so the same commands reproduce the published setup.
 Since v0.13.1, benchmarking simulated data requires the `-r`/`--simdata` flag.
 
 ## Usage
