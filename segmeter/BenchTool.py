@@ -12,7 +12,7 @@ class BenchTool:
         self.options = options
 
         self.refdirs = self.get_refdirs() # get the reference directories
-        if not self.options.simdata: # load the simulated data
+        if self.options.simdata: # load the simulated data
             self.querydirs = self.get_querydirs() # get the query directories
 
     def get_refdirs(self):
@@ -204,13 +204,13 @@ class BenchTool:
         }
 
         if dtype == "basic":
-            results = []
+            results = set() # set, as each query is looked up in the results
             # iterate/store the results from the queries
             fht = open(tmpfile.name)
             for line in fht:
                 cols = line.strip().split("\t")
                 result = tuple(cols[0:3])
-                results.append(result)
+                results.add(result)
             fht.close()
 
             # iterate/store the truth values from the queries
@@ -241,11 +241,7 @@ class BenchTool:
             if os.stat(queryfile).st_size == 0:
                 return precision
 
-            results = []
-            fht = open(tmpfile.name)
-            lines = fht.readlines()
-            results_entries_num = len(lines)
-            fht.close()
+            results_entries_num = utility.file_linecounter(tmpfile.name)
 
             truth_entries_num = 0
             fht = open(queryfile)
