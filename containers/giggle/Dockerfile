@@ -28,12 +28,15 @@ RUN ln -s /usr/bin/python3 /usr/bin/python
 RUN apt-get install -y \
     tabix
 
-RUN git clone https://github.com/riasc/giggle.git
+# pinned to the commit of the published benchmark (giggle 0.6.3)
+RUN git clone https://github.com/riasc/giggle.git && cd /giggle && git checkout 1b7cb90a65e89f4f2bfb8351b8191339acfc5616
 RUN cd /giggle && make
 
 ENV GIGGLE_ROOT="/giggle" PATH="/giggle/bin/:$PATH"
 
 WORKDIR /
-RUN git clone https://github.com/ylab-hi/segmeter.git
+# pin segmeter to the release that the image is built for (the workflow passes the tag)
+ARG SEGMETER_REF=main
+RUN git clone --branch ${SEGMETER_REF} --depth 1 https://github.com/ylab-hi/segmeter.git
 # create symlink to segmeter/segmeter/main.py
 RUN ln -s /segmeter/segmeter/main.py /usr/local/bin/segmeter && chmod +x /usr/local/bin/segmeter
