@@ -26,7 +26,7 @@ segmeter reads a dataset of intervals from a file and evaluates the performance 
 In the simulation mode, segmeter generates of intervals (reference) and their corresponding basic and complex queries. This can be used as follows:
 
 ```
-segmeter sim -o DATADIR [-h] [-n INVLNUMS] [-m MAX_CHROMLEN] [-c SIMNAME] [-g GAPSIZE] [-i INTVLSIZE]
+segmeter sim -o DATADIR [-h] [-n INVLNUMS] [-m MAX_CHROMLEN] [-c SIMNAME] [-g GAPSIZE] [-i INTVLSIZE] [--max_span MAX_SPAN]
 
 ```
 
@@ -41,6 +41,7 @@ segmeter sim -o DATADIR [-h] [-n INVLNUMS] [-m MAX_CHROMLEN] [-c SIMNAME] [-g GA
 | -c, --simname | name of the simulation, used for the output folder |
 | -g, --gapsize | random size of the gaps (min and max) between the intervals. Default is 100-5000 |
 | -i, --intvlsize | random size (min and max) of the intervals. Default is 100-10000 |
+| --max_span | maximum number of reference intervals that a complex query covers (at least 10). Not limited by default. The output of the complex queries grows quadratically with the number of intervals per chromosome, so a limit (e.g., 1000) is recommended for more than 10K intervals |
 
 This will generates output files in the 'DATADIR/simname/BED' folder. The files are in BED format (currently the only supported format) and can be used for benchmarking. In particular, the filers are located in the following folders:
 
@@ -95,7 +96,8 @@ chr13	584	4573	chr13	584	4573	intvl_1_perfect:intvl_1
 
 #### Complex queries
 
-`DATADIR/simname/BED/complex` contains the complex queries. Currently, this only includes `mult` queries which basically cover multiple reference intervals. According to the number of intervals that
+`DATADIR/simname/BED/complex` contains the complex queries. Currently, this only includes `mult` queries which basically cover multiple reference intervals. For each chromosome, there is one query
+for each number of covered intervals, from 2 up to the number of intervals on the chromosome or `--max_span`, whichever is smaller. According to the number of intervals that
 are covered in a complex query, the queries are stored in deciles (e.g., `DATADIR/simname/BED/complex/query/mult/<INTVLNUM>_<DECILE>bin.bed`). Again this contains the queries in BED4 format with and
 identifier in the fourth column. Note that `mult_13` indicates that this query covers 13 reference intervals:
 ```
