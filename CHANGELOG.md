@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # [Unreleased]
 ## Added
-- Added optional `--max_span` to `segmeter sim` to limit the number of intervals covered by a complex query, which otherwise makes the expected output grow quadratically with the intervals per chromosome; off by default, so the simulated data is unchanged ([#14](https://github.com/ylab-hi/segmeter/issues/14), [#23](https://github.com/ylab-hi/segmeter/pull/23))
+- Added optional `--max_span` (a multiple of 10) to `segmeter sim` to limit the number of intervals covered by a complex query, which otherwise makes the expected output grow quadratically with the intervals per chromosome; off by default, so the simulated data is unchanged ([#14](https://github.com/ylab-hi/segmeter/issues/14), [#23](https://github.com/ylab-hi/segmeter/pull/23))
 
 ## Changed
 - README: the "Published benchmark" section moved to the end and refers to the last patch release of v0.13.x; Singularity instructions pull a versioned image instead of the stale unqualified `latest` tag; argument tables corrected (`--tool` lists all 16 tools, bench-only options moved to the bench table, `awk` in the container table) ([#31](https://github.com/ylab-hi/segmeter/pull/31))
