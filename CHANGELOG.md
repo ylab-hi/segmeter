@@ -6,18 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 # [Unreleased]
+
+# [0.13.2]
 ## Changed
 - Pinned the tool versions in the containers to those of the published benchmark (bedtools 2.30.0, tabix 1.16, UCSC bedIntersect built from kent source 482, bedtk/IGD/AIList from their upstream repositories at the snapshot commits, giggle 0.6.3, gia 0.2.23 and granges 0.2.2 with Rust 1.87.0; `others` on `python:3.10-slim-bookworm`), build each image from the release tag it is named after, and replaced the deprecated `set-output` in the release workflows ([#17](https://github.com/ylab-hi/segmeter/issues/17), [#26](https://github.com/ylab-hi/segmeter/pull/26))
 - Added the README section "Published benchmark" with the citation, the segmeter version (v0.13.x), the containers and tool versions, the Zenodo dataset, the commands and parameters of the published benchmark, and v0.13.2 as the release to redo it with ([#24](https://github.com/ylab-hi/segmeter/pull/24))
+- Release workflows tag the giggle and rust-tools images by version and build them for amd64 and arm64; README container table lists the tools of each image
+- Removed unused `save_index_time` and a no-op memory comparison in `calls.py`; collapsed repeated max-memory blocks into `max()` calls
+- Added `.gitignore` for `__pycache__`, `.pyc`, `.DS_Store`, `.Rhistory`
 
 ## Fixed
 - Fixed the `segmeter` entry point in the containers, which failed with `from: command not found` because `main.py` had no shebang ([#25](https://github.com/ylab-hi/segmeter/issues/25), [#29](https://github.com/ylab-hi/segmeter/pull/29))
 - Fixed quadratic precision scoring (tool results are looked up in a set) and count complex-query results without loading the output into memory; fixed the crash of `bench -r` since v0.13.1 (`querydirs` condition inverted when `--realdata` became `--simdata`) ([#13](https://github.com/ylab-hi/segmeter/issues/13), [#21](https://github.com/ylab-hi/segmeter/issues/21), [#22](https://github.com/ylab-hi/segmeter/pull/22))
 - Fixed four correctness bugs in the measurement path: scaffold-name filter, bedops temp-file redirect, negative RSS sentinel, and unchecked bedtk dedup exit code ([#1](https://github.com/ylab-hi/segmeter/issues/1), [#7](https://github.com/ylab-hi/segmeter/pull/7))
 - Fixed `file_linecounter` which always returned 1 instead of counting lines
-- Removed unused `save_index_time` and a no-op memory comparison in `calls.py`
-- Collapsed repeated max-memory blocks into `max()` calls
-- Added `.gitignore` for `__pycache__`, `.pyc`, `.DS_Store`, `.Rhistory`
+
+# [0.13.1]
+## Fix
 - Changed build container of rust-tools to new tag
 
 # [0.13.0]
