@@ -41,6 +41,20 @@ def get_rss_from_stderr(stderr_output, rss_label):
     return -1
 
 
+def chrom_sort_key(name):
+    """Chromosome order of genomap 0.2.6 (`chromosome_probe`), the map type of granges: numbers first,
+    then X, Y, M, Z, W, O, then the rest. granges 0.2.2 labels the query trees in this order while it
+    reads the genome file in file order, so a genome file in any other order makes it compare the
+    wrong chromosomes."""
+    name = name[3:] if name.startswith("chr") else name
+    letters = {"X": 2, "Y": 3, "M": 4, "MT": 4, "Mt": 4, "Z": 5, "W": 6, "O": 7}
+    arm = {"L": 1, "R": 2}.get(name[-1:], 0)
+    number = name[:-1] if arm else name
+    if number.isdigit():
+        return (1, int(number), "", arm)
+    return (letters.get(name, 8), 0, name, 0)
+
+
 def get_query_group(datatype, query):
     """returns the query group (e.g., interval or gap) based on the datatype and query"""
 
