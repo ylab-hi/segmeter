@@ -74,9 +74,7 @@ class SimBED:
         return gap
 
     def update_intvl_counter(self, chroms, chrom):
-        if chrom not in chroms["intvl"].keys():
-            chroms["intvl"][chrom] = 0
-        chroms["intvl"][chrom] += 1
+        chroms["intvl"][chrom] += 1 # every chromosome is registered with 0 by select_chrom
 
     def create_datadirs(self, datadir):
         refdir = datadir / "ref"
@@ -92,8 +90,7 @@ class SimBED:
         for query_neg in ["perfect-gap", "left-adjacent-gap", "right-adjacent-gap", "mid-gap1", "mid-gap2"]:
             querydirs["basic"][query_neg] = datadir / "basic" / "query" / query_neg
         querydirs["complex"] = {}
-        for query_pos in ["mult"]:
-            querydirs["complex"][query_pos] = datadir / "complex" / "query" / query_pos
+        querydirs["complex"]["mult"] = datadir / "complex" / "query" / "mult"
 
         # create folder
         refdir.mkdir(parents=True, exist_ok=True)
@@ -121,17 +118,11 @@ class SimBED:
         for key in datafiles["queries-basic"].keys():
             datafiles["queries-basic"][key].close()
 
-    def sort_datafiles(self, datatype, label, truthdirs, querydirs):
-        """Sort some of the datafiles
-        datatype -> [basic, complex]"""
-        truth_in = truthdirs[datatype] / f"{label}.bed"
-        truth_out = truthdirs[datatype] / f"{label}_sorted.bed"
-        utility.sort_BED(truth_in, truth_out)
-
-        for key in querydirs[datatype].keys():
-            infile = querydirs[datatype][key] / f"{label}.bed"
-            outfile = querydirs[datatype][key] / f"{label}_sorted.bed"
-            utility.sort_BED(infile, outfile)
+    def sort_datafiles(self, label, truthdirs, querydirs):
+        """Sort the basic truth and query files"""
+        utility.sort_BED(truthdirs["basic"] / f"{label}.bed", truthdirs["basic"] / f"{label}_sorted.bed")
+        for querydir in querydirs["basic"].values():
+            utility.sort_BED(querydir / f"{label}.bed", querydir / f"{label}_sorted.bed")
 
     def subset_basic_queryfiles(self, querydirs, label, num):
         for key in querydirs["basic"].keys():
@@ -175,7 +166,7 @@ class SimBED:
             datafiles["ref"].close() # close the reference file
             self.close_datafiles_basic(datafiles) # close the basic datafiles
             utility.sort_BED(refdir / f"{label}.bed", refdir / f"{label}_sorted.bed") # sort the reference file
-            self.sort_datafiles("basic", label, truthdirs, querydirs) # sort the truth and query files
+            self.sort_datafiles(label, truthdirs, querydirs) # sort the truth and query files
 
             # basic queries should also be subsetted
             self.subset_basic_queryfiles(querydirs, label, num)

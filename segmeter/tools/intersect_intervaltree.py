@@ -7,10 +7,8 @@ def main():
     options = parse_arguments()
 
     # read input files
-    # print(f"Reading target intervals from {options.target}...", file=sys.stderr)
     ref_intvls = read_target_intervals(options.target)
 
-    # print(f"Reading query intervals from {options.query}...", file=sys.stderr)
     query_intervals(ref_intvls, options)
 
 def read_target_intervals(file_path):
