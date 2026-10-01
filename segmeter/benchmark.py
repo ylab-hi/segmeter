@@ -55,7 +55,7 @@ class BenchBase:
                 fh.close()
             print(f"Query intervals using {options.tool} for provided query and target...")
             query_rt, query_mem, query_result = self.tool.query_interval_file("target", Path(options.query)) # giggle needs a Path
-            shutil.copy(query_result.name, benchpath / "result.bed") # the overlaps found by the tool
+            shutil.move(query_result.name, benchpath / "result.bed") # the overlaps found by the tool
             # save query stats
             outfile = benchpath / "query_stats.txt"
             fh = open(outfile, "w")

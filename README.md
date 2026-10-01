@@ -128,7 +128,7 @@ segmeter bench -o DATADIR -t TOOL [-h] [-r] [-n INTVLNUMS] [-s SUBSET] [-b BENCH
 | -r, --simdata | use simulated data for benchmarking. Note that this will use the simulated data (mode sim) as input for the benchmarking |
 | --query | query file used for benchmarking (not used when benchmarking simulated data) |
 | --target | target file used for benchmarking (not used when benchmarking simulated data) |
-| -o, --datadir | input/output folder for the simulation results. Note that this folder must contains a subfolder `sim` that contains the simulated interval data |
+| -o, --datadir | input/output folder. With `-r`, it must contain the subfolder `sim` with the simulated interval data; with `--target`/`--query`, the target is copied to `DATADIR/ref/` |
 | -n, --intvlnums | Number of intervals to benchmark. When multiple datasets are benchmark, this should be a comma separated list (same in in simulation). Note that this should have been simulated before. |
 | -s, --subset | subset (in percentage) of the intervals to use for benchmarking. Format should be either XX-YY or XX,YY-ZZ. If this is left empty, all subsets/deciles are used |
 | -b, --benchname | name of the benchmark, used for the output folder. This allows to perform multiple benchmarks |
@@ -142,6 +142,12 @@ This generates a separate output folder for each benchmark tool in the folder `D
 In additional subfolders (`precision` and `stats`), the precision and statistics are stored.
 The precision is stored in a file `DATADIR/bench/benchname/precision/<INTVLNUM>_<PERCENT>.txt` and the
 statistics in `DATADIR/bench/benchname/stats/<INTVLNUM>_<PERCENT>.txt`.
+
+With `--target` and `--query` (without `-r`), segmeter copies the target to `DATADIR/ref/target.bed` and prepares
+`target_sorted.bed` and `target_chromlens.txt` (the chromosome lengths, needed by `granges`) next to it; this preparation
+is not measured, like the sorted reference of the simulated data. The output folder `DATADIR/bench/benchname/TOOL/` then
+contains `query_stats.txt` (time and memory of the query), `index_stats.txt` for index-based tools, `log.txt` with the
+executed commands, and `result.bed` with the target intervals the tool reported as overlapping the query.
 
 #### Precision
 

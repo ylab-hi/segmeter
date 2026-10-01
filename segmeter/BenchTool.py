@@ -35,11 +35,7 @@ class BenchTool:
             target_file = Path(self.options.target)
             shutil.copy(target_file, refdirs["ref"] / "target.bed")
             utility.sort_BED(target_file, refdirs["ref"] / "target_sorted.bed")
-            chromlens = {}
-            for path in (target_file, Path(self.options.query)):
-                for line in open(path):
-                    chrom, _, end = line.split("\t")[:3]
-                    chromlens[chrom] = max(chromlens.get(chrom, 0), int(end))
+            chromlens = utility.chrom_lengths([target_file, self.options.query])
             with open(refdirs["ref"] / "target_chromlens.txt", "w") as fh: # granges needs this order
                 fh.writelines(f"{chrom}\t{chromlens[chrom]}\n" for chrom in sorted(chromlens, key=utility.chrom_sort_key))
 

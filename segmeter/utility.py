@@ -55,6 +55,22 @@ def chrom_sort_key(name):
     return (letters.get(name, 8), 0, name, 0)
 
 
+def chrom_lengths(paths):
+    """Largest end per chromosome over the BED files, skipping blank, `#`, `track` and `browser` lines."""
+    lengths = {}
+    for path in paths:
+        with open(path) as fh:
+            for line in fh:
+                if not line.strip() or line.startswith(("#", "track", "browser")):
+                    continue
+                try:
+                    chrom, _, end = line.split("\t")[:3]
+                    lengths[chrom] = max(lengths.get(chrom, 0), int(end))
+                except ValueError:
+                    raise ValueError(f"{path}: not a tab-separated BED line: {line!r}") from None
+    return lengths
+
+
 def get_query_group(datatype, query):
     """returns the query group (e.g., interval or gap) based on the datatype and query"""
 
