@@ -1,4 +1,5 @@
-"""Every tool of `segmeter bench` reports exactly the reference intervals that overlap a query.
+"""Every tool of `segmeter bench` reports exactly the reference intervals that overlap a query, in
+simulated-data mode (`bench -r`) and in real-data mode (`bench --target --query`, #19/#33).
 Run with `python3 tests/tools/test_query.py` (or pytest). Needs `/usr/bin/time`; a tool that is not
 installed is skipped, so the full table only runs across the project containers."""
 import importlib.util
@@ -14,6 +15,7 @@ sys.path.insert(0, str(Path(__file__).parents[2] / "segmeter"))
 import calls
 import utility
 from BenchTool import BenchTool
+from benchmark import BenchBase
 
 # (tool, requirement, runs index_call, query directory: bedops picks its branch from the query path)
 # the index_call column mirrors idx_based_tools in benchmark.py
@@ -96,6 +98,16 @@ def run_tool(tool, indexed, datadir, queryfile):
     return intervals(Path(out.name).read_text())
 
 
+def run_real(tool, datadir, target, queryfile):
+    """`bench --target --query`: the whole BenchBase run, as main.py starts it; the overlaps land in result.bed."""
+    (datadir / "real").mkdir(exist_ok=True)
+    options = types.SimpleNamespace(simdata=False, tool=tool, target=str(target), query=str(queryfile),
+                                    datadir=str(datadir / "real"), simname="sim_001", format="BED",
+                                    benchname="bench_001")
+    BenchBase(options, {})
+    return intervals((datadir / "real" / "bench" / "bench_001" / tool / "result.bed").read_text())
+
+
 def test_query_tools():
     with tempfile.TemporaryDirectory() as tmp:
         datadir = Path(tmp)
@@ -106,10 +118,14 @@ def test_query_tools():
             if not available(requirement):
                 print(f"skip {tool}: {requirement} not installed")
                 continue
-            got = run_tool(tool, indexed, datadir, datadir / qdir / "Q.bed")
-            print(f"{'ok' if got == expected else 'FAIL'} {tool} ({qdir}): {len(got)} of {len(expected)} overlaps")
-            if got != expected:
-                failed.append(f"{tool} ({qdir})")
+            runs = {"sim": run_tool(tool, indexed, datadir, datadir / qdir / "Q.bed")}
+            if qdir == "query": # bedops' basic/complex rows are simulated-data only
+                runs["real"] = run_real(tool, datadir, datadir / "sim" / "sim_001" / "BED" / "ref" / f"{LABEL}.bed",
+                                        datadir / qdir / "Q.bed")
+            for mode, got in runs.items():
+                print(f"{'ok' if got == expected else 'FAIL'} {tool} ({qdir}, {mode}): {len(got)} of {len(expected)} overlaps")
+                if got != expected:
+                    failed.append(f"{tool} ({qdir}, {mode})")
         assert not failed, f"{failed} report other overlaps than expected"
 
 

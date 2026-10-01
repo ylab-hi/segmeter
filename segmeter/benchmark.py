@@ -1,5 +1,6 @@
 # Standard
 from pathlib import Path
+import shutil
 
 # Class
 from BenchTool import BenchTool
@@ -26,10 +27,6 @@ class BenchBase:
             "gia_sorted", "bedtk_sorted", "igd", "bedops", "bedmaps"
         ]
 
-        # open log file
-        options.logfile = open(benchpath / "log.txt", "w")
-        self.tool = BenchTool(options)
-
         if not self.options.simdata:
             # check if query and target files are provided
             if not options.query or not options.target:
@@ -41,6 +38,11 @@ class BenchBase:
             if not Path(options.target).exists():
                 raise FileNotFoundError(f"Target file {options.target} does not exist")
 
+        # open log file
+        options.logfile = open(benchpath / "log.txt", "w")
+        self.tool = BenchTool(options)
+
+        if not self.options.simdata:
             # determine if index has to be created
             if options.tool in self.options.idx_based_tools:
                 print(f"Create index for {options.tool}...")
@@ -52,7 +54,8 @@ class BenchBase:
                 fh.write(f"{idx_time}\t{idx_mem}\t{idx_size}\n")
                 fh.close()
             print(f"Query intervals using {options.tool} for provided query and target...")
-            query_rt, query_mem, query_precision = self.tool.query_interval_file("target", options.target)
+            query_rt, query_mem, query_result = self.tool.query_interval_file("target", Path(options.query)) # giggle needs a Path
+            shutil.move(query_result.name, benchpath / "result.bed") # the overlaps found by the tool
             # save query stats
             outfile = benchpath / "query_stats.txt"
             fh = open(outfile, "w")
@@ -150,7 +153,7 @@ class BenchBase:
         if not Path(self.options.datadir).exists():
             raise FileNotFoundError(f"Directory {self.options.datadir} does not exist")
         simpath = Path(self.options.datadir) / "sim" / self.options.simname
-        if not simpath.exists():
+        if self.options.simdata and not simpath.exists():
             raise FileNotFoundError(f"Directory {simpath} does not exist")
         if self.options.tool is None:
             raise ValueError("Tool not specified")

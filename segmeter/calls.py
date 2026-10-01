@@ -162,18 +162,10 @@ def query_call(options, label, num, reffiles, queryfile):
 
         bedops_rt = 0
         bedops_mem = 0
-        if "basic" in str(queryfile):
-            bedops_rt, bedops_mem = tool_call(f"bedops --element-of 1 {reffiles['ref-srt']} {query_sorted.name} > {tmpfile.name}", options.logfile)
-        elif "complex" in str(queryfile):
+        if "complex" in str(queryfile):
             bedops_rt, bedops_mem = tool_call(f"bedmap --echo-map --multidelim '\n' {query_sorted.name} {reffiles['ref-srt']} > {tmpfile.name}", options.logfile)
-        else: # call when arbitary query/target pairs are provided
-            # sort ref file
-            ref_srt = tempfile.NamedTemporaryFile(mode='w', delete=False)
-            sort_rt, sort_mem = tool_call(f"sort -k1,1 -k2,2n -k3,3n {reffiles['ref-unsrt']} > {ref_srt.name}", options.logfile)
-            query_rt += sort_rt
-            query_mem = max(query_mem, sort_mem)
-            bedops_rt, bedops_mem = tool_call(f"bedops --element-of 1 {ref_srt.name} {query_sorted.name} > {tmpfile.name}", options.logfile)
-            ref_srt.close()
+        else: # basic queries and arbitrary target/query pairs: the sorted reference is prepared unmeasured in both modes
+            bedops_rt, bedops_mem = tool_call(f"bedops --element-of 1 {reffiles['ref-srt']} {query_sorted.name} > {tmpfile.name}", options.logfile)
         query_rt += bedops_rt
         query_mem = max(query_mem, bedops_mem)
 

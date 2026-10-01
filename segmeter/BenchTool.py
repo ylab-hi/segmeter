@@ -30,9 +30,14 @@ class BenchTool:
         else:
             refdirs["ref"] = Path(self.options.datadir) / "ref"
             refdirs["ref"].mkdir(parents=True, exist_ok=True) # need to be created (store the reference files)
-            # copy target file to the reference directory (cp target.bed)
+            # copy target file to the reference directory (cp target.bed); the sorted copy and the
+            # chromosome lengths are what the simulator provides in simulated mode (not measured)
             target_file = Path(self.options.target)
             shutil.copy(target_file, refdirs["ref"] / "target.bed")
+            utility.sort_BED(target_file, refdirs["ref"] / "target_sorted.bed")
+            chromlens = utility.chrom_lengths([target_file, self.options.query])
+            with open(refdirs["ref"] / "target_chromlens.txt", "w") as fh: # granges needs this order
+                fh.writelines(f"{chrom}\t{chromlens[chrom]}\n" for chrom in sorted(chromlens, key=utility.chrom_sort_key))
 
             #
             if self.options.tool in self.options.idx_based_tools:
@@ -76,8 +81,11 @@ class BenchTool:
             reffiles["idx"] = self.refdirs["idx"] / f"{label}.bed"
 
         # add genome length
-        simpath = Path(self.options.datadir) / "sim" / self.options.simname / self.options.format
-        reffiles["chromlens"] =  simpath / f"{label}_chromlens.txt"
+        if self.options.simdata:
+            simpath = Path(self.options.datadir) / "sim" / self.options.simname / self.options.format
+            reffiles["chromlens"] = simpath / f"{label}_chromlens.txt"
+        else:
+            reffiles["chromlens"] = self.refdirs["ref"] / f"{label}_chromlens.txt"
 
         return reffiles
 
