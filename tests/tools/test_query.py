@@ -93,8 +93,8 @@ def run_tool(tool, indexed, datadir, queryfile):
                                     benchname="bench_001", logfile=io.StringIO())
     bench = BenchTool(options)
     if indexed:
-        calls.index_call(options, bench.refdirs, LABEL, NUM)
-    _, _, out = calls.query_call(options, LABEL, NUM, bench.get_reffiles(LABEL), queryfile)
+        calls.index_call(options, bench.refdirs, LABEL)
+    _, _, out = calls.query_call(options, LABEL, bench.get_reffiles(LABEL), queryfile)
     return intervals(Path(out.name).read_text())
 
 

@@ -4,16 +4,11 @@ import shutil
 
 # Class
 from BenchTool import BenchTool
-import calls
 
 class BenchBase:
     def __init__(self, options, intvlnums):
         self.options = options
         self.intvlnums = intvlnums
-
-        query_time = {}
-        query_precision = {}
-        query_memory = {}
 
         if not self.validate():
             raise ValueError("Validation failed - check the input parameters")
@@ -46,7 +41,7 @@ class BenchBase:
             # determine if index has to be created
             if options.tool in self.options.idx_based_tools:
                 print(f"Create index for {options.tool}...")
-                idx_time, idx_mem, idx_size = self.tool.create_index("target", 100)
+                idx_time, idx_mem, idx_size = self.tool.create_index("target")
                 # save index stats
                 outfile_idx = benchpath / "index_stats.txt"
                 fh = open(outfile_idx, "w")
@@ -73,7 +68,7 @@ class BenchBase:
                 # if the tool is index-based, create index (and record stats)
                 if options.tool in self.options.idx_based_tools:
                     outfile_idx = labelpath / f"{label}_idx_stats.txt"
-                    idx_time, idx_mem, idx_size = self.tool.create_index(label, num)
+                    idx_time, idx_mem, idx_size = self.tool.create_index(label)
                     self.save_idx_stats(num, idx_time, idx_mem, idx_size, outfile_idx)
 
                 statspath = labelpath / "stats"
