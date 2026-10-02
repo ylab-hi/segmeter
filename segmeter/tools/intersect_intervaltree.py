@@ -1,17 +1,14 @@
 #!/usr/bin/env python3
 
 import argparse
-import sys
-from intervaltree import IntervalTree, Interval
+from intervaltree import IntervalTree
 
 def main():
     options = parse_arguments()
 
     # read input files
-    # print(f"Reading target intervals from {options.target}...", file=sys.stderr)
     ref_intvls = read_target_intervals(options.target)
 
-    # print(f"Reading query intervals from {options.query}...", file=sys.stderr)
     query_intervals(ref_intvls, options)
 
 def read_target_intervals(file_path):
@@ -59,9 +56,8 @@ def parse_arguments():
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
     Examples:
-      %(prog)s -t target.bed -q query.bed
-      %(prog)s -t target.bed -q query.bed --min-overlap 100 --format detailed
-      %(prog)s -t target.bed -q query.bed --stats
+      %(prog)s -t target.bed -q query.bed -o overlaps.bed
+      %(prog)s -t target.bed -q query.bed -o overlaps.bed -r query
             """)
 
     parser.add_argument("-t", "--target", type=str, required=True,
@@ -73,10 +69,6 @@ def parse_arguments():
     parser.add_argument("-r", "--report", type=str, default="target",
                         choices=['target', 'query'],
                         help="Report overlaps from target or query intervals (default: target)")
-    parser.add_argument("--format", choices=['bed', 'detailed'], default='bed',
-                        help="Output format (default: bed)")
-    parser.add_argument("--stats", action='store_true',
-                        help="Print overlap statistics")
     parser.add_argument("--version", action='version', version='%(prog)s 1.0')
 
     args = parser.parse_args()

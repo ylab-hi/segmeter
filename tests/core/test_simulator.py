@@ -11,6 +11,19 @@ sys.path.insert(0, str(Path(__file__).parents[2] / "segmeter"))
 from simulator import SimBED
 
 
+def test_select_chrom_scaffold():
+    """A full chromosome is replaced by a scaffold that starts with a gap; the scaffold name counts the
+    existing scaffolds (#7 fixed a membership test that always gave SCF1)."""
+    sim = SimBED(types.SimpleNamespace(gapsize="100-100", max_chromlen=1000), {})
+    chroms = {"all": [], "space-left": ["chr1"], "intvl": {"chr1": 10},
+              "leftgap": {"chr1": {"start": 1, "end": 1000, "mid": 500}}}
+    assert sim.select_chrom(chroms) == "SCF1"
+    assert chroms["space-left"] == ["SCF1"] and chroms["intvl"]["SCF1"] == 0
+    assert chroms["leftgap"]["SCF1"] == {"start": 1, "end": 100, "mid": 50}
+    chroms["leftgap"]["SCF1"]["end"] = 1000 # SCF1 is full too
+    assert sim.select_chrom(chroms) == "SCF2"
+
+
 def test_max_span():
     intvls = [["chr1", str(i * 100), str(i * 100 + 50)] for i in range(200)]
     for max_span, expected in [(None, 199), (1000, 199), (50, 49)]: # spans 2..200 and 2..50
@@ -47,6 +60,7 @@ def test_max_span_bins():
 
 
 if __name__ == "__main__":
+    test_select_chrom_scaffold()
     test_max_span()
     test_max_span_bins()
     print("ok")

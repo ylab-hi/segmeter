@@ -55,8 +55,7 @@ class BenchTool:
         for query in ["perfect-gap", "left-adjacent-gap", "right-adjacent-gap", "mid-gap1", "mid-gap2"]:
             querydirs["basic"][query] = Path(self.options.datadir) / "sim" / self.options.simname / self.options.format / "basic" / "query" / query
         querydirs["complex"] = {}
-        for query in ["mult"]:
-            querydirs["complex"]["mult"] = Path(self.options.datadir) / "sim" / self.options.simname / self.options.format / "complex" / "query" / query
+        querydirs["complex"]["mult"] = Path(self.options.datadir) / "sim" / self.options.simname / self.options.format / "complex" / "query" / "mult"
 
         return querydirs
 
@@ -64,7 +63,6 @@ class BenchTool:
         reffiles = {}
         reffiles["ref-unsrt"] = self.refdirs["ref"] / f"{label}.bed"
         reffiles["ref-srt"] = self.refdirs["ref"] / f"{label}_sorted.bed"
-        reffiles["ref"] = self.refdirs["ref"] / f"{label}.bed.gz"
 
         if self.options.simdata: # if simulated data, use the truth files
             reffiles["truth-basic"] = self.refdirs["truth-basic"] / f"{label}.bed"
@@ -135,14 +133,13 @@ class BenchTool:
         return truth
 
 
-    def create_index(self, label, num):
-        # runtime, mem, idx_size = calls.index_call(self.options, self.refdirs, label, num)
-        return calls.index_call(self.options, self.refdirs, label, num)
+    def create_index(self, label):
+        return calls.index_call(self.options, self.refdirs, label)
 
     def query_interval_file(self, label, queryfile):
         """This function queries the intervals in the reference file with the query files"""
         reffiles = self.get_reffiles(label)
-        query_rt, query_mem, query_result = calls.query_call(self.options, label, 0, reffiles, queryfile)
+        query_rt, query_mem, query_result = calls.query_call(self.options, label, reffiles, queryfile)
 
         return query_rt, query_mem, query_result
 
@@ -179,7 +176,7 @@ class BenchTool:
                 query_memory[dtype][qtype][subset] = 0 # initialize the memory
 
                 # determine the runtime and memory requirements
-                query_rt, query_mem, query_result = calls.query_call(self.options, label, num, reffiles, queryfiles[dtype][qtype][subset])
+                query_rt, query_mem, query_result = calls.query_call(self.options, label, reffiles, queryfiles[dtype][qtype][subset])
                 query_times[dtype][qtype][subset] += round(query_rt, 5)
                 if query_mem > query_memory[dtype][qtype][subset]:
                     query_memory[dtype][qtype][subset] = query_mem
@@ -229,7 +226,7 @@ class BenchTool:
                 truth_intvl = truth[query][0]
                 truth_intvlid = truth[query][1]
 
-                qgroup = utility.get_query_group("basic", qtype)
+                qgroup = utility.get_query_group(qtype)
                 if qgroup == "interval":
                     if truth_intvl in results:
                         precision["basic"]["TP"] += 1

@@ -18,7 +18,7 @@ def main():
         bed = SimBase(options, intvlnums)
         bed.format.sim_intervals()
     elif options.modus == "bench":
-        bench = BenchBase(options, intvlnums)
+        BenchBase(options, intvlnums)
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Benchmarking tool for interval files")

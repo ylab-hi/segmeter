@@ -71,15 +71,11 @@ def chrom_lengths(paths):
     return lengths
 
 
-def get_query_group(datatype, query):
-    """returns the query group (e.g., interval or gap) based on the datatype and query"""
-
-    if datatype == "basic":
-        if query in ["perfect", "5p-partial", "3p-partial", "enclosed", "contained"]:
-            return "interval"
-        elif query in ["perfect-gap", "left-adjacent-gap", "right-adjacent-gap", "mid-gap1", "mid-gap2"]:
-            return "gap"
-        else:
-            raise ValueError("Query type not supported")
-    elif datatype == "complex":
-        return "undefined" # todo
+def get_query_group(query):
+    """returns the group of a basic query type: interval (overlaps the reference) or gap (does not)"""
+    if query in ["perfect", "5p-partial", "3p-partial", "enclosed", "contained"]:
+        return "interval"
+    elif query in ["perfect-gap", "left-adjacent-gap", "right-adjacent-gap", "mid-gap1", "mid-gap2"]:
+        return "gap"
+    else:
+        raise ValueError("Query type not supported")

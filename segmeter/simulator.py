@@ -17,8 +17,6 @@ class SimBED:
     def __init__(self, options, intvlnums):
         self.options = options
         self.intvlnums = intvlnums
-        # self.chroms = self.init_chroms()
-        self.intvls = {} # stores number of intervals
 
     def init_chroms(self):
         """Initialize the chromosomes"""
@@ -57,20 +55,16 @@ class SimBED:
             # therefore simulate a gap
             chroms["leftgap"][selection] = self.simulate_gap(1, random.randint(gs_start, gs_end))
             return selection
-        else:
-            valid = False
-            while not valid:
-                if chroms["leftgap"][selection]["end"] < self.options.max_chromlen:
-                    return selection
-                else:
-                    chroms["space-left"].remove(selection)
-                    allchroms = list(chroms["leftgap"].keys())
-                    scaffolds = [chr for chr in allchroms if "SCF" in chr]
-                    scaffold_name = f"SCF{len(scaffolds)+1}"
-                    chroms["space-left"].append(scaffold_name)
-                    chroms["leftgap"][scaffold_name] = self.simulate_gap(1, random.randint(gs_start, gs_end))
-                    chroms["intvl"][scaffold_name] = 0
-                    return scaffold_name
+        elif chroms["leftgap"][selection]["end"] < self.options.max_chromlen:
+            return selection
+        else: # chromosome is full, continue on a new scaffold
+            chroms["space-left"].remove(selection)
+            scaffolds = [chr for chr in chroms["leftgap"] if "SCF" in chr]
+            scaffold_name = f"SCF{len(scaffolds)+1}"
+            chroms["space-left"].append(scaffold_name)
+            chroms["leftgap"][scaffold_name] = self.simulate_gap(1, random.randint(gs_start, gs_end))
+            chroms["intvl"][scaffold_name] = 0
+            return scaffold_name
 
     def simulate_gap(self, start, end):
         gap = {}
@@ -79,22 +73,8 @@ class SimBED:
         gap["mid"] = int((start + end) // 2)
         return gap
 
-    def update_leftgap(self, chroms, chrom, start, end, mid):
-        chroms["leftgap"][chrom]["start"] = start
-        chroms["leftgap"][chrom]["end"] = end
-        chroms["leftgap"][chrom]["mid"] = mid
-
     def update_intvl_counter(self, chroms, chrom):
-        if chrom not in chroms["intvl"].keys():
-            chroms["intvl"][chrom] = 0
-        chroms["intvl"][chrom] += 1
-
-    def det_rightmost_start(self, chroms): # needs to be set to 0
-        """Simulate start position of first interval (aka right-most position)"""
-        rightmost = {}
-        for chr in chroms:
-            rightmost[chr] = random.randint(100, 10000)
-        return rightmost
+        chroms["intvl"][chrom] += 1 # every chromosome is registered with 0 by select_chrom
 
     def create_datadirs(self, datadir):
         refdir = datadir / "ref"
@@ -110,8 +90,7 @@ class SimBED:
         for query_neg in ["perfect-gap", "left-adjacent-gap", "right-adjacent-gap", "mid-gap1", "mid-gap2"]:
             querydirs["basic"][query_neg] = datadir / "basic" / "query" / query_neg
         querydirs["complex"] = {}
-        for query_pos in ["mult"]:
-            querydirs["complex"][query_pos] = datadir / "complex" / "query" / query_pos
+        querydirs["complex"]["mult"] = datadir / "complex" / "query" / "mult"
 
         # create folder
         refdir.mkdir(parents=True, exist_ok=True)
@@ -127,13 +106,9 @@ class SimBED:
         datafiles = {}
         datafiles["ref"] = open(refdir / f"{label}.bed", 'w')
         datafiles["truth-basic"] = open(truthdirs["basic"] / f"{label}.bed", 'w')
-        datafiles["truth-complex"] = open(truthdirs["complex"] / f"{label}.bed", 'w')
         datafiles["queries-basic"] = {}
         for key in querydirs["basic"].keys():
             datafiles["queries-basic"][key] = open(querydirs["basic"][key] / f"{label}.bed", 'w')
-        datafiles["queries-complex"] = {}
-        # for key in querydirs["complex"].keys():
-        #     datafiles["queries-complex"][key] = open(querydirs["complex"][key] / f"{label}.bed", 'w')
 
         return datafiles
 
@@ -143,23 +118,11 @@ class SimBED:
         for key in datafiles["queries-basic"].keys():
             datafiles["queries-basic"][key].close()
 
-    def close_datafiles_complex(self, datafiles):
-        """Close all (complex) datafiles"""
-        datafiles["truth-complex"].close()
-        for key in datafiles["queries-complex"].keys():
-            datafiles["queries-complex"][key].close()
-
-    def sort_datafiles(self, datatype, label, truthdirs, querydirs):
-        """Sort some of the datafiles
-        datatype -> [basic, complex]"""
-        truth_in = truthdirs[datatype] / f"{label}.bed"
-        truth_out = truthdirs[datatype] / f"{label}_sorted.bed"
-        utility.sort_BED(truth_in, truth_out)
-
-        for key in querydirs[datatype].keys():
-            infile = querydirs[datatype][key] / f"{label}.bed"
-            outfile = querydirs[datatype][key] / f"{label}_sorted.bed"
-            utility.sort_BED(infile, outfile)
+    def sort_datafiles(self, label, truthdirs, querydirs):
+        """Sort the basic truth and query files"""
+        utility.sort_BED(truthdirs["basic"] / f"{label}.bed", truthdirs["basic"] / f"{label}_sorted.bed")
+        for querydir in querydirs["basic"].values():
+            utility.sort_BED(querydir / f"{label}.bed", querydir / f"{label}_sorted.bed")
 
     def subset_basic_queryfiles(self, querydirs, label, num):
         for key in querydirs["basic"].keys():
@@ -180,9 +143,7 @@ class SimBED:
             print(f"Simulate intervals for {label}:{num}...")
             datafiles = self.open_datafiles(label, refdir, truthdirs, querydirs)
 
-            # chroms
             chroms = self.init_chroms()
-            # intvls
 
             for i in range(1, (int(num))+1):
                 chrom = self.select_chrom(chroms)
@@ -205,7 +166,7 @@ class SimBED:
             datafiles["ref"].close() # close the reference file
             self.close_datafiles_basic(datafiles) # close the basic datafiles
             utility.sort_BED(refdir / f"{label}.bed", refdir / f"{label}_sorted.bed") # sort the reference file
-            self.sort_datafiles("basic", label, truthdirs, querydirs) # sort the truth and query files
+            self.sort_datafiles(label, truthdirs, querydirs) # sort the truth and query files
 
             # basic queries should also be subsetted
             self.subset_basic_queryfiles(querydirs, label, num)
@@ -284,7 +245,6 @@ class SimBED:
 
     def sim_complex_queries(self, refdir, truthdirs, querydirs, num, label):
         reffile = refdir / f"{label}_sorted.bed" # reference file
-        # queryfile = querydirs["complex"]["mult"] / f"{label}.bed"
         truthfile = truthdirs["complex"] / f"{label}.bed"
 
         maxchrms = 0 # maximum number of intervals on a chromosome
@@ -304,7 +264,6 @@ class SimBED:
             end = frac10*i
             bins[(start, end)] = open(querydirs["complex"]["mult"] / f"{label}_{i*10}bin.bed", 'w')
 
-        # fh_query = open(queryfile, 'w')
         fh_truth = open(truthfile, 'w')
 
         fh = open(reffile, 'r')
@@ -325,7 +284,6 @@ class SimBED:
             self.sim_overlaps(intvls, bins, fh_truth)
 
         fh.close()
-        # fh_query.close()
         for i in bins.keys():
             bins[i].close()
         fh_truth.close()
@@ -346,5 +304,4 @@ class SimBED:
                         bins[bnds].write(f"{chr}\t{query_start}\t{query_end}\tmult_{i}\n")
                         break
 
-                # fh_query.write(f"{chr}\t{query_start}\t{query_end}\tmult_{i}\n")
                 fh_truth.write(f"{chr}\t{query_start}\t{query_end}\tmult_{i}\t{i}\n")

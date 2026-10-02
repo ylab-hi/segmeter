@@ -38,9 +38,9 @@ def tool_call(call, logfile):
 
     return runtime, mem
 
-def index_call(options, refdirs, label, num):
+def index_call(options, refdirs, label):
     """Tabix creates the index in the same folder as the input file."""
-    print(f"Indexing {refdirs['ref']} with {label}:{num} intervals...")
+    print(f"Indexing {refdirs['ref'] / f'{label}.bed'} with {options.tool}...")
 
     runtime = 0
     mem = 0
@@ -88,7 +88,7 @@ def index_call(options, refdirs, label, num):
         mem = max(mem, giggle_mem)
 
         indexpath = Path(options.datadir) / "bench" / options.benchname / options.tool
-        """For some reason the giggle index is not created in ./giggle/idx/<index> but in ./giggle/<index> - so use this path"""
+        # for some reason the giggle index is not created in ./giggle/idx/<index> but in ./giggle/<index> - so use this path
         giggle_size = os.stat(indexpath / f'{label}_index').st_size
         giggle_size_mb = round(giggle_size/(1024*1024), 5)
         idx_size_mb += giggle_size_mb
@@ -117,7 +117,7 @@ def index_call(options, refdirs, label, num):
     return runtime, mem, idx_size_mb
 
 
-def query_call(options, label, num, reffiles, queryfile):
+def query_call(options, label, reffiles, queryfile):
     tmpfile = tempfile.NamedTemporaryFile(mode='w', delete=False)
 
     query_rt = 0
@@ -191,7 +191,7 @@ def query_call(options, label, num, reffiles, queryfile):
         query_mem = max(query_mem, sort_mem)
 
         indexpath = Path(options.datadir) / "bench" / options.benchname / options.tool
-        """For some reason the giggle index is not created in ./giggle/idx/<index> but in ./giggle/<index> - so use this path"""
+        # for some reason the giggle index is not created in ./giggle/idx/<index> but in ./giggle/<index> - so use this path
         giggle_rt, giggle_mem = tool_call(f"/giggle/bin/giggle search -i {indexpath / f'{label}_index'} -q {Path(query_sorted_dir.name) / f'{queryfile.name}.gz'} -v > {tmpfile.name}", options.logfile)
         query_rt += giggle_rt
         query_mem = max(query_mem, giggle_mem)

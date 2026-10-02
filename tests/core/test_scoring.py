@@ -54,6 +54,7 @@ def test_simdata_querydirs():
     bench = BenchTool(options)
     assert set(bench.querydirs) == {"basic", "complex"}
     assert bench.querydirs["basic"]["perfect"] == Path("data/sim/sim_001/BED/basic/query/perfect")
+    assert bench.querydirs["complex"] == {"mult": Path("data/sim/sim_001/BED/complex/query/mult")}
 
 
 if __name__ == "__main__":
