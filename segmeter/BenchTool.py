@@ -69,13 +69,9 @@ class BenchTool:
             reffiles["truth-complex"] = self.refdirs["truth-complex"] / f"{label}.bed"
 
         # create index if necessary
-        if (self.options.tool == "tabix" or
-            self.options.tool == "bedtools_sorted" or
-            self.options.tool == "bedtools_tabix" or
-            self.options.tool == "bedtk_sorted"):
-                reffiles["idx"] = self.refdirs["idx"] / f"{label}.bed.gz"
-
-        elif self.options.tool == "gia_sorted":
+        if self.options.tool == "tabix" or self.options.tool == "bedtools_tabix":
+            reffiles["idx"] = self.refdirs["idx"] / f"{label}.bed.gz"
+        elif self.options.tool in ["bedtools_sorted", "bedtk_sorted", "gia_sorted"]:
             reffiles["idx"] = self.refdirs["idx"] / f"{label}.bed"
 
         # add genome length
