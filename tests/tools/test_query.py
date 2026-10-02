@@ -2,6 +2,7 @@
 simulated-data mode (`bench -r`) and in real-data mode (`bench --target --query`, #19/#33).
 Run with `python3 tests/tools/test_query.py` (or pytest). Needs `/usr/bin/time`; a tool that is not
 installed is skipped, so the full table only runs across the project containers."""
+import contextlib
 import importlib.util
 import io
 import random
@@ -108,7 +109,9 @@ def run_real(tool, datadir, target, queryfile):
     options = types.SimpleNamespace(simdata=False, tool=tool, target=str(target), query=str(queryfile),
                                     datadir=str(datadir / "real"), simname="sim_001", format="BED",
                                     benchname="bench_001")
-    BenchBase(options, {})
+    with contextlib.redirect_stderr(io.StringIO()) as err:
+        BenchBase(options, {})
+    assert ("deprecated" in err.getvalue()) == (tool == "bedtools_tabix"), err.getvalue() # #43
     return intervals((datadir / "real" / "bench" / "bench_001" / tool / "result.bed").read_text())
 
 
