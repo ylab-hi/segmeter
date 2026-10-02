@@ -137,7 +137,8 @@ segmeter bench -o DATADIR -t TOOL [-h] [-r] [-n INTVLNUMS] [-s SUBSET] [-b BENCH
 
 Note that `bedtools_sorted` and `bedtk_sorted` are the same as `bedtools` and `bedtk`, respectively, but the reference is sorted in the
 index step and the queries are sorted in the query step (both measured); `bedtools_sorted` then runs `bedtools intersect -sorted`, the sweep
-algorithm for sorted input. In the case of `bedtools_tabix`, the reference is sorted, compressed with `bgzip` and indexed with `tabix` in the
+algorithm for sorted input (with `-g`, a genome file in the order of the sorted data, so chromosomes present in only one file are handled).
+`bedtk` does not need sorted input, so `bedtk_sorted` only adds the sorting cost to `bedtk`. In the case of `bedtools_tabix`, the reference is sorted, compressed with `bgzip` and indexed with `tabix` in the
 index step, and `bedtools intersect -sorted` reads the compressed file (bedtools cannot use the tabix index for random access).
 
 This generates a separate output folder for each benchmark tool in the folder `DATADIR/bench/benchname/` with a subfolder for each INTVLNUM.
@@ -226,7 +227,7 @@ build in the same environment. Use the images of the last patch release of v0.13
 | Simulation parameters | defaults: interval size 100-10000 bp (`-i`), gap size 100-5000 bp (`-g`), maximum chromosome length 1000000000 bp (`-m`) |
 | Benchmark | `segmeter bench -o simdata -n 10,100,1K,10K,100K -c sim_001 -b bench_001 -t TOOL`, repeated three times (`bench_001`, `bench_002`, `bench_003`) with all subsets (`-s 10-100`, the default) |
 | `--tool` choices in v0.13.x | `tabix`, `bedtools`, `bedtools_sorted`, `bedtools_tabix`, `bedops`, `bedmaps`, `giggle`, `granges`, `gia`, `bedtk`, `bedtk_sorted`, `igd`, `ailist`, `ucsc`, `awk`, `intervaltree` |
-| `bedtools_sorted`, `bedtools_tabix`, `bedtk_sorted` in v0.13.x | run without `-sorted` on the simulator's sorted reference (`bedtools_tabix` with the unsorted query), the bgzip/tabix output of the index step unused; from 0.14.0 the variants read the index step's output and the bedtools variants pass `-sorted` ([#39](https://github.com/ylab-hi/segmeter/issues/39)) |
+| `bedtools_sorted`, `bedtools_tabix`, `bedtk_sorted` in v0.13.x | run without `-sorted` on the simulator's sorted reference (`bedtools_tabix` with the unsorted query), the bgzip/tabix output of the index step unused: the v0.13.x index time of all three includes sort and bgzip (plus tabix for `bedtools_tabix`) and `index_size(MB)` is the bgzip (plus `.csi`) size. From 0.14.0 the variants read the index step's output, the bedtools variants pass `-sorted -g`, and the `_sorted` variants index with the sort alone (index size reported as 0, like `bedops` and `gia_sorted`) ([#39](https://github.com/ylab-hi/segmeter/issues/39)) |
 | Tool versions | bedtools 2.30.0, tabix (htslib) 1.16, BEDOPS 2.4.41, bedtk 0.0-r30, IGD 0.1.1, AIList 0.1.1, UCSC bedIntersect (kent source 482), intervaltree 3.1.0, GIGGLE 0.6.3, gia 0.2.23, granges 0.2.2 (as installed in the images above) |
 
 To redo the benchmark, use the **last patch release of v0.13.x** (currently v0.13.2): it keeps these defaults, new options are off by default,

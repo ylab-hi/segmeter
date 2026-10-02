@@ -50,7 +50,6 @@ def index_call(options, refdirs, label):
         sort_rt, sort_mem = tool_call(f"sort -k1,1 -k2,2n -k3,3n {refdirs['ref'] / f'{label}.bed'} > {refdirs['idx'] / f'{label}.bed'}", options.logfile)
         runtime += sort_rt
         mem = max(mem, sort_mem)
-        idx_size_mb += round(os.stat(refdirs['idx'] / f'{label}.bed').st_size/(1024*1024), 5)
 
     elif options.tool == "tabix" or options.tool == "bedtools_tabix":
         sort_rt, sort_mem = tool_call(f"sort -k1,1 -k2,2n -k3,3n {refdirs['ref'] / f'{label}.bed'} > {refdirs['idx'] / f'{label}.bed'}", options.logfile)
@@ -120,6 +119,16 @@ def index_call(options, refdirs, label):
     return runtime, mem, idx_size_mb
 
 
+def sorted_genome(reffiles, label):
+    """Genome file in the chromosome order of the sorted data (sort -k1,1), for `bedtools -sorted -g`: bedtools
+    then handles chromosomes that only one of the files has. Written once next to the index, not measured."""
+    genome = Path(reffiles['idx']).parent / f"{label}.genome"
+    if not genome.exists():
+        with open(genome, "w") as fh:
+            subprocess.run(["sort", "-k1,1", str(reffiles['chromlens'])], stdout=fh, check=True)
+    return genome
+
+
 def query_call(options, label, reffiles, queryfile):
     tmpfile = tempfile.NamedTemporaryFile(mode='w', delete=False)
 
@@ -139,7 +148,8 @@ def query_call(options, label, reffiles, queryfile):
         query_rt += sort_rt
         query_mem = max(query_mem, sort_mem)
         # query the sorted reference of the index step with the sweep algorithm of bedtools (-sorted)
-        bedtools_rt, bedtools_mem = tool_call(f"bedtools intersect -sorted -wa -a {reffiles['idx']} -b {query_sorted.name} > {tmpfile.name}", options.logfile)
+        genome = sorted_genome(reffiles, label)
+        bedtools_rt, bedtools_mem = tool_call(f"bedtools intersect -sorted -g {genome} -wa -a {reffiles['idx']} -b {query_sorted.name} > {tmpfile.name}", options.logfile)
         query_rt += bedtools_rt
         query_mem = max(query_mem, bedtools_mem)
 
@@ -154,7 +164,8 @@ def query_call(options, label, reffiles, queryfile):
         query_mem = max(query_mem, sort_mem)
 
         # bedtools reads the bgzipped reference of the index step; it cannot use the tabix index for random access
-        bedtools_rt, bedtools_mem = tool_call(f"bedtools intersect -sorted -wa -a {reffiles['idx']} -b {query_sorted.name} > {tmpfile.name}", options.logfile)
+        genome = sorted_genome(reffiles, label)
+        bedtools_rt, bedtools_mem = tool_call(f"bedtools intersect -sorted -g {genome} -wa -a {reffiles['idx']} -b {query_sorted.name} > {tmpfile.name}", options.logfile)
         query_rt += bedtools_rt
         query_mem = max(query_mem, bedtools_mem)
 
