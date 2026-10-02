@@ -40,6 +40,7 @@ TOOLS = [
     ("ailist", "ailist", False, "query"),
     ("ucsc", "bedIntersect", False, "query"),
 ]
+READS_INDEX = {"tabix", "bedtools_sorted", "bedtools_tabix", "bedtk_sorted", "gia_sorted", "igd"} # query reads refdirs["idx"]
 CHROMS = ["chr1", "chr2", "chr10", "chrX"]
 LABEL, NUM = "L", 5000
 
@@ -94,7 +95,10 @@ def run_tool(tool, indexed, datadir, queryfile):
     bench = BenchTool(options)
     if indexed:
         calls.index_call(options, bench.refdirs, LABEL)
+    logged = options.logfile.tell()
     _, _, out = calls.query_call(options, LABEL, bench.get_reffiles(LABEL), queryfile)
+    if tool in READS_INDEX: # the query must read what the index step wrote, not the simulator's sorted copy (#39)
+        assert str(bench.refdirs["idx"]) in options.logfile.getvalue()[logged:], f"{tool}: query does not read its index"
     return intervals(Path(out.name).read_text())
 
 
