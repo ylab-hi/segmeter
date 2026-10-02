@@ -45,32 +45,35 @@ def index_call(options, refdirs, label):
     runtime = 0
     mem = 0
     idx_size_mb = 0
-    if (options.tool == "tabix" or
-        options.tool == "bedtools_sorted" or
-        options.tool == "bedtools_tabix" or
-        options.tool == "bedtk_sorted"):
-            sort_rt, sort_mem = tool_call(f"sort -k1,1 -k2,2n -k3,3n {refdirs['ref'] / f'{label}.bed'} > {refdirs['idx'] / f'{label}.bed'}", options.logfile)
-            runtime += sort_rt
-            mem = max(mem, sort_mem)
+    if options.tool == "bedtools_sorted" or options.tool == "bedtk_sorted":
+        # the "index" of the sorted variants is the sorted reference, read by the query step
+        sort_rt, sort_mem = tool_call(f"sort -k1,1 -k2,2n -k3,3n {refdirs['ref'] / f'{label}.bed'} > {refdirs['idx'] / f'{label}.bed'}", options.logfile)
+        runtime += sort_rt
+        mem = max(mem, sort_mem)
+        idx_size_mb += round(os.stat(refdirs['idx'] / f'{label}.bed').st_size/(1024*1024), 5)
 
-            bgzip_rt, bgzip_mem = tool_call(f"bgzip -f {refdirs['idx'] / f'{label}.bed'} > {refdirs['idx'] / f'{label}.bed.gz'}", options.logfile)
-            runtime += bgzip_rt
-            mem = max(mem, bgzip_mem)
+    elif options.tool == "tabix" or options.tool == "bedtools_tabix":
+        sort_rt, sort_mem = tool_call(f"sort -k1,1 -k2,2n -k3,3n {refdirs['ref'] / f'{label}.bed'} > {refdirs['idx'] / f'{label}.bed'}", options.logfile)
+        runtime += sort_rt
+        mem = max(mem, sort_mem)
 
-            # determine size of the index (in MB) - gzipped and tabixed
-            bgzip_size = os.stat(refdirs['idx'] / f'{label}.bed.gz').st_size
-            bgzip_size_mb = round(bgzip_size/(1024*1024), 5)
-            idx_size_mb += bgzip_size_mb
+        bgzip_rt, bgzip_mem = tool_call(f"bgzip -f {refdirs['idx'] / f'{label}.bed'} > {refdirs['idx'] / f'{label}.bed.gz'}", options.logfile)
+        runtime += bgzip_rt
+        mem = max(mem, bgzip_mem)
 
-            # create tabix index
-            if options.tool == "tabix" or options.tool == "bedtools_tabix":
-                tabix_rt, tabix_mem = tool_call(f"tabix -f -C -p bed {refdirs['idx'] / f'{label}.bed'}.gz", options.logfile)
-                runtime += tabix_rt
-                mem = max(mem, tabix_mem)
+        # determine size of the index (in MB) - gzipped and tabixed
+        bgzip_size = os.stat(refdirs['idx'] / f'{label}.bed.gz').st_size
+        bgzip_size_mb = round(bgzip_size/(1024*1024), 5)
+        idx_size_mb += bgzip_size_mb
 
-                csi_size = os.stat(refdirs['idx'] / f'{label}.bed.gz.csi').st_size
-                csi_size_mb = round(csi_size/(1024*1024), 5)
-                idx_size_mb += csi_size_mb
+        # create tabix index
+        tabix_rt, tabix_mem = tool_call(f"tabix -f -C -p bed {refdirs['idx'] / f'{label}.bed'}.gz", options.logfile)
+        runtime += tabix_rt
+        mem = max(mem, tabix_mem)
+
+        csi_size = os.stat(refdirs['idx'] / f'{label}.bed.gz.csi').st_size
+        csi_size_mb = round(csi_size/(1024*1024), 5)
+        idx_size_mb += csi_size_mb
 
     elif options.tool == "bedops" or options.tool == "bedmaps":
         sort_rt, sort_mem = tool_call(f"sort -k1,1 -k2,2n -k3,3n {refdirs['ref'] / f'{label}.bed'} > {refdirs['idx'] / f'{label}.bed'}", options.logfile)
@@ -135,8 +138,8 @@ def query_call(options, label, reffiles, queryfile):
 
         query_rt += sort_rt
         query_mem = max(query_mem, sort_mem)
-        # query intervals
-        bedtools_rt, bedtools_mem = tool_call(f"bedtools intersect -wa -a {reffiles['ref-srt']} -b {query_sorted.name} > {tmpfile.name}", options.logfile)
+        # query the sorted reference of the index step with the sweep algorithm of bedtools (-sorted)
+        bedtools_rt, bedtools_mem = tool_call(f"bedtools intersect -sorted -wa -a {reffiles['idx']} -b {query_sorted.name} > {tmpfile.name}", options.logfile)
         query_rt += bedtools_rt
         query_mem = max(query_mem, bedtools_mem)
 
@@ -150,9 +153,12 @@ def query_call(options, label, reffiles, queryfile):
         query_rt += sort_rt
         query_mem = max(query_mem, sort_mem)
 
-        bedtools_rt, bedtools_mem = tool_call(f"bedtools intersect -wa -a {reffiles['ref-srt']} -b {queryfile} > {tmpfile.name}", options.logfile)
+        # bedtools reads the bgzipped reference of the index step; it cannot use the tabix index for random access
+        bedtools_rt, bedtools_mem = tool_call(f"bedtools intersect -sorted -wa -a {reffiles['idx']} -b {query_sorted.name} > {tmpfile.name}", options.logfile)
         query_rt += bedtools_rt
         query_mem = max(query_mem, bedtools_mem)
+
+        query_sorted.close()
 
     elif options.tool == "bedops":
         # first sort the query file
@@ -246,7 +252,7 @@ def query_call(options, label, reffiles, queryfile):
         query_mem = max(query_mem, sort_mem)
 
         tmpfile2 = tempfile.NamedTemporaryFile(mode='w', delete=False)
-        bedtk_rt, bedtk_mem = tool_call(f"bedtk flt {query_sorted.name} {reffiles['ref-srt']} > {tmpfile2.name}", options.logfile)
+        bedtk_rt, bedtk_mem = tool_call(f"bedtk flt {query_sorted.name} {reffiles['idx']} > {tmpfile2.name}", options.logfile)
         query_rt += bedtk_rt
         query_mem = max(query_mem, bedtk_mem)
         query_sorted.close()
