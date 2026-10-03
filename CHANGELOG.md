@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed dead code found by a Python audit: unused simulator methods (`det_rightmost_start`, `update_leftgap`, `close_datafiles_complex`) and never-written file handles, the unused `num` argument of `index_call`/`query_call`, the never-read `reffiles["ref"]`, the unused `datatype` arguments of `get_query_group` and `sort_datafiles`, unread locals, imports and an unreachable guard, and the unused `--format`/`--stats` options of `intersect_intervaltree.py`; the scaffold branch of `select_chrom` is pinned by a test; no behavior change (seeded simulator output identical) ([#3](https://github.com/ylab-hi/segmeter/issues/3), [#38](https://github.com/ylab-hi/segmeter/pull/38))
 
 ## Changed
+- Deprecated `bedtools_tabix`: `bench -t bedtools_tabix` prints a warning on stderr, since the variant measures `bedtools_sorted` plus a tabix index that bedtools cannot use; the tool stays available until 0.15.0 ([#43](https://github.com/ylab-hi/segmeter/issues/43), [#44](https://github.com/ylab-hi/segmeter/pull/44))
 - README: the "Published benchmark" section moved to the end and refers to the last patch release of v0.13.x; Singularity instructions pull a versioned image instead of the stale unqualified `latest` tag; argument tables corrected (`--tool` lists all 16 tools, bench-only options moved to the bench table, `awk` in the container table) ([#31](https://github.com/ylab-hi/segmeter/pull/31))
 
 # [0.13.2]
