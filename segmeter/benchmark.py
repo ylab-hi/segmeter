@@ -14,8 +14,8 @@ class BenchBase:
         if not self.validate():
             raise ValueError("Validation failed - check the input parameters")
         if options.tool == "bedtools_tabix":
-            print("WARNING: bedtools_tabix is deprecated and will be removed in the next minor release: it measures "
-                  "bedtools_sorted plus a tabix index that bedtools cannot use (see tabix for the index).", file=sys.stderr)
+            print("WARNING: bedtools_tabix is deprecated and will be removed in 0.15.0: it measures bedtools_sorted "
+                  "plus a tabix index that bedtools cannot use; use tabix to measure the index.", file=sys.stderr)
 
         benchpath = Path(options.datadir) / "bench" / self.options.benchname / options.tool
         benchpath.mkdir(parents=True, exist_ok=True)

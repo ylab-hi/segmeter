@@ -133,12 +133,12 @@ segmeter bench -o DATADIR -t TOOL [-h] [-r] [-n INTVLNUMS] [-s SUBSET] [-b BENCH
 | -s, --subset | subset (in percentage) of the intervals to use for benchmarking. Format should be either XX-YY or XX,YY-ZZ. If this is left empty, all subsets/deciles are used |
 | -b, --benchname | name of the benchmark, used for the output folder. This allows to perform multiple benchmarks |
 | -c, --simname | name of the simulation data that is being used. Note that this should be the same as the name of the simulation data that was used for the simulation |
-| -t, --tool | tool to benchmark. Currently, the following tools are supported: `tabix`, `bedtools`, `bedtools_sorted`, `bedtools_tabix`, `bedops`, `bedmaps`, `giggle`, `granges`, `gia`, `bedtk`, `bedtk_sorted`, `igd`, `ailist`, `ucsc`, `awk`, `intervaltree` |
+| -t, --tool | tool to benchmark. Currently, the following tools are supported: `tabix`, `bedtools`, `bedtools_sorted`, `bedtools_tabix` (deprecated), `bedops`, `bedmaps`, `giggle`, `granges`, `gia`, `bedtk`, `bedtk_sorted`, `igd`, `ailist`, `ucsc`, `awk`, `intervaltree` |
 
 Note that `bedtools_sorted` and `bedtk_sorted` are the same as `bedtools` and `bedtk`, respectively, but the reference is sorted in the
 index step and the queries are sorted in the query step (both measured); `bedtools_sorted` then runs `bedtools intersect -sorted`, the sweep
 algorithm for sorted input (with `-g`, a genome file in the order of the sorted data, so chromosomes present in only one file are handled).
-`bedtk` does not need sorted input, so `bedtk_sorted` only adds the sorting cost to `bedtk`. In the case of `bedtools_tabix` (deprecated, removed in the next minor release), the reference is sorted, compressed with `bgzip` and indexed with `tabix` in the
+`bedtk` does not need sorted input, so `bedtk_sorted` only adds the sorting cost to `bedtk`. In the case of `bedtools_tabix` (deprecated, removed in 0.15.0), the reference is sorted, compressed with `bgzip` and indexed with `tabix` in the
 index step, and `bedtools intersect -sorted` reads the compressed file (bedtools cannot use the tabix index for random access), so it
 measures `bedtools_sorted` plus an index cost; `tabix` is the tool that uses the index.
 
