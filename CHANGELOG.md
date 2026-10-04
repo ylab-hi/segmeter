@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Changed
 - Deprecated `bedtools_tabix`: `bench -t bedtools_tabix` prints a warning on stderr, since the variant measures `bedtools_sorted` plus a tabix index that bedtools cannot use; the tool stays available until 0.15.0 ([#43](https://github.com/ylab-hi/segmeter/issues/43), [#44](https://github.com/ylab-hi/segmeter/pull/44))
+- README: the "Published benchmark" table records the v0.13.x granges behavior (genome file in the simulator's random chromosome order, so the published granges precision and recall are an artifact of the genome-file order; corrected from 0.14.0) ([#36](https://github.com/ylab-hi/segmeter/issues/36), [#47](https://github.com/ylab-hi/segmeter/pull/47))
 - README: the "Published benchmark" section moved to the end and refers to the last patch release of v0.13.x; Singularity instructions pull a versioned image instead of the stale unqualified `latest` tag; argument tables corrected (`--tool` lists all 16 tools, bench-only options moved to the bench table, `awk` in the container table) ([#31](https://github.com/ylab-hi/segmeter/pull/31))
 
 # [0.13.2]
