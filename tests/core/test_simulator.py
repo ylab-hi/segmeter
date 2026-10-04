@@ -27,7 +27,7 @@ def test_select_chrom_scaffold():
 def test_max_span():
     intvls = [["chr1", str(i * 100), str(i * 100 + 50)] for i in range(200)]
     for max_span, expected in [(None, 199), (1000, 199), (50, 49)]: # spans 2..200 and 2..50
-        sim = SimBED(types.SimpleNamespace(max_span=max_span), {})
+        sim = SimBED(types.SimpleNamespace(gapsize="100-100", max_span=max_span), {})
         queries, truth = io.StringIO(), io.StringIO()
         sim.sim_overlaps(intvls, {(1, 200): queries}, truth)
         spans = [int(line.split("\t")[4]) for line in truth.getvalue().splitlines()]
@@ -40,7 +40,7 @@ def test_max_span_bins():
     intvls = 1005 # one chromosome with more intervals than the cap
     with tempfile.TemporaryDirectory() as tmp:
         out = Path(tmp) / "sim" / "sim_001" / "BED"
-        sim = SimBED(types.SimpleNamespace(max_span=1000, datadir=tmp, simname="sim_001"), {})
+        sim = SimBED(types.SimpleNamespace(gapsize="100-100", max_span=1000, datadir=tmp, simname="sim_001"), {})
         refdir, truthdirs, querydirs = sim.create_datadirs(out)
         with open(refdir / "L_sorted.bed", "w") as fh:
             fh.writelines(f"chr1\t{i * 100}\t{i * 100 + 50}\tintvl_{i}\n" for i in range(intvls))

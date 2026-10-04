@@ -50,9 +50,7 @@ class BenchTool:
         """returns the directories for the query intervals"""
         querydirs = {}
         querydirs["basic"] = {}
-        for query in ["perfect", "5p-partial", "3p-partial", "enclosed", "contained"]:
-            querydirs["basic"][query] = Path(self.options.datadir) / "sim" / self.options.simname / self.options.format / "basic" / "query" / query
-        for query in ["perfect-gap", "left-adjacent-gap", "right-adjacent-gap", "mid-gap1", "mid-gap2"]:
+        for query in utility.BASIC_QUERIES:
             querydirs["basic"][query] = Path(self.options.datadir) / "sim" / self.options.simname / self.options.format / "basic" / "query" / query
         querydirs["complex"] = {}
         querydirs["complex"]["mult"] = Path(self.options.datadir) / "sim" / self.options.simname / self.options.format / "complex" / "query" / "mult"
@@ -94,8 +92,8 @@ class BenchTool:
                 queryfiles["basic"][query][subset] = self.querydirs["basic"][query] / f"{label}_{subset}p.bed"
         for query in self.querydirs["complex"].keys():
             queryfiles["complex"][query] = {}
-            for bin in range(10, 101, 10):
-                queryfiles["complex"][query][bin] = self.querydirs["complex"][query] / f"{label}_{bin}bin.bed"
+            for decile in range(10, 101, 10):
+                queryfiles["complex"][query][decile] = self.querydirs["complex"][query] / f"{label}_{decile}bin.bed"
 
         return queryfiles
 
@@ -129,16 +127,6 @@ class BenchTool:
         return truth
 
 
-    def create_index(self, label):
-        return calls.index_call(self.options, self.refdirs, label)
-
-    def query_interval_file(self, label, queryfile):
-        """This function queries the intervals in the reference file with the query files"""
-        reffiles = self.get_reffiles(label)
-        query_rt, query_mem, query_result = calls.query_call(self.options, label, reffiles, queryfile)
-
-        return query_rt, query_mem, query_result
-
     def query_intervals(self, label, num, subset):
         reffiles = self.get_reffiles(label) # get the reference files
         queryfiles = self.get_queryfiles(label)
@@ -168,14 +156,10 @@ class BenchTool:
                 print(f"\r{clear_message}", end="")
                 last_message_len = len(current_message)
 
-                query_times[dtype][qtype][subset] = 0 # initialize the time
-                query_memory[dtype][qtype][subset] = 0 # initialize the memory
-
                 # determine the runtime and memory requirements
                 query_rt, query_mem, query_result = calls.query_call(self.options, label, reffiles, queryfiles[dtype][qtype][subset])
-                query_times[dtype][qtype][subset] += round(query_rt, 5)
-                if query_mem > query_memory[dtype][qtype][subset]:
-                    query_memory[dtype][qtype][subset] = query_mem
+                query_times[dtype][qtype][subset] = round(query_rt, 5)
+                query_memory[dtype][qtype][subset] = query_mem
 
                 # determine the precision of the tool
                 precision = self.get_precision(queryfiles[dtype][qtype][subset], query_result, truth[dtype], dtype, qtype)

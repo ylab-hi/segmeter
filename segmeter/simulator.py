@@ -5,18 +5,11 @@ import subprocess
 # class
 import utility
 
-class SimBase:
-    def __init__(self, options, intvlnums):
-        self.options = options
-        self.intvlnums = intvlnums
-
-        if options.format == "BED":
-            self.format = SimBED(options, self.intvlnums)
-
 class SimBED:
     def __init__(self, options, intvlnums):
         self.options = options
         self.intvlnums = intvlnums
+        self.gs_start, self.gs_end = [int(x) for x in options.gapsize.split("-")] # min and max gap size
 
     def init_chroms(self):
         """Initialize the chromosomes"""
@@ -28,19 +21,18 @@ class SimBED:
         chroms["all"].remove(firstchrom) # remove the chromosome from the list (e.g. chr1)
         chroms["leftgap"] = {} # contains the end position of the last gap (left of interval)
         chroms["intvl"] = {} # stores the number of intervals on each chromosome
-        for chr in chroms["space-left"]:
-            chroms["leftgap"][chr] = {}
-            chroms["intvl"][chr] = 0
+        for chrom in chroms["space-left"]:
+            chroms["leftgap"][chrom] = {}
+            chroms["intvl"][chrom] = 0
         return chroms
 
     def select_chrom(self, chroms):
         """Randomly select a chromosome"""
-        gs_start, gs_end = [int(x) for x in self.options.gapsize.split("-")] # get the gap size
         # check if at least one has less than 10 intervals
         if len(chroms["all"]) > 0: # only if there are (main) chromosomes left
             minreached = True # check if there are no chromosomes left (with less than 10 intervals)
-            for chr in chroms["intvl"]:
-                if chroms["intvl"][chr] < 10:
+            for chrom in chroms["intvl"]:
+                if chroms["intvl"][chrom] < 10:
                     minreached = False
                     break
             if minreached:
@@ -53,16 +45,16 @@ class SimBED:
         selection = random.choice(chroms["space-left"])
         if chroms["leftgap"][selection] == {}: # no interval has been placed on this chromosome (yet)
             # therefore simulate a gap
-            chroms["leftgap"][selection] = self.simulate_gap(1, random.randint(gs_start, gs_end))
+            chroms["leftgap"][selection] = self.simulate_gap(1, random.randint(self.gs_start, self.gs_end))
             return selection
         elif chroms["leftgap"][selection]["end"] < self.options.max_chromlen:
             return selection
         else: # chromosome is full, continue on a new scaffold
             chroms["space-left"].remove(selection)
-            scaffolds = [chr for chr in chroms["leftgap"] if "SCF" in chr]
+            scaffolds = [chrom for chrom in chroms["leftgap"] if "SCF" in chrom]
             scaffold_name = f"SCF{len(scaffolds)+1}"
             chroms["space-left"].append(scaffold_name)
-            chroms["leftgap"][scaffold_name] = self.simulate_gap(1, random.randint(gs_start, gs_end))
+            chroms["leftgap"][scaffold_name] = self.simulate_gap(1, random.randint(self.gs_start, self.gs_end))
             chroms["intvl"][scaffold_name] = 0
             return scaffold_name
 
@@ -85,10 +77,8 @@ class SimBED:
 
         querydirs = {}
         querydirs["basic"] = {}
-        for query_pos in ["perfect", "5p-partial", "3p-partial", "enclosed", "contained"]:
-            querydirs["basic"][query_pos] = datadir / "basic" / "query" / query_pos
-        for query_neg in ["perfect-gap", "left-adjacent-gap", "right-adjacent-gap", "mid-gap1", "mid-gap2"]:
-            querydirs["basic"][query_neg] = datadir / "basic" / "query" / query_neg
+        for query in utility.BASIC_QUERIES:
+            querydirs["basic"][query] = datadir / "basic" / "query" / query
         querydirs["complex"] = {}
         querydirs["complex"]["mult"] = datadir / "complex" / "query" / "mult"
 
@@ -96,8 +86,8 @@ class SimBED:
         refdir.mkdir(parents=True, exist_ok=True)
         truthdirs["basic"].mkdir(parents=True, exist_ok=True)
         truthdirs["complex"].mkdir(parents=True, exist_ok=True)
-        for dir in querydirs["basic"].keys():
-            querydirs["basic"][dir].mkdir(parents=True, exist_ok=True)
+        for querydir in querydirs["basic"].values():
+            querydir.mkdir(parents=True, exist_ok=True)
         querydirs["complex"]["mult"].mkdir(parents=True, exist_ok=True)
 
         return refdir, truthdirs, querydirs
@@ -131,8 +121,7 @@ class SimBED:
                 outfile = querydirs["basic"][key] / f"{label}_{subset}p.bed"
                 with open(outfile, 'w') as subset_bed:
                     subprocess.run(["shuf", "-n", str(int(num * (subset / 100))), str(infile)], stdout=subset_bed)
-                sorted = querydirs["basic"][key] / f"{label}_{subset}p_sorted.bed"
-                utility.sort_BED(outfile, sorted)
+                utility.sort_BED(outfile, querydirs["basic"][key] / f"{label}_{subset}p_sorted.bed")
 
     def sim_intervals(self):
         outpath = Path(self.options.datadir) / "sim" / self.options.simname / "BED"
@@ -158,8 +147,7 @@ class SimBED:
                 # update counter
                 self.update_intvl_counter(chroms, chrom)
 
-                gs_start, gs_end = [int(x) for x in self.options.gapsize.split("-")]
-                rightgap = self.simulate_gap(intvl["end"]+1, intvl["end"]+1+random.randint(gs_start,gs_end))
+                rightgap = self.simulate_gap(intvl["end"]+1, intvl["end"]+1+random.randint(self.gs_start, self.gs_end))
 
                 self.sim_basic_queries(chroms, datafiles, intvl, rightgap)
 
@@ -173,17 +161,17 @@ class SimBED:
 
             # create file for chrlens
             fh_chromlens = open(outpath / f"{label}_chromlens.txt",'w')
-            for chr in chroms["leftgap"]:
-                if chroms["leftgap"][chr] != {}:
-                    fh_chromlens.write(f"{chr}\t{chroms['leftgap'][chr]['end']}\n")
+            for chrom in chroms["leftgap"]:
+                if chroms["leftgap"][chrom] != {}:
+                    fh_chromlens.write(f"{chrom}\t{chroms['leftgap'][chrom]['end']}\n")
                 else:
-                    fh_chromlens.write(f"{chr}\t0\n")
+                    fh_chromlens.write(f"{chrom}\t0\n")
             fh_chromlens.close()
 
             # create file for chrnums (number of intervals on each chromosome)
             fh_chrnums = open(outpath / f"{label}_chrnums.txt",'w')
-            for chr in chroms["intvl"]:
-                fh_chrnums.write(f"{chr}\t{chroms['intvl'][chr]}\n")
+            for chrom in chroms["intvl"]:
+                fh_chrnums.write(f"{chrom}\t{chroms['intvl'][chrom]}\n")
             fh_chrnums.close()
 
             self.sim_complex_queries(refdir, truthdirs, querydirs, num, label)
@@ -247,14 +235,9 @@ class SimBED:
         reffile = refdir / f"{label}_sorted.bed" # reference file
         truthfile = truthdirs["complex"] / f"{label}.bed"
 
-        maxchrms = 0 # maximum number of intervals on a chromosome
         outpath = Path(self.options.datadir) / "sim" / self.options.simname / "BED"
-        fh = open(outpath / f"{label}_chrnums.txt")
-        for line in fh:
-            splitted = line.strip().split("\t")
-            if int(splitted[1]) > maxchrms:
-                maxchrms = int(splitted[1])
-        fh.close()
+        with open(outpath / f"{label}_chrnums.txt") as fh:
+            maxchrms = max((int(line.split("\t")[1]) for line in fh), default=0) # maximum number of intervals on a chromosome
         if self.options.max_span: # queries do not cover more than max_span intervals
             maxchrms = min(maxchrms, self.options.max_span)
         bins = {}
@@ -271,14 +254,14 @@ class SimBED:
         intvls = []
         for line in fh:
             splitted = line.strip().split("\t")
-            chr = splitted[0]
+            chrom = splitted[0]
 
-            if curr_chr != "" and curr_chr != chr:
+            if curr_chr != "" and curr_chr != chrom:
                 self.sim_overlaps(intvls, bins, fh_truth)
                 intvls = []
 
             intvls.append(splitted)
-            curr_chr = chr
+            curr_chr = chrom
 
         if len(intvls) > 1: # simulate if still intervals left
             self.sim_overlaps(intvls, bins, fh_truth)
@@ -291,7 +274,7 @@ class SimBED:
     def sim_overlaps(self, intvls, bins, fh_truth):
         intvlnum = len(intvls)
         if intvlnum > 1:
-            chr = intvls[0][0]
+            chrom = intvls[0][0]
             for i in range(2, min(intvlnum, self.options.max_span or intvlnum)+1):
                 start_intvl = random.randint(0, intvlnum-i)
                 end_intvl = start_intvl + i - 1
@@ -301,7 +284,7 @@ class SimBED:
 
                 for bnds in bins.keys():
                     if i >= bnds[0] and i <= bnds[1]:
-                        bins[bnds].write(f"{chr}\t{query_start}\t{query_end}\tmult_{i}\n")
+                        bins[bnds].write(f"{chrom}\t{query_start}\t{query_end}\tmult_{i}\n")
                         break
 
-                fh_truth.write(f"{chr}\t{query_start}\t{query_end}\tmult_{i}\t{i}\n")
+                fh_truth.write(f"{chrom}\t{query_start}\t{query_end}\tmult_{i}\t{i}\n")
