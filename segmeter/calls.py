@@ -209,7 +209,15 @@ def query_call(options, label, reffiles, queryfile):
         shutil.copy2(reffiles['ref-srt'], ref_tsv_name)
         shutil.copy2(queryfile, query_tsv_name)
 
-        granges_rt, granges_mem = tool_call(f"granges filter --genome {reffiles['chromlens']} --left {ref_tsv_name} --right {query_tsv_name} > {tmpfile.name}", options.logfile)
+        # granges 0.2.2 labels its query trees in natural chromosome order (numbers, X, Y, M) but reads the
+        # genome file in file order, so any other order makes it compare the wrong chromosomes (#36); the
+        # simulator writes the chromosomes in random order, so rewrite the genome file (not measured)
+        genome = tempfile.NamedTemporaryFile(mode='w', delete=False)
+        lines = Path(reffiles['chromlens']).read_text().splitlines()
+        genome.write("".join(line + "\n" for line in sorted(lines, key=lambda line: utility.chrom_sort_key(line.split("\t")[0]))))
+        genome.close()
+
+        granges_rt, granges_mem = tool_call(f"granges filter --genome {genome.name} --left {ref_tsv_name} --right {query_tsv_name} > {tmpfile.name}", options.logfile)
         query_rt += granges_rt
         query_mem = max(query_mem, granges_mem)
 

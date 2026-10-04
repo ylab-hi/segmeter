@@ -76,7 +76,8 @@ def make_data(datadir):
     (sim / "ref").mkdir(parents=True)
     write_bed(sim / "ref" / f"{LABEL}.bed", ref)
     utility.sort_BED(sim / "ref" / f"{LABEL}.bed", sim / "ref" / f"{LABEL}_sorted.bed")
-    (sim / f"{LABEL}_chromlens.txt").write_text("".join(f"{c}\t2000000\n" for c in CHROMS))
+    # not in natural chromosome order, like the simulator's random order: granges needs it reordered (#36)
+    (sim / f"{LABEL}_chromlens.txt").write_text("".join(f"{c}\t2000000\n" for c in reversed(CHROMS)))
     for qdir in {row[3] for row in TOOLS}:
         (datadir / qdir).mkdir()
         write_bed(datadir / qdir / "Q.bed", queries)
