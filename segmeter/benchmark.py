@@ -131,7 +131,7 @@ class BenchBase:
 
         fh = open(filename_negatives, "w")
         fh.write("intvlnum\tsubset\tFP\n")
-        for key, value in query_precision["basic"].items():
+        for value in query_precision["basic"].values():
             fh.writelines(value["negatives"])
         fh.close()
 

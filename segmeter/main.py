@@ -57,4 +57,5 @@ def det_intvlnums(intvlnums):
     return intnums
 
 
-main()
+if __name__ == "__main__":
+    main()

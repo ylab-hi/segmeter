@@ -30,12 +30,7 @@ class SimBED:
         """Randomly select a chromosome"""
         # check if at least one has less than 10 intervals
         if len(chroms["all"]) > 0: # only if there are (main) chromosomes left
-            minreached = True # check if there are no chromosomes left (with less than 10 intervals)
-            for chrom in chroms["intvl"]:
-                if chroms["intvl"][chrom] < 10:
-                    minreached = False
-                    break
-            if minreached:
+            if all(num >= 10 for num in chroms["intvl"].values()): # no chromosome left with less than 10 intervals
                 nextchrom = random.choice(chroms["all"]) # randomly select a chromosome
                 chroms["all"].remove(nextchrom) # remove the chromosome from the list
                 chroms["space-left"].append(nextchrom) # add a new chromosome
