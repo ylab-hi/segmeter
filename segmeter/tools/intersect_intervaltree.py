@@ -31,8 +31,7 @@ def read_target_intervals(file_path):
     return trees
 
 def query_intervals(trees, options):
-    ofh = open(options.output, 'w') # output file handle
-    with open(options.query, 'r') as f:
+    with open(options.output, 'w') as ofh, open(options.query, 'r') as f:
         for line in f:
             parts = line.strip().split("\t")
             chrom = parts[0]
