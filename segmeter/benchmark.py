@@ -5,14 +5,14 @@ import sys
 
 # Class
 from BenchTool import BenchTool
+import calls
 
 class BenchBase:
     def __init__(self, options, intvlnums):
         self.options = options
         self.intvlnums = intvlnums
 
-        if not self.validate():
-            raise ValueError("Validation failed - check the input parameters")
+        self.validate()
         if options.tool == "bedtools_tabix":
             print("WARNING: bedtools_tabix is deprecated and will be removed in 0.15.0: it measures bedtools_sorted "
                   "plus a tabix index that bedtools cannot use; use tabix to measure the index.", file=sys.stderr)
@@ -45,7 +45,7 @@ class BenchBase:
             # determine if index has to be created
             if options.tool in self.options.idx_based_tools:
                 print(f"Create index for {options.tool}...")
-                idx_time, idx_mem, idx_size = self.tool.create_index("target")
+                idx_time, idx_mem, idx_size = calls.index_call(options, self.tool.refdirs, "target")
                 # save index stats
                 outfile_idx = benchpath / "index_stats.txt"
                 fh = open(outfile_idx, "w")
@@ -53,7 +53,7 @@ class BenchBase:
                 fh.write(f"{idx_time}\t{idx_mem}\t{idx_size}\n")
                 fh.close()
             print(f"Query intervals using {options.tool} for provided query and target...")
-            query_rt, query_mem, query_result = self.tool.query_interval_file("target", Path(options.query)) # giggle needs a Path
+            query_rt, query_mem, query_result = calls.query_call(options, "target", self.tool.get_reffiles("target"), Path(options.query)) # giggle needs a Path
             shutil.move(query_result.name, benchpath / "result.bed") # the overlaps found by the tool
             # save query stats
             outfile = benchpath / "query_stats.txt"
@@ -72,7 +72,7 @@ class BenchBase:
                 # if the tool is index-based, create index (and record stats)
                 if options.tool in self.options.idx_based_tools:
                     outfile_idx = labelpath / f"{label}_idx_stats.txt"
-                    idx_time, idx_mem, idx_size = self.tool.create_index(label)
+                    idx_time, idx_mem, idx_size = calls.index_call(options, self.tool.refdirs, label)
                     self.save_idx_stats(num, idx_time, idx_mem, idx_size, outfile_idx)
 
                 statspath = labelpath / "stats"
@@ -131,9 +131,8 @@ class BenchBase:
 
         fh = open(filename_negatives, "w")
         fh.write("intvlnum\tsubset\tFP\n")
-        for key, value in query_precision["basic"].items():
-            for key in value["negatives"]:
-                fh.write(key)
+        for value in query_precision["basic"].values():
+            fh.writelines(value["negatives"])
         fh.close()
 
     def parse_param_subset(self):
@@ -156,5 +155,3 @@ class BenchBase:
             raise FileNotFoundError(f"Directory {simpath} does not exist")
         if self.options.tool is None:
             raise ValueError("Tool not specified")
-
-        return True

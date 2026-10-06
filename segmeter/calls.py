@@ -281,24 +281,17 @@ def query_call(options, label, reffiles, queryfile):
         query_mem = max(query_mem, igd_mem)
 
         # process the igd output to match the output of other tools (e.g., BED format)
-        fh = open(tmpfile2.name)
-        entries = []
         chrom = ""
-        for line in fh:
-            if line.startswith("Query"):
-                chrom = line.split(",")[0].split()[1]
-            elif line[0].isdigit():
-                # extract start/end positons
-                parts = line.split()
-                start = parts[1].strip()
-                end = parts[2].strip()
-                entries.append(f"{chrom}\t{start}\t{end}\n")
-        fh.close()
-
-        fh = open(tmpfile.name, "w")
-        for entry in entries:
-            fh.write(entry)
-        fh.close()
+        with open(tmpfile2.name) as fh, open(tmpfile.name, "w") as out:
+            for line in fh:
+                if line.startswith("Query"):
+                    chrom = line.split(",")[0].split()[1]
+                elif line[0].isdigit():
+                    # extract start/end positons
+                    parts = line.split()
+                    start = parts[1].strip()
+                    end = parts[2].strip()
+                    out.write(f"{chrom}\t{start}\t{end}\n")
 
     elif options.tool == "ailist":
         tmpfile2 = tempfile.NamedTemporaryFile(mode='w', delete=False)
