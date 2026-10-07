@@ -127,21 +127,23 @@ def test_query_tools():
         tempfile.tempdir = str(datadir / "tmp") # every temporary file of the queries lands here (#2)
         (datadir / "tmp").mkdir()
         failed = []
-        for tool, requirement, indexed, qdir in TOOLS:
-            if not available(requirement):
-                print(f"skip {tool}: {requirement} not installed")
-                continue
-            runs = {"sim": run_tool(tool, indexed, datadir, datadir / qdir / "Q.bed")}
-            if qdir == "query": # bedops' basic/complex rows are simulated-data only
-                runs["real"] = run_real(tool, datadir, datadir / "sim" / "sim_001" / "BED" / "ref" / f"{LABEL}.bed",
-                                        datadir / qdir / "Q.bed")
-            for mode, got in runs.items():
-                print(f"{'ok' if got == expected else 'FAIL'} {tool} ({qdir}, {mode}): {len(got)} of {len(expected)} overlaps")
-                if got != expected:
-                    failed.append(f"{tool} ({qdir}, {mode})")
-            leftover = os.listdir(tempfile.tempdir)
-            assert not leftover, f"{tool} leaves temporary files behind: {leftover}"
-        tempfile.tempdir = None
+        try:
+            for tool, requirement, indexed, qdir in TOOLS:
+                if not available(requirement):
+                    print(f"skip {tool}: {requirement} not installed")
+                    continue
+                runs = {"sim": run_tool(tool, indexed, datadir, datadir / qdir / "Q.bed")}
+                if qdir == "query": # bedops' basic/complex rows are simulated-data only
+                    runs["real"] = run_real(tool, datadir, datadir / "sim" / "sim_001" / "BED" / "ref" / f"{LABEL}.bed",
+                                            datadir / qdir / "Q.bed")
+                for mode, got in runs.items():
+                    print(f"{'ok' if got == expected else 'FAIL'} {tool} ({qdir}, {mode}): {len(got)} of {len(expected)} overlaps")
+                    if got != expected:
+                        failed.append(f"{tool} ({qdir}, {mode})")
+                leftover = os.listdir(tempfile.tempdir)
+                assert not leftover, f"{tool} leaves temporary files behind: {leftover}"
+        finally:
+            tempfile.tempdir = None # also after a failure, so later tempfile calls do not use the deleted directory
         assert not failed, f"{failed} report other overlaps than expected"
 
 
