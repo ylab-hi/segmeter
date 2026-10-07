@@ -31,6 +31,8 @@ def tool_call(call, logfile):
     runtime = round(end_time - start_time, 5)
     stderr_output = result.stderr
     logfile.write(stderr_output)
+    if result.returncode != 0: # /usr/bin/time passes the exit code of the command on (127 when it is not found)
+        raise RuntimeError(f"exit code {result.returncode} from: {call}\n{stderr_output}")
     rss_value = utility.get_rss_from_stderr(stderr_output, rss_label)
     if rss_value > 0: # get_rss_from_stderr returns -1 when the RSS line is not found
         rss_value_mb = rss_value/(1024)

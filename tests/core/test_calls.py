@@ -28,6 +28,26 @@ def test_missing_rss_line():
     assert mem > 0, f"mem={mem} with the RSS line present"
 
 
+def test_failed_call_raises():
+    """A measured command that fails must raise instead of yielding a runtime, a memory value and an empty
+    result (#9); the stderr of the command still goes to the log."""
+    for call, code in [("false", 1), ("sh -c 'echo broken >&2; exit 3'", 3), ("segmeter_no_such_tool", 127)]:
+        log = io.StringIO()
+        try:
+            calls.tool_call(call, log)
+        except RuntimeError as error:
+            message = str(error)
+        else:
+            raise AssertionError(f"{call!r} did not raise")
+        assert f"exit code {code}" in message and call in message, message
+        assert f"Executing: {call}" in log.getvalue()
+        if code == 3:
+            assert "broken" in log.getvalue() and "broken" in message # the command's stderr is logged and reported
+    log = io.StringIO()
+    calls.tool_call("sh -c 'echo fine >&2'", log) # stderr output alone is not a failure
+    assert "fine" in log.getvalue()
+
+
 def test_query_steps_counted():
     """Every measured step of a query adds its runtime and folds its memory in with max, whichever step is the
     peak (#11: bedops dropped the memory of its query sort). The tools are replaced by a stub, so no tool is needed."""
@@ -62,5 +82,6 @@ def test_query_steps_counted():
 
 if __name__ == "__main__":
     test_missing_rss_line()
+    test_failed_call_raises()
     test_query_steps_counted()
     print("ok")
