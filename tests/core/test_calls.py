@@ -96,7 +96,7 @@ def test_index_steps_counted():
         (tmp / "ref").mkdir()
         (tmp / "ref" / "L.bed").write_text("chr1\t100\t200\tintvl_1\n")
         refdirs = {"ref": tmp / "ref", "idx": tmp / "idx"}
-        for memory in [[100, 10, 10], [10, 10, 100]]: # the peak is the first, then the last step (tabix has three)
+        for memory in [[100, 10, 10], [10, 100, 10], [10, 10, 100]]: # the peak in every position (tabix has three steps)
             def tool_call(call, logfile): # 0.5 s and the next memory value; writes 1 MB into every index file a tool would create
                 steps.append(call)
                 made = [Path(call.rsplit(">", 1)[1].strip())] if ">" in call else []
