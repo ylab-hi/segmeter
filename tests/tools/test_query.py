@@ -5,6 +5,7 @@ installed is skipped, so the full table only runs across the project containers.
 import contextlib
 import importlib.util
 import io
+import os
 import random
 import shutil
 import sys
@@ -101,7 +102,9 @@ def run_tool(tool, indexed, datadir, queryfile):
     _, _, out = calls.query_call(options, LABEL, bench.get_reffiles(LABEL), queryfile)
     if tool in READS_INDEX: # the query must read what the index step wrote, not the simulator's sorted copy (#39)
         assert str(bench.refdirs["idx"]) in options.logfile.getvalue()[logged:], f"{tool}: query does not read its index"
-    return intervals(Path(out.name).read_text())
+    found = intervals(Path(out.name).read_text())
+    Path(out.name).unlink() # the caller removes the tool's output, like BenchTool does
+    return found
 
 
 def run_real(tool, datadir, target, queryfile):
@@ -121,19 +124,26 @@ def test_query_tools():
         datadir = Path(tmp)
         expected = make_data(datadir)
         assert 0 < len(expected) < NUM
+        tempfile.tempdir = str(datadir / "tmp") # every temporary file of the queries lands here (#2)
+        (datadir / "tmp").mkdir()
         failed = []
-        for tool, requirement, indexed, qdir in TOOLS:
-            if not available(requirement):
-                print(f"skip {tool}: {requirement} not installed")
-                continue
-            runs = {"sim": run_tool(tool, indexed, datadir, datadir / qdir / "Q.bed")}
-            if qdir == "query": # bedops' basic/complex rows are simulated-data only
-                runs["real"] = run_real(tool, datadir, datadir / "sim" / "sim_001" / "BED" / "ref" / f"{LABEL}.bed",
-                                        datadir / qdir / "Q.bed")
-            for mode, got in runs.items():
-                print(f"{'ok' if got == expected else 'FAIL'} {tool} ({qdir}, {mode}): {len(got)} of {len(expected)} overlaps")
-                if got != expected:
-                    failed.append(f"{tool} ({qdir}, {mode})")
+        try:
+            for tool, requirement, indexed, qdir in TOOLS:
+                if not available(requirement):
+                    print(f"skip {tool}: {requirement} not installed")
+                    continue
+                runs = {"sim": run_tool(tool, indexed, datadir, datadir / qdir / "Q.bed")}
+                if qdir == "query": # bedops' basic/complex rows are simulated-data only
+                    runs["real"] = run_real(tool, datadir, datadir / "sim" / "sim_001" / "BED" / "ref" / f"{LABEL}.bed",
+                                            datadir / qdir / "Q.bed")
+                for mode, got in runs.items():
+                    print(f"{'ok' if got == expected else 'FAIL'} {tool} ({qdir}, {mode}): {len(got)} of {len(expected)} overlaps")
+                    if got != expected:
+                        failed.append(f"{tool} ({qdir}, {mode})")
+                leftover = os.listdir(tempfile.tempdir)
+                assert not leftover, f"{tool} leaves temporary files behind: {leftover}"
+        finally:
+            tempfile.tempdir = None # also after a failure, so later tempfile calls do not use the deleted directory
         assert not failed, f"{failed} report other overlaps than expected"
 
 
