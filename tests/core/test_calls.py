@@ -15,7 +15,8 @@ TOOLS = ["tabix", "bedtools", "bedtools_sorted", "bedtools_tabix", "bedops", "be
 
 
 def test_missing_rss_line():
-    """A missing RSS line in the /usr/bin/time output must give 0 MB, not -1/1024 (#7)."""
+    """A missing RSS line in the /usr/bin/time output must give 0 MB, not -1/1024 (#7); a present one is
+    converted with the unit of the platform, bytes on macOS and kilobytes on Linux (#10)."""
     assert utility.get_rss_from_stderr("whatever", "no such label") == -1
     real = utility.get_time_rss_label
     utility.get_time_rss_label = lambda: "no such label"
@@ -25,7 +26,7 @@ def test_missing_rss_line():
         utility.get_time_rss_label = real
     assert mem == 0, f"mem={mem}"
     _, mem = calls.tool_call("true", io.StringIO())
-    assert 0 < mem < 100, f"mem={mem} MB for `true`: RSS unit wrong? (bytes on macOS, kB on Linux, #10)"
+    assert 0.01 < mem < 100, f"mem={mem} MB for `true`: RSS unit wrong? (bytes on macOS, kB on Linux, #10)"
 
 
 def test_failed_call_raises():
