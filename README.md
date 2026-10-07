@@ -137,15 +137,14 @@ segmeter bench -o DATADIR -t TOOL [-h] [-r] [-n INTVLNUMS] [-s SUBSET] [-b BENCH
 
 #### Benchmarked tools
 
-Every `--tool` runs the commands below. The index step (if any) runs once per reference and is reported in the index statistics; the query
-step runs once per query file, and every command of it is measured and summed (time) or maximised (memory). Work that only converts the
-output into BED for the scoring is not measured.
+Every command of the index and query steps is measured and summed (time) or maximised (memory); work that only prepares input or
+converts the output into BED for the scoring is not measured.
 
 | `--tool` | Index step (measured) | Query step (measured) | Notes |
 | --- | --- | --- | --- |
 | `tabix` | `sort`, `bgzip`, `tabix -C -p bed` (index size: `.gz` + `.csi`) | `tabix REF.bed.gz -R QUERY` | |
 | `bedtools` | | `bedtools intersect -wa -a REF -b QUERY` | |
-| `bedtools_sorted` | `sort` of the reference (index size 0) | `sort` of the query, `bedtools intersect -sorted -g GENOME -wa -a REF_SORTED -b QUERY_SORTED` | the sweep algorithm for sorted input; `-g` gives the chromosome order of the sorted data, so chromosomes present in only one file are handled |
+| `bedtools_sorted` | `sort` of the reference (index size 0) | `sort` of the query, `bedtools intersect -sorted -g GENOME -wa -a REF_SORTED -b QUERY_SORTED` | the sweep algorithm for sorted input; `-g` gives the chromosome order of the sorted data, so chromosomes present in only one file are handled; the genome file is written unmeasured |
 | `bedtools_tabix` | as `tabix` | as `bedtools_sorted`, reading the bgzipped reference | deprecated, removed in 0.15.0: bedtools cannot use the tabix index for random access, so this measures `bedtools_sorted` plus an index cost |
 | `bedops` | `sort` of the reference | `sort` of the query, `bedops --element-of 1 REF_SORTED QUERY_SORTED`; complex queries: `bedmap --echo-map --multidelim '\n' QUERY_SORTED REF_SORTED` | |
 | `bedmaps` | `sort` of the reference | `sort` of the query, `bedmap --echo-map --multidelim '\n' QUERY_SORTED REF_SORTED` | |
@@ -157,14 +156,12 @@ output into BED for the scoring is not measured.
 | `igd` | `igd create` | `igd search -q QUERY -f` | the output is converted to BED unmeasured |
 | `ailist` | | `ailist REF QUERY` | the overlap counts are expanded to one line per overlap unmeasured |
 | `ucsc` | | `bedIntersect -aHitAny REF QUERY OUT` | |
-| `awk` | | `tools/intersect_awk.py` | an awk one-pass script, as the baseline of what a shell can do |
+| `awk` | | `tools/intersect_awk.py` | an awk script |
 | `intervaltree` | | `tools/intersect_intervaltree.py` | the Python `intervaltree` package |
 
-Not benchmarked: `gia intersect --sorted`, gia's sweep for pre-sorted input. In gia 0.2.23 it numbers the chromosomes of each file by their
-order of appearance, so when one file lacks a chromosome that the other has, every later chromosome is compared with the wrong one and
-overlaps are silently dropped (85 of 100 on the data of [gia#120](https://github.com/noamteyssier/gia/issues/120); sorting with `gia sort` first does not help).
-The query subsets of a small simulation routinely lack chromosomes, and restricting both files to their common chromosomes would be work
-done for gia alone, so the variant stays out until gia fixes the sweep ([#53](https://github.com/ylab-hi/segmeter/issues/53)).
+Not benchmarked: `gia intersect --sorted`. In gia 0.2.23 it numbers the chromosomes of each file by their order of appearance, so when one
+file lacks a chromosome that the other has, every later chromosome is compared with the wrong one and overlaps are silently dropped
+([gia#120](https://github.com/noamteyssier/gia/issues/120), [#53](https://github.com/ylab-hi/segmeter/issues/53)).
 
 This generates a separate output folder for each benchmark tool in the folder `DATADIR/bench/benchname/` with a subfolder for each INTVLNUM.
 In additional subfolders (`precision` and `stats`), the precision and statistics are stored.
