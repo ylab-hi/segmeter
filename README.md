@@ -135,12 +135,36 @@ segmeter bench -o DATADIR -t TOOL [-h] [-r] [-n INTVLNUMS] [-s SUBSET] [-b BENCH
 | -c, --simname | name of the simulation data that is being used. Note that this should be the same as the name of the simulation data that was used for the simulation |
 | -t, --tool | tool to benchmark. Currently, the following tools are supported: `tabix`, `bedtools`, `bedtools_sorted`, `bedtools_tabix` (deprecated), `bedops`, `bedmaps`, `giggle`, `granges`, `gia`, `bedtk`, `bedtk_sorted`, `igd`, `ailist`, `ucsc`, `awk`, `intervaltree` |
 
-Note that `bedtools_sorted` and `bedtk_sorted` are the same as `bedtools` and `bedtk`, respectively, but the reference is sorted in the
-index step and the queries are sorted in the query step (both measured); `bedtools_sorted` then runs `bedtools intersect -sorted`, the sweep
-algorithm for sorted input (with `-g`, a genome file in the order of the sorted data, so chromosomes present in only one file are handled).
-`bedtk` does not need sorted input, so `bedtk_sorted` only adds the sorting cost to `bedtk`. In the case of `bedtools_tabix` (deprecated, removed in 0.15.0), the reference is sorted, compressed with `bgzip` and indexed with `tabix` in the
-index step, and `bedtools intersect -sorted` reads the compressed file (bedtools cannot use the tabix index for random access), so it
-measures `bedtools_sorted` plus an index cost; `tabix` is the tool that uses the index.
+#### Benchmarked tools
+
+Every `--tool` runs the commands below. The index step (if any) runs once per reference and is reported in the index statistics; the query
+step runs once per query file, and every command of it is measured and summed (time) or maximised (memory). Work that only converts the
+output into BED for the scoring is not measured.
+
+| `--tool` | Index step (measured) | Query step (measured) | Notes |
+| --- | --- | --- | --- |
+| `tabix` | `sort`, `bgzip`, `tabix -C -p bed` (index size: `.gz` + `.csi`) | `tabix REF.bed.gz -R QUERY` | |
+| `bedtools` | | `bedtools intersect -wa -a REF -b QUERY` | |
+| `bedtools_sorted` | `sort` of the reference (index size 0) | `sort` of the query, `bedtools intersect -sorted -g GENOME -wa -a REF_SORTED -b QUERY_SORTED` | the sweep algorithm for sorted input; `-g` gives the chromosome order of the sorted data, so chromosomes present in only one file are handled |
+| `bedtools_tabix` | as `tabix` | as `bedtools_sorted`, reading the bgzipped reference | deprecated, removed in 0.15.0: bedtools cannot use the tabix index for random access, so this measures `bedtools_sorted` plus an index cost |
+| `bedops` | `sort` of the reference | `sort` of the query, `bedops --element-of 1 REF_SORTED QUERY_SORTED`; complex queries: `bedmap --echo-map --multidelim '\n' QUERY_SORTED REF_SORTED` | |
+| `bedmaps` | `sort` of the reference | `sort` of the query, `bedmap --echo-map --multidelim '\n' QUERY_SORTED REF_SORTED` | |
+| `giggle` | `giggle/scripts/sort_bed`, `giggle index -s` | `sort_bed` of the query, `giggle search -v` | |
+| `granges` | | `granges filter --genome GENOME --left REF_SORTED --right QUERY` | reads the sorted reference; the `.tsv` copies and a genome file in natural chromosome order (granges 0.2.2 labels its query trees in that order, [#36](https://github.com/ylab-hi/segmeter/issues/36)) are prepared unmeasured |
+| `gia` | | `gia intersect -a QUERY -b REF -t` | |
+| `bedtk` | | `bedtk flt QUERY REF` | bedtk reports each reference interval once; the duplicates that complex queries expect are restored with an unmeasured `bedtools intersect` pass |
+| `bedtk_sorted` | `sort` of the reference | `sort` of the query, `bedtk flt QUERY_SORTED REF_SORTED` | bedtk does not need sorted input, so this only adds the sorting cost |
+| `igd` | `igd create` | `igd search -q QUERY -f` | the output is converted to BED unmeasured |
+| `ailist` | | `ailist REF QUERY` | the overlap counts are expanded to one line per overlap unmeasured |
+| `ucsc` | | `bedIntersect -aHitAny REF QUERY OUT` | |
+| `awk` | | `tools/intersect_awk.py` | an awk one-pass script, as the baseline of what a shell can do |
+| `intervaltree` | | `tools/intersect_intervaltree.py` | the Python `intervaltree` package |
+
+Not benchmarked: `gia intersect --sorted`, gia's sweep for pre-sorted input. In gia 0.2.23 it numbers the chromosomes of each file by their
+order of appearance, so when one file lacks a chromosome that the other has, every later chromosome is compared with the wrong one and
+overlaps are silently dropped (85 of 100 on the data of [gia#120](https://github.com/noamteyssier/gia/issues/120); sorting with `gia sort` first does not help).
+The query subsets of a small simulation routinely lack chromosomes, and restricting both files to their common chromosomes would be work
+done for gia alone, so the variant stays out until gia fixes the sweep ([#53](https://github.com/ylab-hi/segmeter/issues/53)).
 
 This generates a separate output folder for each benchmark tool in the folder `DATADIR/bench/benchname/` with a subfolder for each INTVLNUM.
 In additional subfolders (`precision` and `stats`), the precision and statistics are stored.
