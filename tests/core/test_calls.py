@@ -46,13 +46,14 @@ def test_query_steps_counted():
                 steps.append(call)
                 return 0.5, memory[min(len(steps), len(memory)) - 1]
             original = calls.tool_call, calls.subprocess.run
-            calls.tool_call, calls.subprocess.run = tool_call, lambda *args, **kwargs: None # bedtk's bedtools pass
+            calls.tool_call, calls.subprocess.run = tool_call, lambda *args, **kwargs: None # the unmeasured steps: bedtk's bedtools pass, sorted_genome's sort
             try:
                 for tool in TOOLS:
                     steps = []
                     options = types.SimpleNamespace(tool=tool, datadir=str(tmp), benchname="b", logfile=io.StringIO())
                     rt, mem, out = calls.query_call(options, "L", reffiles, tmp / "query.bed")
                     Path(out.name).unlink()
+                    assert steps, f"{tool}: no branch in query_call"
                     assert rt == 0.5 * len(steps), f"{tool}: {rt} s for {len(steps)} steps"
                     assert mem == max(memory[:len(steps)]), f"{tool}: {mem} MB, steps {memory[:len(steps)]}"
             finally:
