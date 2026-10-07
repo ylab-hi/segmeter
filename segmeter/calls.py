@@ -109,11 +109,6 @@ def index_call(options, refdirs, label):
         igd_size_mb = round(igd_size/(1024*1024), 5)
         idx_size_mb += igd_size_mb
 
-    elif options.tool == "gia_sorted":
-        sort_rt, sort_mem = tool_call(f"gia sort -i {refdirs['ref'] / f'{label}.bed'} -T bed4 -o {refdirs['idx'] / f'{label}.bed'}", options.logfile)
-        runtime += sort_rt
-        mem = max(mem, sort_mem)
-
     return runtime, mem, idx_size_mb
 
 
@@ -215,16 +210,6 @@ def query_call(options, label, reffiles, queryfile):
 
     elif options.tool == "gia":
         query_rt, query_mem = tool_call(f"gia intersect -a {queryfile} -b {reffiles['ref-unsrt']} -t > {tmpfile.name}", options.logfile)
-
-    elif options.tool == "gia_sorted":
-        query_sorted = scratch / "query_sorted.bed"
-        sort_rt, sort_mem = tool_call(f"gia sort -i {queryfile} -T bed4 -o {query_sorted}", options.logfile)
-        query_rt += sort_rt
-        query_mem = max(query_mem, sort_mem)
-
-        gia_rt, gia_mem = tool_call(f"gia intersect --sorted -a {query_sorted} -b {reffiles['idx']} -t > {tmpfile.name}", options.logfile)
-        query_rt += gia_rt
-        query_mem = max(query_mem, gia_mem)
 
     elif options.tool == "bedtk":
         tmpfile2 = scratch / "tool_output.txt"

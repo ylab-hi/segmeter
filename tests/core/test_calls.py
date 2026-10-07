@@ -11,7 +11,7 @@ import calls
 import utility
 
 TOOLS = ["tabix", "bedtools", "bedtools_sorted", "bedtools_tabix", "bedops", "bedmaps", "giggle", "granges", "gia",
-         "gia_sorted", "bedtk", "bedtk_sorted", "igd", "ailist", "ucsc", "awk", "intervaltree"]
+         "bedtk", "bedtk_sorted", "igd", "ailist", "ucsc", "awk", "intervaltree"]
 
 
 def test_missing_rss_line():

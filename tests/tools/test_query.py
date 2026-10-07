@@ -33,7 +33,6 @@ TOOLS = [
     ("giggle", "/giggle/bin/giggle", True, "query"),
     ("granges", "granges", False, "query"),
     ("gia", "gia", False, "query"),
-    ("gia_sorted", "gia", True, "query"),
     ("bedtk", "bedtk+bedtools", False, "query"),
     ("bedtk_sorted", "bedtk+bedtools", True, "query"),
     ("awk", "awk", False, "query"),
@@ -42,7 +41,7 @@ TOOLS = [
     ("ailist", "ailist", False, "query"),
     ("ucsc", "bedIntersect", False, "query"),
 ]
-READS_INDEX = {"tabix", "bedtools_sorted", "bedtools_tabix", "bedtk_sorted", "gia_sorted", "igd"} # query reads refdirs["idx"]
+READS_INDEX = {"tabix", "bedtools_sorted", "bedtools_tabix", "bedtk_sorted", "igd"} # query reads refdirs["idx"]
 CHROMS = ["chr1", "chr2", "chr10", "chrX"]
 LABEL, NUM = "L", 5000
 
