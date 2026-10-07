@@ -25,7 +25,7 @@ def test_missing_rss_line():
         utility.get_time_rss_label = real
     assert mem == 0, f"mem={mem}"
     _, mem = calls.tool_call("true", io.StringIO())
-    assert mem > 0, f"mem={mem} with the RSS line present"
+    assert 0 < mem < 100, f"mem={mem} MB for `true`: RSS unit wrong? (bytes on macOS, kB on Linux, #10)"
 
 
 def test_failed_call_raises():
