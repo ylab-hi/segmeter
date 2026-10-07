@@ -158,6 +158,7 @@ def query_call(options, label, reffiles, queryfile):
         query_sorted = scratch / "query_sorted.bed"
         sort_rt, sort_mem = tool_call(f"sort -k1,1 -k2,2n -k3,3n {queryfile} > {query_sorted}", options.logfile)
         query_rt += sort_rt
+        query_mem = max(query_mem, sort_mem)
 
         bedops_rt = 0
         bedops_mem = 0
