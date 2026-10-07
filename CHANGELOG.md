@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # [Unreleased]
 ## Added
+- `tests/core/test_calls.py` checks the step accounting of `index_call` for every tool with a stubbed `tool_call`: runtime summed, memory maxed over the steps, index size summed over the index files (`giggle` and `igd` excepted until #61) ([#52](https://github.com/ylab-hi/segmeter/issues/52), [#62](https://github.com/ylab-hi/segmeter/pull/62))
 - Added tests for the measurement path: `tests/core/test_calls.py` checks that `tool_call` reports 0 MB when the `/usr/bin/time` output has no RSS line, and `tests/tools/test_query.py` runs every tool of `query_call` (with `index_call` for the index-based tools) on a random target/query pair and checks the reported reference intervals against a pure-Python oracle, skipping tools that are not installed; tests are split into `tests/core/` (tool-agnostic) and `tests/tools/` ([#12](https://github.com/ylab-hi/segmeter/issues/12), [#32](https://github.com/ylab-hi/segmeter/pull/32))
 - Added optional `--max_span` (a multiple of 10) to `segmeter sim` to limit the number of intervals covered by a complex query, which otherwise makes the expected output grow quadratically with the intervals per chromosome; off by default, so the simulated data is unchanged ([#14](https://github.com/ylab-hi/segmeter/issues/14), [#23](https://github.com/ylab-hi/segmeter/pull/23))
 
