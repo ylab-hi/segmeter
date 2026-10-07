@@ -157,7 +157,7 @@ converts the output into BED for the scoring is not measured.
 | `ailist` | | `ailist REF QUERY` | the overlap counts are expanded to one line per overlap unmeasured |
 | `ucsc` | | `bedIntersect -aHitAny REF QUERY OUT` | |
 | `awk` | | `tools/intersect_awk.py` | an awk script that hashes the intervals by chromosome, then scans that chromosome's intervals linearly |
-| `intervaltree` | | `tools/intersect_intervaltree.py` | the Python `intervaltree` package |
+| `intervaltree` | | `tools/intersect_intervaltree.py` | a Python script that builds one interval tree per chromosome (the `intervaltree` package) and queries it for every interval of the other file |
 
 Not benchmarked: `gia intersect --sorted`. In gia 0.2.23 it numbers the chromosomes of each file by their order of appearance, so when one
 file lacks a chromosome that the other has, every later chromosome is compared with the wrong one and overlaps are silently dropped
