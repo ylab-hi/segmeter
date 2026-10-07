@@ -35,8 +35,7 @@ def tool_call(call, logfile):
         raise RuntimeError(f"exit code {result.returncode} from: {call}\n{stderr_output}")
     rss_value = utility.get_rss_from_stderr(stderr_output, rss_label)
     if rss_value > 0: # get_rss_from_stderr returns -1 when the RSS line is not found
-        rss_value_mb = rss_value/(1024)
-        mem = rss_value_mb
+        mem = rss_value / utility.get_time_rss_per_mb()
 
     return runtime, mem
 

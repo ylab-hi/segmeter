@@ -25,6 +25,13 @@ def get_time_rss_label():
     else: # linux
         return "Maximum resident set size (kbytes)"
 
+def get_time_rss_per_mb():
+    """`/usr/bin/time` reports the RSS in bytes on macOS (`-l`) and in kilobytes on Linux (GNU time `-v`)"""
+    if get_os() == "macos":
+        return 1024 * 1024
+    else: # linux
+        return 1024
+
 def get_time_verbose_flag():
     if get_os() == "macos":
         return "-l"
