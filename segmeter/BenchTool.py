@@ -171,6 +171,7 @@ class BenchTool:
                     query_precision[dtype][subset]["negatives"] += precision["basic"]["negatives"]
                 elif dtype == "complex":
                     query_precision[dtype][subset]["dist"] += precision["complex"]["dist"]
+                os.unlink(query_result.name) # the tool's output is scored
 
 
         # final done message

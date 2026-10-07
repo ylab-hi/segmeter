@@ -72,15 +72,17 @@ def test_query_intervals():
         (sim / "complex" / "truth" / "L.bed").write_text("chr1\t100\t400\tmult_2\t2\n")
         (bench.querydirs["complex"]["mult"] / "L_10bin.bed").write_text("chr1\t100\t400\tmult_2\n")
         result = Path(tmp) / "result.bed"
-        result.write_text("\t".join(ref[0]) + "\n")
+        def query_call(options, label, reffiles, queryfile): # returns the closed temporary file with the tool's output
+            result.write_text("\t".join(ref[0]) + "\n")
+            return 1.2345678, 42.0, types.SimpleNamespace(name=str(result))
 
-        query_call = calls.query_call
-        tmpfile = types.SimpleNamespace(name=str(result)) # query_call returns the open temporary file
-        calls.query_call = lambda options, label, reffiles, queryfile: (1.2345678, 42.0, tmpfile)
+        original = calls.query_call
+        calls.query_call = query_call
         try:
             times, memory, precision = bench.query_intervals("L", 2, 10)
         finally:
-            calls.query_call = query_call
+            calls.query_call = original
+        assert not result.exists() # the output is removed once scored (#2)
 
     assert list(times["basic"]) == list(utility.BASIC_QUERIES) and list(times["complex"]) == ["mult"]
     assert all(value == {10: 1.23457} for dtype in times.values() for value in dtype.values())

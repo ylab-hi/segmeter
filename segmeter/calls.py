@@ -127,7 +127,8 @@ def sorted_genome(reffiles, label):
 
 
 def query_call(options, label, reffiles, queryfile):
-    tmpfile = tempfile.NamedTemporaryFile(mode='w', delete=False)
+    tmpfile = tempfile.NamedTemporaryFile(mode='w', delete=False) # the tool's output, removed by the caller
+    scratch = Path(tempfile.mkdtemp()) # intermediate files of the query, removed at the end
 
     query_rt = 0
     query_mem = 0
@@ -139,8 +140,8 @@ def query_call(options, label, reffiles, queryfile):
 
     elif options.tool == "bedtools_sorted" or options.tool == "bedtools_tabix":
         # first sort the query file
-        query_sorted = tempfile.NamedTemporaryFile(mode='w', delete=False)
-        sort_rt, sort_mem = tool_call(f"sort -k1,1 -k2,2n -k3,3n {queryfile} > {query_sorted.name}", options.logfile)
+        query_sorted = scratch / "query_sorted.bed"
+        sort_rt, sort_mem = tool_call(f"sort -k1,1 -k2,2n -k3,3n {queryfile} > {query_sorted}", options.logfile)
 
         query_rt += sort_rt
         query_mem = max(query_mem, sort_mem)
@@ -148,74 +149,62 @@ def query_call(options, label, reffiles, queryfile):
         # the sweep algorithm of bedtools (-sorted) on the reference of the index step: the sorted file for
         # bedtools_sorted, the bgzipped one for bedtools_tabix (bedtools cannot use the tabix index for random access)
         genome = sorted_genome(reffiles, label)
-        bedtools_rt, bedtools_mem = tool_call(f"bedtools intersect -sorted -g {genome} -wa -a {reffiles['idx']} -b {query_sorted.name} > {tmpfile.name}", options.logfile)
+        bedtools_rt, bedtools_mem = tool_call(f"bedtools intersect -sorted -g {genome} -wa -a {reffiles['idx']} -b {query_sorted} > {tmpfile.name}", options.logfile)
         query_rt += bedtools_rt
         query_mem = max(query_mem, bedtools_mem)
 
-        query_sorted.close()
-
     elif options.tool == "bedops":
         # first sort the query file
-        query_sorted = tempfile.NamedTemporaryFile(mode='w', delete=False)
-        sort_rt, sort_mem = tool_call(f"sort -k1,1 -k2,2n -k3,3n {queryfile} > {query_sorted.name}", options.logfile)
+        query_sorted = scratch / "query_sorted.bed"
+        sort_rt, sort_mem = tool_call(f"sort -k1,1 -k2,2n -k3,3n {queryfile} > {query_sorted}", options.logfile)
         query_rt += sort_rt
 
         bedops_rt = 0
         bedops_mem = 0
         if "complex" in str(queryfile):
-            bedops_rt, bedops_mem = tool_call(f"bedmap --echo-map --multidelim '\n' {query_sorted.name} {reffiles['ref-srt']} > {tmpfile.name}", options.logfile)
+            bedops_rt, bedops_mem = tool_call(f"bedmap --echo-map --multidelim '\n' {query_sorted} {reffiles['ref-srt']} > {tmpfile.name}", options.logfile)
         else: # basic queries and arbitrary target/query pairs: the sorted reference is prepared unmeasured in both modes
-            bedops_rt, bedops_mem = tool_call(f"bedops --element-of 1 {reffiles['ref-srt']} {query_sorted.name} > {tmpfile.name}", options.logfile)
+            bedops_rt, bedops_mem = tool_call(f"bedops --element-of 1 {reffiles['ref-srt']} {query_sorted} > {tmpfile.name}", options.logfile)
         query_rt += bedops_rt
         query_mem = max(query_mem, bedops_mem)
-
-        query_sorted.close()
 
     elif options.tool == "bedmaps":
         # first sort the query file
-        query_sorted = tempfile.NamedTemporaryFile(mode='w', delete=False)
-        sort_rt, sort_mem = tool_call(f"sort -k1,1 -k2,2n -k3,3n {queryfile} > {query_sorted.name}", options.logfile)
+        query_sorted = scratch / "query_sorted.bed"
+        sort_rt, sort_mem = tool_call(f"sort -k1,1 -k2,2n -k3,3n {queryfile} > {query_sorted}", options.logfile)
         query_rt += sort_rt
         query_mem = max(query_mem, sort_mem)
 
-        bedops_rt, bedops_mem = tool_call(f"bedmap --echo-map --multidelim '\n' {query_sorted.name} {reffiles['ref-srt']} > {tmpfile.name}", options.logfile)
+        bedops_rt, bedops_mem = tool_call(f"bedmap --echo-map --multidelim '\n' {query_sorted} {reffiles['ref-srt']} > {tmpfile.name}", options.logfile)
         query_rt += bedops_rt
         query_mem = max(query_mem, bedops_mem)
 
-        query_sorted.close()
-
     elif options.tool == "giggle":
-        query_sorted_dir = tempfile.TemporaryDirectory()
-        sort_rt, sort_mem = tool_call(f" bash /giggle/scripts/sort_bed {queryfile} {query_sorted_dir.name} 4", options.logfile)
+        sort_rt, sort_mem = tool_call(f" bash /giggle/scripts/sort_bed {queryfile} {scratch} 4", options.logfile)
         query_rt += sort_rt
         query_mem = max(query_mem, sort_mem)
 
         indexpath = Path(options.datadir) / "bench" / options.benchname / options.tool
         # for some reason the giggle index is not created in ./giggle/idx/<index> but in ./giggle/<index> - so use this path
-        giggle_rt, giggle_mem = tool_call(f"/giggle/bin/giggle search -i {indexpath / f'{label}_index'} -q {Path(query_sorted_dir.name) / f'{queryfile.name}.gz'} -v > {tmpfile.name}", options.logfile)
+        giggle_rt, giggle_mem = tool_call(f"/giggle/bin/giggle search -i {indexpath / f'{label}_index'} -q {scratch / f'{queryfile.name}.gz'} -v > {tmpfile.name}", options.logfile)
         query_rt += giggle_rt
         query_mem = max(query_mem, giggle_mem)
 
-        query_sorted_dir.cleanup()
-
     elif options.tool == "granges":
         # granges needs the .tsv suffix: copy reference and query (not measured)
-        ref_tsv = tempfile.NamedTemporaryFile(mode='w', suffix=".tsv", delete=False)
-        query_tsv = tempfile.NamedTemporaryFile(mode='w', suffix=".tsv", delete=False)
-        shutil.copy2(reffiles['ref-srt'], ref_tsv.name)
-        shutil.copy2(queryfile, query_tsv.name)
-        ref_tsv.close()
-        query_tsv.close()
+        ref_tsv = scratch / "ref.tsv"
+        query_tsv = scratch / "query.tsv"
+        shutil.copy2(reffiles['ref-srt'], ref_tsv)
+        shutil.copy2(queryfile, query_tsv)
 
         # granges 0.2.2 labels its query trees in natural chromosome order (numbers, X, Y, M) but reads the
         # genome file in file order, so any other order makes it compare the wrong chromosomes (#36); the
         # simulator writes the chromosomes in random order, so rewrite the genome file (not measured)
-        genome = tempfile.NamedTemporaryFile(mode='w', delete=False)
+        genome = scratch / "genome.txt"
         lines = Path(reffiles['chromlens']).read_text().splitlines()
-        genome.write("".join(line + "\n" for line in sorted(lines, key=lambda line: utility.chrom_sort_key(line.split("\t")[0]))))
-        genome.close()
+        genome.write_text("".join(line + "\n" for line in sorted(lines, key=lambda line: utility.chrom_sort_key(line.split("\t")[0]))))
 
-        granges_rt, granges_mem = tool_call(f"granges filter --genome {genome.name} --left {ref_tsv.name} --right {query_tsv.name} > {tmpfile.name}", options.logfile)
+        granges_rt, granges_mem = tool_call(f"granges filter --genome {genome} --left {ref_tsv} --right {query_tsv} > {tmpfile.name}", options.logfile)
         query_rt += granges_rt
         query_mem = max(query_mem, granges_mem)
 
@@ -223,42 +212,37 @@ def query_call(options, label, reffiles, queryfile):
         query_rt, query_mem = tool_call(f"gia intersect -a {queryfile} -b {reffiles['ref-unsrt']} -t > {tmpfile.name}", options.logfile)
 
     elif options.tool == "gia_sorted":
-        query_sorted = tempfile.NamedTemporaryFile(mode='w', delete=False)
-        sort_rt, sort_mem = tool_call(f"gia sort -i {queryfile} -T bed4 -o {query_sorted.name}", options.logfile)
+        query_sorted = scratch / "query_sorted.bed"
+        sort_rt, sort_mem = tool_call(f"gia sort -i {queryfile} -T bed4 -o {query_sorted}", options.logfile)
         query_rt += sort_rt
         query_mem = max(query_mem, sort_mem)
 
-        gia_rt, gia_mem = tool_call(f"gia intersect --sorted -a {query_sorted.name} -b {reffiles['idx']} -t > {tmpfile.name}", options.logfile)
+        gia_rt, gia_mem = tool_call(f"gia intersect --sorted -a {query_sorted} -b {reffiles['idx']} -t > {tmpfile.name}", options.logfile)
         query_rt += gia_rt
         query_mem = max(query_mem, gia_mem)
 
-        query_sorted.close()
-
     elif options.tool == "bedtk":
-        tmpfile2 = tempfile.NamedTemporaryFile(mode='w', delete=False)
-        query_rt, query_mem = tool_call(f"bedtk flt {queryfile} {reffiles['ref-unsrt']} > {tmpfile2.name}", options.logfile)
+        tmpfile2 = scratch / "tool_output.txt"
+        query_rt, query_mem = tool_call(f"bedtk flt {queryfile} {reffiles['ref-unsrt']} > {tmpfile2}", options.logfile)
 
         # need to add duplicates to the results (ensures that the precision for complex queries is fair)
         # bedtk is not able to report duplicates - we use bedtools for this
-        call = f"bedtools intersect -wa -a {tmpfile2.name} -b {queryfile} > {tmpfile.name}"
+        call = f"bedtools intersect -wa -a {tmpfile2} -b {queryfile} > {tmpfile.name}"
         subprocess.run(call, shell=True, check=True)
-        tmpfile2.close()
 
 
     elif options.tool == "bedtk_sorted":
-        query_sorted = tempfile.NamedTemporaryFile(mode='w', delete=False)
-        sort_rt, sort_mem = tool_call(f"sort -k1,1 -k2,2n -k3,3n {queryfile} > {query_sorted.name}", options.logfile)
+        query_sorted = scratch / "query_sorted.bed"
+        sort_rt, sort_mem = tool_call(f"sort -k1,1 -k2,2n -k3,3n {queryfile} > {query_sorted}", options.logfile)
         query_rt += sort_rt
         query_mem = max(query_mem, sort_mem)
 
-        tmpfile2 = tempfile.NamedTemporaryFile(mode='w', delete=False)
-        bedtk_rt, bedtk_mem = tool_call(f"bedtk flt {query_sorted.name} {reffiles['idx']} > {tmpfile2.name}", options.logfile)
+        tmpfile2 = scratch / "tool_output.txt"
+        bedtk_rt, bedtk_mem = tool_call(f"bedtk flt {query_sorted} {reffiles['idx']} > {tmpfile2}", options.logfile)
         query_rt += bedtk_rt
         query_mem = max(query_mem, bedtk_mem)
-        query_sorted.close()
-        tmpfile2.close()
 
-        call = f"bedtools intersect -wa -a {tmpfile2.name} -b {queryfile} > {tmpfile.name}"
+        call = f"bedtools intersect -wa -a {tmpfile2} -b {queryfile} > {tmpfile.name}"
         subprocess.run(call, shell=True, check=True)
 
     elif options.tool == "awk":
@@ -272,15 +256,15 @@ def query_call(options, label, reffiles, queryfile):
         query_rt, query_mem = tool_call(f"python3 {script_path} -q {queryfile} -t {reffiles['ref-unsrt']} -r target -o {tmpfile.name}", options.logfile)
 
     elif options.tool == "igd":
-        tmpfile2 = tempfile.NamedTemporaryFile(mode='w', delete=False)
+        tmpfile2 = scratch / "tool_output.txt"
         idxpath = Path(options.datadir) / "bench" / options.benchname / options.tool / "idx"
-        igd_rt, igd_mem = tool_call(f"igd search {idxpath / f'{label}_out' / f'{label}.igd'} -q {queryfile} -f > {tmpfile2.name}", options.logfile)
+        igd_rt, igd_mem = tool_call(f"igd search {idxpath / f'{label}_out' / f'{label}.igd'} -q {queryfile} -f > {tmpfile2}", options.logfile)
         query_rt += igd_rt
         query_mem = max(query_mem, igd_mem)
 
         # process the igd output to match the output of other tools (e.g., BED format)
         chrom = ""
-        with open(tmpfile2.name) as fh, open(tmpfile.name, "w") as out:
+        with open(tmpfile2) as fh, open(tmpfile.name, "w") as out:
             for line in fh:
                 if line.startswith("Query"):
                     chrom = line.split(",")[0].split()[1]
@@ -292,14 +276,14 @@ def query_call(options, label, reffiles, queryfile):
                     out.write(f"{chrom}\t{start}\t{end}\n")
 
     elif options.tool == "ailist":
-        tmpfile2 = tempfile.NamedTemporaryFile(mode='w', delete=False)
-        ailist_rt, alilist_mem = tool_call(f"ailist {reffiles['ref-unsrt']} {queryfile} > {tmpfile2.name}", options.logfile)
+        tmpfile2 = scratch / "tool_output.txt"
+        ailist_rt, alilist_mem = tool_call(f"ailist {reffiles['ref-unsrt']} {queryfile} > {tmpfile2}", options.logfile)
         query_rt += ailist_rt
         query_mem = max(query_mem, alilist_mem)
 
         # process the ailist output to match the output of other tools (e.g., BED format)
         # extract the lines that contain the overlaps (4th column contains the number of overlaps) - repeat lines
-        fh = open(tmpfile2.name)
+        fh = open(tmpfile2)
         for line in fh:
             count = int(line.split()[3])
             if count != 0:
@@ -311,6 +295,6 @@ def query_call(options, label, reffiles, queryfile):
         query_rt, query_mem = tool_call(f"bedIntersect -aHitAny {reffiles['ref-unsrt']} {queryfile} {tmpfile.name}", options.logfile)
 
     tmpfile.close()
-
+    shutil.rmtree(scratch)
 
     return query_rt, query_mem, tmpfile
