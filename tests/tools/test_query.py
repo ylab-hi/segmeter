@@ -41,7 +41,7 @@ TOOLS = [
     ("ailist", "ailist", False, "query"),
     ("ucsc", "bedIntersect", False, "query"),
 ]
-READS_INDEX = {"tabix", "bedtools_sorted", "bedtools_tabix", "bedtk_sorted", "igd"} # query reads refdirs["idx"]
+READS_INDEX = {"tabix", "bedtools_sorted", "bedtools_tabix", "bedtk_sorted", "bedops", "bedmaps", "igd"} # query reads refdirs["idx"]
 CHROMS = ["chr1", "chr2", "chr10", "chrX"]
 LABEL, NUM = "L", 5000
 

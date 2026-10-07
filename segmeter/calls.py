@@ -162,9 +162,9 @@ def query_call(options, label, reffiles, queryfile):
         bedops_rt = 0
         bedops_mem = 0
         if "complex" in str(queryfile):
-            bedops_rt, bedops_mem = tool_call(f"bedmap --echo-map --multidelim '\n' {query_sorted} {reffiles['ref-srt']} > {tmpfile.name}", options.logfile)
-        else: # basic queries and arbitrary target/query pairs: the sorted reference is prepared unmeasured in both modes
-            bedops_rt, bedops_mem = tool_call(f"bedops --element-of 1 {reffiles['ref-srt']} {query_sorted} > {tmpfile.name}", options.logfile)
+            bedops_rt, bedops_mem = tool_call(f"bedmap --echo-map --multidelim '\n' {query_sorted} {reffiles['idx']} > {tmpfile.name}", options.logfile)
+        else: # basic queries and arbitrary target/query pairs; the reference is the sorted one of the index step
+            bedops_rt, bedops_mem = tool_call(f"bedops --element-of 1 {reffiles['idx']} {query_sorted} > {tmpfile.name}", options.logfile)
         query_rt += bedops_rt
         query_mem = max(query_mem, bedops_mem)
 
@@ -175,7 +175,7 @@ def query_call(options, label, reffiles, queryfile):
         query_rt += sort_rt
         query_mem = max(query_mem, sort_mem)
 
-        bedops_rt, bedops_mem = tool_call(f"bedmap --echo-map --multidelim '\n' {query_sorted} {reffiles['ref-srt']} > {tmpfile.name}", options.logfile)
+        bedops_rt, bedops_mem = tool_call(f"bedmap --echo-map --multidelim '\n' {query_sorted} {reffiles['idx']} > {tmpfile.name}", options.logfile)
         query_rt += bedops_rt
         query_mem = max(query_mem, bedops_mem)
 
