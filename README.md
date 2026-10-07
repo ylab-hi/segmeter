@@ -156,7 +156,7 @@ converts the output into BED for the scoring is not measured.
 | `igd` | `igd create` | `igd search -q QUERY -f` | the output is converted to BED unmeasured |
 | `ailist` | | `ailist REF QUERY` | the overlap counts are expanded to one line per overlap unmeasured |
 | `ucsc` | | `bedIntersect -aHitAny REF QUERY OUT` | |
-| `awk` | | `tools/intersect_awk.py` | an awk script |
+| `awk` | | `tools/intersect_awk.py` | an awk script that hashes the intervals by chromosome, then scans that chromosome's intervals linearly |
 | `intervaltree` | | `tools/intersect_intervaltree.py` | the Python `intervaltree` package |
 
 Not benchmarked: `gia intersect --sorted`. In gia 0.2.23 it numbers the chromosomes of each file by their order of appearance, so when one
