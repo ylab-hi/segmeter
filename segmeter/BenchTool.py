@@ -69,7 +69,7 @@ class BenchTool:
         # create index if necessary
         if self.options.tool == "tabix" or self.options.tool == "bedtools_tabix":
             reffiles["idx"] = self.refdirs["idx"] / f"{label}.bed.gz"
-        elif self.options.tool in ["bedtools_sorted", "bedtk_sorted"]:
+        elif self.options.tool in ["bedtools_sorted", "bedtk_sorted", "bedops", "bedmaps"]:
             reffiles["idx"] = self.refdirs["idx"] / f"{label}.bed"
 
         # add genome length
