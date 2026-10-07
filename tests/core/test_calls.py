@@ -76,6 +76,11 @@ def test_query_steps_counted():
                     assert steps, f"{tool}: no branch in query_call"
                     assert rt == 0.5 * len(steps), f"{tool}: {rt} s for {len(steps)} steps"
                     assert mem == max(memory[:len(steps)]), f"{tool}: {mem} MB, steps {memory[:len(steps)]}"
+                    steps = [] # an empty query file (an empty complex bin) runs no tool and reports 0 s, 0 MB (#9)
+                    (tmp / "empty.bed").write_text("")
+                    rt, mem, out = calls.query_call(options, "L", reffiles, tmp / "empty.bed")
+                    assert (steps, rt, mem, Path(out.name).read_text()) == ([], 0, 0, ""), f"{tool}: {steps}"
+                    Path(out.name).unlink()
             finally:
                 calls.tool_call, calls.subprocess.run = original
 

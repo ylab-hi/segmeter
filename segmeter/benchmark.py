@@ -37,8 +37,15 @@ class BenchBase:
             if not Path(options.target).exists():
                 raise FileNotFoundError(f"Target file {options.target} does not exist")
 
-        # open log file
+        # open log file; closed also when a tool call fails, so its stderr lands in the log
         options.logfile = open(benchpath / "log.txt", "w")
+        try:
+            self.run(benchpath)
+        finally:
+            options.logfile.close()
+
+    def run(self, benchpath):
+        options, intvlnums = self.options, self.intvlnums
         self.tool = BenchTool(options)
 
         if not self.options.simdata:
@@ -90,9 +97,6 @@ class BenchBase:
                     outfile_precision = precisionpath / f"{label}_query_precision_{subset}.txt"
                     outfile_negatives = precisionpath / f"{label}_query_precision_negatives_{subset}.txt"
                     self.save_query_prec_stats(num, query_precision, outfile_precision, outfile_negatives)
-
-
-        options.logfile.close()
 
 
     def save_idx_stats(self, num, idx_time, idx_mem, idx_size, filename):

@@ -130,6 +130,9 @@ def sorted_genome(reffiles, label):
 
 def query_call(options, label, reffiles, queryfile):
     tmpfile = tempfile.NamedTemporaryFile(mode='w', delete=False) # the tool's output, removed by the caller
+    if os.stat(queryfile).st_size == 0: # an empty complex bin has no overlaps; granges and gia reject an empty file, tabix -R dumps the reference
+        tmpfile.close()
+        return 0, 0, tmpfile
     scratch = Path(tempfile.mkdtemp()) # intermediate files of the query, removed at the end
 
     query_rt = 0
