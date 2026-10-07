@@ -31,6 +31,8 @@ def tool_call(call, logfile):
     runtime = round(end_time - start_time, 5)
     stderr_output = result.stderr
     logfile.write(stderr_output)
+    if result.returncode != 0: # /usr/bin/time passes the exit code of the command on (127 when it is not found)
+        raise RuntimeError(f"exit code {result.returncode} from: {call}\n{stderr_output}")
     rss_value = utility.get_rss_from_stderr(stderr_output, rss_label)
     if rss_value > 0: # get_rss_from_stderr returns -1 when the RSS line is not found
         rss_value_mb = rss_value/(1024)
@@ -128,6 +130,9 @@ def sorted_genome(reffiles, label):
 
 def query_call(options, label, reffiles, queryfile):
     tmpfile = tempfile.NamedTemporaryFile(mode='w', delete=False) # the tool's output, removed by the caller
+    if os.stat(queryfile).st_size == 0: # an empty complex bin has no overlaps; granges and gia reject an empty file, tabix -R dumps the reference
+        tmpfile.close()
+        return 0, 0, tmpfile
     scratch = Path(tempfile.mkdtemp()) # intermediate files of the query, removed at the end
 
     query_rt = 0
