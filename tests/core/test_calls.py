@@ -1,6 +1,8 @@
 """Checks for the measurement in `tool_call`.
 Run with `python3 tests/core/test_calls.py` (or pytest). Needs `/usr/bin/time`."""
+import contextlib
 import io
+import shutil
 import sys
 import tempfile
 import types
@@ -86,8 +88,48 @@ def test_query_steps_counted():
                 calls.tool_call, calls.subprocess.run = original
 
 
+def test_index_steps_counted():
+    """Every measured step of an index adds its runtime and folds its memory in with max, and the index size is
+    the sum of the index files (#52). The tools are replaced by a stub that creates the files a tool would."""
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        (tmp / "ref").mkdir()
+        (tmp / "ref" / "L.bed").write_text("chr1\t100\t200\tintvl_1\n")
+        refdirs = {"ref": tmp / "ref", "idx": tmp / "idx"}
+        for memory in [[100, 10, 10], [10, 100, 10], [10, 10, 100]]: # the peak in every position (tabix has three steps)
+            def tool_call(call, logfile): # 0.5 s and the next memory value; writes 1 MB into every index file a tool would create
+                steps.append(call)
+                made = [Path(call.rsplit(">", 1)[1].strip())] if ">" in call else []
+                if call.startswith("tabix "):
+                    made.append(Path(call.split()[-1] + ".csi"))
+                if call.startswith("giggle index"): # giggle writes the index next to idx/, see index_call
+                    made.append(tmp / "bench" / "b" / "giggle" / "L_index")
+                for path in made:
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_bytes(b"x" * 2**20)
+                return 0.5, memory[min(len(steps), len(memory)) - 1]
+            original = calls.tool_call
+            calls.tool_call = tool_call
+            try:
+                for tool in TOOLS:
+                    steps = []
+                    shutil.rmtree(tmp / "idx", ignore_errors=True)
+                    (tmp / "idx").mkdir()
+                    options = types.SimpleNamespace(tool=tool, datadir=str(tmp), benchname="b", logfile=io.StringIO())
+                    with contextlib.redirect_stdout(io.StringIO()): # "Indexing ... with <tool>..."
+                        rt, mem, size = calls.index_call(options, refdirs, "L")
+                    assert rt == 0.5 * len(steps), f"{tool}: {rt} s for {len(steps)} steps"
+                    assert mem == max(memory[:len(steps)], default=0), f"{tool}: {mem} MB, steps {memory[:len(steps)]}"
+                    if tool in ("giggle", "igd"): # the index size is os.stat of a directory (#61), not asserted
+                        continue
+                    assert size == {"tabix": 2.0, "bedtools_tabix": 2.0}.get(tool, 0), f"{tool}: index size {size} MB"
+            finally:
+                calls.tool_call = original
+
+
 if __name__ == "__main__":
     test_missing_rss_line()
     test_failed_call_raises()
     test_query_steps_counted()
+    test_index_steps_counted()
     print("ok")
