@@ -199,15 +199,13 @@ def query_call(options, label, reffiles, queryfile):
         query_sorted_dir.cleanup()
 
     elif options.tool == "granges":
-        # rename reference and query to .tsv
-        ref_tsv = tempfile.NamedTemporaryFile(mode='w', delete=False)
-        query_tsv = tempfile.NamedTemporaryFile(mode='w', delete=False)
-
-        ref_tsv_name = ref_tsv.name + ".tsv"
-        query_tsv_name = query_tsv.name + ".tsv"
-
-        shutil.copy2(reffiles['ref-srt'], ref_tsv_name)
-        shutil.copy2(queryfile, query_tsv_name)
+        # granges needs the .tsv suffix: copy reference and query (not measured)
+        ref_tsv = tempfile.NamedTemporaryFile(mode='w', suffix=".tsv", delete=False)
+        query_tsv = tempfile.NamedTemporaryFile(mode='w', suffix=".tsv", delete=False)
+        shutil.copy2(reffiles['ref-srt'], ref_tsv.name)
+        shutil.copy2(queryfile, query_tsv.name)
+        ref_tsv.close()
+        query_tsv.close()
 
         # granges 0.2.2 labels its query trees in natural chromosome order (numbers, X, Y, M) but reads the
         # genome file in file order, so any other order makes it compare the wrong chromosomes (#36); the
@@ -217,7 +215,7 @@ def query_call(options, label, reffiles, queryfile):
         genome.write("".join(line + "\n" for line in sorted(lines, key=lambda line: utility.chrom_sort_key(line.split("\t")[0]))))
         genome.close()
 
-        granges_rt, granges_mem = tool_call(f"granges filter --genome {genome.name} --left {ref_tsv_name} --right {query_tsv_name} > {tmpfile.name}", options.logfile)
+        granges_rt, granges_mem = tool_call(f"granges filter --genome {genome.name} --left {ref_tsv.name} --right {query_tsv.name} > {tmpfile.name}", options.logfile)
         query_rt += granges_rt
         query_mem = max(query_mem, granges_mem)
 
