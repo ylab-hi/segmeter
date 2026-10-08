@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 # [Unreleased]
+## Changed
+- The container images are built for `linux/amd64` only: the arm64 images up to v0.14.0 shipped the x86_64 release binaries of BEDOPS, which run only where Docker translates x86_64 (Rosetta on Docker Desktop), and benchmark numbers are only meaningful on Linux x86_64 anyway; on Apple Silicon run the images with `--platform linux/amd64` ([#28](https://github.com/ylab-hi/segmeter/issues/28), [#66](https://github.com/ylab-hi/segmeter/pull/66))
 
 # [0.14.0]
 ## Added

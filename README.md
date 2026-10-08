@@ -220,6 +220,8 @@ In addition, we provide a ready-to-use Docker container that has segmeter precon
 | rust-tools | gia, granges | segmeter:rust-tools-latest |
 
 The `latest` tags follow the most recent release; for reproducible runs use a version tag instead, e.g. `others-v0.13.2` (see [Published benchmark](#published-benchmark)).
+The images are built for `linux/amd64` only (the arm64 images up to v0.14.0 ship an x86_64 BEDOPS). On Apple Silicon run them with
+`--platform linux/amd64`, which Docker Desktop translates with Rosetta; such runs are fine to verify the setup, but their timings are not comparable to native ones.
 
 This can be used with the following commands:
 ```
