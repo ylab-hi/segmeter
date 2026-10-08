@@ -55,17 +55,19 @@ def index_call(options, refdirs, label):
     runtime = 0
     mem = 0
     idx_size_mb = 0
+    def step(call): # a measured step of the index: runtime summed, memory maxed
+        nonlocal runtime, mem
+        step_rt, step_mem = tool_call(call, options.logfile)
+        runtime += step_rt
+        mem = max(mem, step_mem)
+
     if options.tool in ("bedtools_sorted", "bedtk_sorted", "tabix", "bedtools_tabix"):
         # the "index" of the sorted variants is the sorted reference, read by the query step; tabix and
         # bedtools_tabix also compress and index it
-        sort_rt, sort_mem = tool_call(f"sort -k1,1 -k2,2n -k3,3n {refdirs['ref'] / f'{label}.bed'} > {refdirs['idx'] / f'{label}.bed'}", options.logfile)
-        runtime += sort_rt
-        mem = max(mem, sort_mem)
+        step(f"sort -k1,1 -k2,2n -k3,3n {refdirs['ref'] / f'{label}.bed'} > {refdirs['idx'] / f'{label}.bed'}")
 
-    if options.tool == "tabix" or options.tool == "bedtools_tabix":
-        bgzip_rt, bgzip_mem = tool_call(f"bgzip -f {refdirs['idx'] / f'{label}.bed'} > {refdirs['idx'] / f'{label}.bed.gz'}", options.logfile)
-        runtime += bgzip_rt
-        mem = max(mem, bgzip_mem)
+    if options.tool in ("tabix", "bedtools_tabix"):
+        step(f"bgzip -f {refdirs['idx'] / f'{label}.bed'} > {refdirs['idx'] / f'{label}.bed.gz'}")
 
         # determine size of the index (in MB) - gzipped and tabixed
         bgzip_size = os.stat(refdirs['idx'] / f'{label}.bed.gz').st_size
@@ -73,28 +75,18 @@ def index_call(options, refdirs, label):
         idx_size_mb += bgzip_size_mb
 
         # create tabix index
-        tabix_rt, tabix_mem = tool_call(f"tabix -f -C -p bed {refdirs['idx'] / f'{label}.bed'}.gz", options.logfile)
-        runtime += tabix_rt
-        mem = max(mem, tabix_mem)
+        step(f"tabix -f -C -p bed {refdirs['idx'] / f'{label}.bed'}.gz")
 
         csi_size = os.stat(refdirs['idx'] / f'{label}.bed.gz.csi').st_size
         csi_size_mb = round(csi_size/(1024*1024), 5)
         idx_size_mb += csi_size_mb
 
-    elif options.tool == "bedops" or options.tool == "bedmaps":
-        sort_rt, sort_mem = tool_call(f"sort -k1,1 -k2,2n -k3,3n {refdirs['ref'] / f'{label}.bed'} > {refdirs['idx'] / f'{label}.bed'}", options.logfile)
-        runtime += sort_rt
-        mem = max(mem, sort_mem)
-
+    elif options.tool in ("bedops", "bedmaps"):
+        step(f"sort -k1,1 -k2,2n -k3,3n {refdirs['ref'] / f'{label}.bed'} > {refdirs['idx'] / f'{label}.bed'}")
 
     elif options.tool == "giggle":
-        sort_rt, sort_mem = tool_call(f"bash /giggle/scripts/sort_bed {refdirs['ref'] / f'{label}.bed'} {refdirs['idx']} 4", options.logfile)
-        runtime += sort_rt
-        mem = max(mem, sort_mem)
-
-        giggle_rt, giggle_mem = tool_call(f"giggle index -i {refdirs['idx'] / f'{label}.bed.gz'} -o {refdirs['idx'] / f'{label}_index'} -f -s", options.logfile)
-        runtime += giggle_rt
-        mem = max(mem, giggle_mem)
+        step(f"bash /giggle/scripts/sort_bed {refdirs['ref'] / f'{label}.bed'} {refdirs['idx']} 4")
+        step(f"giggle index -i {refdirs['idx'] / f'{label}.bed.gz'} -o {refdirs['idx'] / f'{label}_index'} -f -s")
 
         indexpath = Path(options.datadir) / "bench" / options.benchname / options.tool
         # for some reason the giggle index is not created in ./giggle/idx/<index> but in ./giggle/<index> - so use this path
@@ -110,9 +102,7 @@ def index_call(options, refdirs, label):
         idxoutdir.mkdir(parents=True, exist_ok=True)
         shutil.copy2(refdirs['ref'] / f'{label}.bed', idxindir / f'{label}.bed')
 
-        igd_rt, igd_mem = tool_call(f"igd create {idxindir} {idxoutdir} {label}", options.logfile)
-        runtime += igd_rt
-        mem = max(mem, igd_mem)
+        step(f"igd create {idxindir} {idxoutdir} {label}")
 
         igd_size = index_size(idxoutdir)
         igd_size_mb = round(igd_size/(1024*1024), 5)
@@ -140,64 +130,50 @@ def query_call(options, label, reffiles, queryfile):
 
     query_rt = 0
     query_mem = 0
+    def step(call): # a measured step of the query: runtime summed, memory maxed
+        nonlocal query_rt, query_mem
+        step_rt, step_mem = tool_call(call, options.logfile)
+        query_rt += step_rt
+        query_mem = max(query_mem, step_mem)
+
     if options.tool == "tabix":
-        query_rt, query_mem = tool_call(f"tabix {reffiles['idx']} -R {queryfile} > {tmpfile.name}", options.logfile)
+        step(f"tabix {reffiles['idx']} -R {queryfile} > {tmpfile.name}")
 
     elif options.tool == "bedtools":
-        query_rt, query_mem = tool_call(f"bedtools intersect -wa -a {reffiles['ref-unsrt']} -b {queryfile} > {tmpfile.name}", options.logfile)
+        step(f"bedtools intersect -wa -a {reffiles['ref-unsrt']} -b {queryfile} > {tmpfile.name}")
 
-    elif options.tool == "bedtools_sorted" or options.tool == "bedtools_tabix":
+    elif options.tool in ("bedtools_sorted", "bedtools_tabix"):
         # first sort the query file
         query_sorted = scratch / "query_sorted.bed"
-        sort_rt, sort_mem = tool_call(f"sort -k1,1 -k2,2n -k3,3n {queryfile} > {query_sorted}", options.logfile)
-
-        query_rt += sort_rt
-        query_mem = max(query_mem, sort_mem)
+        step(f"sort -k1,1 -k2,2n -k3,3n {queryfile} > {query_sorted}")
 
         # the sweep algorithm of bedtools (-sorted) on the reference of the index step: the sorted file for
         # bedtools_sorted, the bgzipped one for bedtools_tabix (bedtools cannot use the tabix index for random access)
         genome = sorted_genome(reffiles, label)
-        bedtools_rt, bedtools_mem = tool_call(f"bedtools intersect -sorted -g {genome} -wa -a {reffiles['idx']} -b {query_sorted} > {tmpfile.name}", options.logfile)
-        query_rt += bedtools_rt
-        query_mem = max(query_mem, bedtools_mem)
+        step(f"bedtools intersect -sorted -g {genome} -wa -a {reffiles['idx']} -b {query_sorted} > {tmpfile.name}")
 
     elif options.tool == "bedops":
         # first sort the query file
         query_sorted = scratch / "query_sorted.bed"
-        sort_rt, sort_mem = tool_call(f"sort -k1,1 -k2,2n -k3,3n {queryfile} > {query_sorted}", options.logfile)
-        query_rt += sort_rt
-        query_mem = max(query_mem, sort_mem)
+        step(f"sort -k1,1 -k2,2n -k3,3n {queryfile} > {query_sorted}")
 
-        bedops_rt = 0
-        bedops_mem = 0
         if "complex" in str(queryfile):
-            bedops_rt, bedops_mem = tool_call(f"bedmap --echo-map --multidelim '\n' {query_sorted} {reffiles['idx']} > {tmpfile.name}", options.logfile)
+            step(f"bedmap --echo-map --multidelim '\n' {query_sorted} {reffiles['idx']} > {tmpfile.name}")
         else: # basic queries and arbitrary target/query pairs; the reference is the sorted one of the index step
-            bedops_rt, bedops_mem = tool_call(f"bedops --element-of 1 {reffiles['idx']} {query_sorted} > {tmpfile.name}", options.logfile)
-        query_rt += bedops_rt
-        query_mem = max(query_mem, bedops_mem)
+            step(f"bedops --element-of 1 {reffiles['idx']} {query_sorted} > {tmpfile.name}")
 
     elif options.tool == "bedmaps":
         # first sort the query file
         query_sorted = scratch / "query_sorted.bed"
-        sort_rt, sort_mem = tool_call(f"sort -k1,1 -k2,2n -k3,3n {queryfile} > {query_sorted}", options.logfile)
-        query_rt += sort_rt
-        query_mem = max(query_mem, sort_mem)
-
-        bedops_rt, bedops_mem = tool_call(f"bedmap --echo-map --multidelim '\n' {query_sorted} {reffiles['idx']} > {tmpfile.name}", options.logfile)
-        query_rt += bedops_rt
-        query_mem = max(query_mem, bedops_mem)
+        step(f"sort -k1,1 -k2,2n -k3,3n {queryfile} > {query_sorted}")
+        step(f"bedmap --echo-map --multidelim '\n' {query_sorted} {reffiles['idx']} > {tmpfile.name}")
 
     elif options.tool == "giggle":
-        sort_rt, sort_mem = tool_call(f" bash /giggle/scripts/sort_bed {queryfile} {scratch} 4", options.logfile)
-        query_rt += sort_rt
-        query_mem = max(query_mem, sort_mem)
+        step(f" bash /giggle/scripts/sort_bed {queryfile} {scratch} 4")
 
         indexpath = Path(options.datadir) / "bench" / options.benchname / options.tool
         # for some reason the giggle index is not created in ./giggle/idx/<index> but in ./giggle/<index> - so use this path
-        giggle_rt, giggle_mem = tool_call(f"/giggle/bin/giggle search -i {indexpath / f'{label}_index'} -q {scratch / f'{queryfile.name}.gz'} -v > {tmpfile.name}", options.logfile)
-        query_rt += giggle_rt
-        query_mem = max(query_mem, giggle_mem)
+        step(f"/giggle/bin/giggle search -i {indexpath / f'{label}_index'} -q {scratch / f'{queryfile.name}.gz'} -v > {tmpfile.name}")
 
     elif options.tool == "granges":
         # granges needs the .tsv suffix: copy reference and query (not measured)
@@ -213,16 +189,14 @@ def query_call(options, label, reffiles, queryfile):
         lines = Path(reffiles['chromlens']).read_text().splitlines()
         genome.write_text("".join(line + "\n" for line in sorted(lines, key=lambda line: utility.chrom_sort_key(line.split("\t")[0]))))
 
-        granges_rt, granges_mem = tool_call(f"granges filter --genome {genome} --left {ref_tsv} --right {query_tsv} > {tmpfile.name}", options.logfile)
-        query_rt += granges_rt
-        query_mem = max(query_mem, granges_mem)
+        step(f"granges filter --genome {genome} --left {ref_tsv} --right {query_tsv} > {tmpfile.name}")
 
     elif options.tool == "gia":
-        query_rt, query_mem = tool_call(f"gia intersect -a {queryfile} -b {reffiles['ref-unsrt']} -t > {tmpfile.name}", options.logfile)
+        step(f"gia intersect -a {queryfile} -b {reffiles['ref-unsrt']} -t > {tmpfile.name}")
 
     elif options.tool == "bedtk":
         tmpfile2 = scratch / "tool_output.txt"
-        query_rt, query_mem = tool_call(f"bedtk flt {queryfile} {reffiles['ref-unsrt']} > {tmpfile2}", options.logfile)
+        step(f"bedtk flt {queryfile} {reffiles['ref-unsrt']} > {tmpfile2}")
 
         # need to add duplicates to the results (ensures that the precision for complex queries is fair)
         # bedtk is not able to report duplicates - we use bedtools for this
@@ -232,14 +206,10 @@ def query_call(options, label, reffiles, queryfile):
 
     elif options.tool == "bedtk_sorted":
         query_sorted = scratch / "query_sorted.bed"
-        sort_rt, sort_mem = tool_call(f"sort -k1,1 -k2,2n -k3,3n {queryfile} > {query_sorted}", options.logfile)
-        query_rt += sort_rt
-        query_mem = max(query_mem, sort_mem)
+        step(f"sort -k1,1 -k2,2n -k3,3n {queryfile} > {query_sorted}")
 
         tmpfile2 = scratch / "tool_output.txt"
-        bedtk_rt, bedtk_mem = tool_call(f"bedtk flt {query_sorted} {reffiles['idx']} > {tmpfile2}", options.logfile)
-        query_rt += bedtk_rt
-        query_mem = max(query_mem, bedtk_mem)
+        step(f"bedtk flt {query_sorted} {reffiles['idx']} > {tmpfile2}")
 
         call = f"bedtools intersect -wa -a {tmpfile2} -b {queryfile} > {tmpfile.name}"
         subprocess.run(call, shell=True, check=True)
@@ -247,19 +217,17 @@ def query_call(options, label, reffiles, queryfile):
     elif options.tool == "awk":
         # determine the path to the awk script
         script_path = Path(__file__).parent / "tools" / "intersect_awk.py"
-        query_rt, query_mem = tool_call(f"python3 {script_path} -t {queryfile} -q {reffiles['ref-unsrt']} > {tmpfile.name}", options.logfile)
+        step(f"python3 {script_path} -t {queryfile} -q {reffiles['ref-unsrt']} > {tmpfile.name}")
 
     elif options.tool == "intervaltree":
         # determine the path to the intervaltree script
         script_path = Path(__file__).parent / "tools" / "intersect_intervaltree.py"
-        query_rt, query_mem = tool_call(f"python3 {script_path} -q {queryfile} -t {reffiles['ref-unsrt']} -r target -o {tmpfile.name}", options.logfile)
+        step(f"python3 {script_path} -q {queryfile} -t {reffiles['ref-unsrt']} -r target -o {tmpfile.name}")
 
     elif options.tool == "igd":
         tmpfile2 = scratch / "tool_output.txt"
         idxpath = Path(options.datadir) / "bench" / options.benchname / options.tool / "idx"
-        igd_rt, igd_mem = tool_call(f"igd search {idxpath / f'{label}_out' / f'{label}.igd'} -q {queryfile} -f > {tmpfile2}", options.logfile)
-        query_rt += igd_rt
-        query_mem = max(query_mem, igd_mem)
+        step(f"igd search {idxpath / f'{label}_out' / f'{label}.igd'} -q {queryfile} -f > {tmpfile2}")
 
         # process the igd output to match the output of other tools (e.g., BED format)
         chrom = ""
@@ -276,9 +244,7 @@ def query_call(options, label, reffiles, queryfile):
 
     elif options.tool == "ailist":
         tmpfile2 = scratch / "tool_output.txt"
-        ailist_rt, alilist_mem = tool_call(f"ailist {reffiles['ref-unsrt']} {queryfile} > {tmpfile2}", options.logfile)
-        query_rt += ailist_rt
-        query_mem = max(query_mem, alilist_mem)
+        step(f"ailist {reffiles['ref-unsrt']} {queryfile} > {tmpfile2}")
 
         # process the ailist output to match the output of other tools (e.g., BED format)
         # extract the lines that contain the overlaps (4th column contains the number of overlaps) - repeat lines
@@ -291,7 +257,7 @@ def query_call(options, label, reffiles, queryfile):
         fh.close()
 
     elif options.tool == "ucsc":
-        query_rt, query_mem = tool_call(f"bedIntersect -aHitAny {reffiles['ref-unsrt']} {queryfile} {tmpfile.name}", options.logfile)
+        step(f"bedIntersect -aHitAny {reffiles['ref-unsrt']} {queryfile} {tmpfile.name}")
 
     tmpfile.close()
     shutil.rmtree(scratch)
