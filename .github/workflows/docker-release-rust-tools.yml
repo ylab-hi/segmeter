@@ -16,11 +16,6 @@ jobs:
         with:
           ref: ${{ github.ref }}
 
-      - name: setup QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: linux/amd64
-
       - name: set up docker buildx
         uses: docker/setup-buildx-action@v2
         with:
