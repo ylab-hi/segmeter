@@ -44,7 +44,7 @@ TOOLS = [
 ]
 READS_INDEX = {"tabix", "bedtools_sorted", "bedtools_tabix", "bedtk_sorted", "bedops", "bedmaps", "igd"} # query reads refdirs["idx"]
 # the complex score counts the output lines against the (query, reference) pairs (#34); these report a reference
-# once however many queries hit it, like `bedtk flt` before its bedtools step, so the score counts the missing lines as distance
+# once however many queries hit it, like `bedtk flt` before its bedtools step, so the score counts the missing lines as distance (#69)
 ONCE_PER_REFERENCE = {"awk", "ucsc", "granges"}
 CHROMS = ["chr1", "chr2", "chr10", "chrX"]
 LABEL, NUM = "L", 5000
@@ -130,7 +130,7 @@ def test_query_tools():
     with tempfile.TemporaryDirectory() as tmp:
         datadir = Path(tmp)
         expected, pairs, touching = make_data(datadir)
-        assert 0 < len(expected) < pairs and touching > 0
+        assert 0 < len(expected) < pairs and touching > 0 # the seeds give duplicates and a touching pair (for giggle); a reseed must keep both
         tempfile.tempdir = str(datadir / "tmp") # every temporary file of the queries lands here (#2)
         (datadir / "tmp").mkdir()
         failed = []
@@ -152,7 +152,9 @@ def test_query_tools():
                 # (basic queries only) reports it once.
                 if tool != "bedops" or qdir == "complex":
                     _, lines = run_tool(tool, indexed, datadir, datadir / qdir / "C.bed", index=False)
-                    want = len(expected) if tool in ONCE_PER_REFERENCE else pairs + touching * (tool == "giggle") # giggle counts a touching reference as a hit
+                    # giggle treats intervals as closed on both ends, so a reference touching the query on either side is a
+                    # hit (#70); the simulator leaves a gap between intervals, so this never affects a simulated score
+                    want = len(expected) if tool in ONCE_PER_REFERENCE else pairs + (touching if tool == "giggle" else 0)
                     print(f"{'ok' if lines == want else 'FAIL'} {tool} ({qdir}, complex): {lines} lines, {want} expected for {pairs} pairs")
                     if lines != want:
                         failed.append(f"{tool} ({qdir}, complex)")
