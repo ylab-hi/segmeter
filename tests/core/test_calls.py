@@ -102,8 +102,10 @@ def test_index_steps_counted():
                 made = [Path(call.rsplit(">", 1)[1].strip())] if ">" in call else []
                 if call.startswith("tabix "):
                     made.append(Path(call.split()[-1] + ".csi"))
-                if call.startswith("giggle index"): # giggle writes the index next to idx/, see index_call
-                    made.append(tmp / "bench" / "b" / "giggle" / "L_index")
+                if call.startswith("giggle index"): # a directory of files, next to idx/ (see index_call)
+                    made.append(tmp / "bench" / "b" / "giggle" / "L_index" / "cache.0.dat")
+                if call.startswith("igd create"): # igd create <in> <out> <label>: a directory with <label>.igd
+                    made.append(Path(call.split()[3]) / "L.igd")
                 for path in made:
                     path.parent.mkdir(parents=True, exist_ok=True)
                     path.write_bytes(b"x" * 2**20)
@@ -120,9 +122,8 @@ def test_index_steps_counted():
                         rt, mem, size = calls.index_call(options, refdirs, "L")
                     assert rt == 0.5 * len(steps), f"{tool}: {rt} s for {len(steps)} steps"
                     assert mem == max(memory[:len(steps)], default=0), f"{tool}: {mem} MB, steps {memory[:len(steps)]}"
-                    if tool in ("giggle", "igd"): # the index size is os.stat of a directory (#61), not asserted
-                        continue
-                    assert size == {"tabix": 2.0, "bedtools_tabix": 2.0}.get(tool, 0), f"{tool}: index size {size} MB"
+                    expected = {"tabix": 2.0, "bedtools_tabix": 2.0, "giggle": 1.0, "igd": 1.0}.get(tool, 0) # 1 MB per index file
+                    assert size == expected, f"{tool}: index size {size} MB, expected {expected}"
             finally:
                 calls.tool_call = original
 
