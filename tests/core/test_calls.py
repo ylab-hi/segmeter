@@ -126,6 +126,18 @@ def test_index_steps_counted():
                     assert size == expected, f"{tool}: index size {size} MB, expected {expected}"
             finally:
                 calls.tool_call = original
+        shutil.rmtree(tmp / "idx")
+        (tmp / "idx").mkdir()
+        for missing in [tmp / "nope", tmp / "idx"]: # no index: a missing path, an empty directory
+            assert raises(RuntimeError if missing.exists() else FileNotFoundError, calls.index_size, missing), missing
+
+
+def raises(exception, func, *args):
+    try:
+        func(*args)
+    except exception:
+        return True
+    return False
 
 
 if __name__ == "__main__":

@@ -40,9 +40,13 @@ def tool_call(call, logfile):
     return runtime, mem
 
 def index_size(path):
-    """Bytes of an index: the file, or the files below the directory (giggle and igd write a directory, #61)"""
+    """Bytes of an index: the file, or the files below the directory (giggle and igd write a directory, #61).
+    Raises when there is no index: a missing path, or nothing written to it (no index is 0 bytes)."""
     path = Path(path)
-    return path.stat().st_size if path.is_file() else sum(f.stat().st_size for f in path.rglob("*") if f.is_file())
+    size = sum(f.stat().st_size for f in path.rglob("*") if f.is_file()) if path.is_dir() else path.stat().st_size
+    if size == 0:
+        raise RuntimeError(f"no index found at {path}")
+    return size
 
 def index_call(options, refdirs, label):
     """Tabix creates the index in the same folder as the input file."""
