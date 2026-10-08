@@ -1,5 +1,6 @@
 """Every tool of `segmeter bench` reports exactly the reference intervals that overlap a query, in
-simulated-data mode (`bench -r`) and in real-data mode (`bench --target --query`, #19/#33).
+simulated-data mode (`bench -r`) and in real-data mode (`bench --target --query`, #19/#33), and
+reports one output line per (query, reference) pair, which the complex score counts (#34).
 Run with `python3 tests/tools/test_query.py` (or pytest). Needs `/usr/bin/time`; a tool that is not
 installed is skipped, so the full table only runs across the project containers."""
 import contextlib
@@ -42,6 +43,9 @@ TOOLS = [
     ("ucsc", "bedIntersect", False, "query"),
 ]
 READS_INDEX = {"tabix", "bedtools_sorted", "bedtools_tabix", "bedtk_sorted", "bedops", "bedmaps", "igd"} # query reads refdirs["idx"]
+# the complex score counts the output lines against the (query, reference) pairs (#34); these report a reference
+# once however many queries hit it, like `bedtk flt` before its bedtools step, so the score counts the missing lines as distance (#69)
+ONCE_PER_REFERENCE = {"awk", "ucsc", "granges"}
 CHROMS = ["chr1", "chr2", "chr10", "chrX"]
 LABEL, NUM = "L", 5000
 
@@ -78,32 +82,36 @@ def make_data(datadir):
     utility.sort_BED(sim / "ref" / f"{LABEL}.bed", sim / "ref" / f"{LABEL}_sorted.bed")
     # not in natural chromosome order, like the simulator's random order: granges needs it reordered (#36)
     (sim / f"{LABEL}_chromlens.txt").write_text("".join(f"{c}\t2000000\n" for c in reversed(CHROMS)))
+    # ponytail: O(ref * query) oracle, fine for 5000 x 500
+    hits = {q: [r for r in ref if r[0] == q[0] and q[1] < r[2] and r[1] < q[2]] for q in queries}
     for qdir in {row[3] for row in TOOLS}:
         (datadir / qdir).mkdir()
         write_bed(datadir / qdir / "Q.bed", queries)
-    # ponytail: O(ref * query) oracle, fine for 5000 x 500
-    return {(c, str(s), str(e)) for c, s, e, _ in ref
-            if any(qc == c and qs < e and s < qe for qc, qs, qe, _ in queries)}
+        write_bed(datadir / qdir / "C.bed", [q for q in queries if hits[q]]) # like the simulated complex queries: every one has hits
+    expected = {(c, str(s), str(e)) for q in queries for c, s, e, _ in hits[q]}
+    touching = sum(r[0] == q[0] and (q[1] == r[2] or r[1] == q[2]) for q in queries if hits[q] for r in ref)
+    return expected, sum(map(len, hits.values())), touching
 
 
 def intervals(text):
     return {tuple(line.split("\t")[:3]) for line in text.splitlines() if line and not line.startswith("#")}
 
 
-def run_tool(tool, indexed, datadir, queryfile):
+def run_tool(tool, indexed, datadir, queryfile, index=True):
+    """One query call; `index=False` reuses the index of an earlier call."""
     options = types.SimpleNamespace(simdata=True, tool=tool, idx_based_tools=[tool] if indexed else [],
                                     datadir=str(datadir), simname="sim_001", format="BED",
                                     benchname="bench_001", logfile=io.StringIO())
     bench = BenchTool(options)
-    if indexed:
+    if indexed and index:
         calls.index_call(options, bench.refdirs, LABEL)
     logged = options.logfile.tell()
     _, _, out = calls.query_call(options, LABEL, bench.get_reffiles(LABEL), queryfile)
     if tool in READS_INDEX: # the query must read what the index step wrote, not the simulator's sorted copy (#39)
         assert str(bench.refdirs["idx"]) in options.logfile.getvalue()[logged:], f"{tool}: query does not read its index"
-    found = intervals(Path(out.name).read_text())
+    found, lines = intervals(Path(out.name).read_text()), utility.file_linecounter(out.name) # the set (basic score) and the raw line count (complex score)
     Path(out.name).unlink() # the caller removes the tool's output, like BenchTool does
-    return found
+    return found, lines
 
 
 def run_real(tool, datadir, target, queryfile):
@@ -121,8 +129,8 @@ def run_real(tool, datadir, target, queryfile):
 def test_query_tools():
     with tempfile.TemporaryDirectory() as tmp:
         datadir = Path(tmp)
-        expected = make_data(datadir)
-        assert 0 < len(expected) < NUM
+        expected, pairs, touching = make_data(datadir)
+        assert 0 < len(expected) < pairs and touching > 0 # the seeds give duplicates and a touching pair (for giggle); a reseed must keep both
         tempfile.tempdir = str(datadir / "tmp") # every temporary file of the queries lands here (#2)
         (datadir / "tmp").mkdir()
         failed = []
@@ -131,7 +139,7 @@ def test_query_tools():
                 if not available(requirement):
                     print(f"skip {tool}: {requirement} not installed")
                     continue
-                runs = {"sim": run_tool(tool, indexed, datadir, datadir / qdir / "Q.bed")}
+                runs = {"sim": run_tool(tool, indexed, datadir, datadir / qdir / "Q.bed")[0]}
                 if qdir == "query": # bedops' basic/complex rows are simulated-data only
                     runs["real"] = run_real(tool, datadir, datadir / "sim" / "sim_001" / "BED" / "ref" / f"{LABEL}.bed",
                                             datadir / qdir / "Q.bed")
@@ -139,11 +147,22 @@ def test_query_tools():
                     print(f"{'ok' if got == expected else 'FAIL'} {tool} ({qdir}, {mode}): {len(got)} of {len(expected)} overlaps")
                     if got != expected:
                         failed.append(f"{tool} ({qdir}, {mode})")
+                # complex score (#34): get_precision counts the output lines against the (query, reference) pairs,
+                # so a tool must report a reference once per query that hits it; bedops' --element-of branch
+                # (basic queries only) reports it once.
+                if tool != "bedops" or qdir == "complex":
+                    _, lines = run_tool(tool, indexed, datadir, datadir / qdir / "C.bed", index=False)
+                    # giggle treats intervals as closed on both ends, so a reference touching the query on either side is a
+                    # hit (#70); the simulator leaves a gap between intervals, so this never affects a simulated score
+                    want = len(expected) if tool in ONCE_PER_REFERENCE else pairs + (touching if tool == "giggle" else 0)
+                    print(f"{'ok' if lines == want else 'FAIL'} {tool} ({qdir}, complex): {lines} lines, {want} expected for {pairs} pairs")
+                    if lines != want:
+                        failed.append(f"{tool} ({qdir}, complex)")
                 leftover = os.listdir(tempfile.tempdir)
                 assert not leftover, f"{tool} leaves temporary files behind: {leftover}"
         finally:
             tempfile.tempdir = None # also after a failure, so later tempfile calls do not use the deleted directory
-        assert not failed, f"{failed} report other overlaps than expected"
+        assert not failed, f"{failed} differ from the oracle"
 
 
 if __name__ == "__main__":

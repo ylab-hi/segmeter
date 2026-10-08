@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 # [Unreleased]
+## Added
+- `tests/tools/test_query.py` also checks the complex-query invariant: every tool is run a second time on the queries that have hits (like the simulated complex queries) and the raw line count of its output, which `get_precision` scores complex queries by, must equal the number of overlapping (query, reference) pairs of the oracle. The test records two tool behaviours as expected values: `awk`, `ucsc` and `granges` report a reference once however many queries hit it (like `bedtk flt` before its bedtools step), so their complex distance is the number of missing duplicates, and `giggle` treats intervals as closed on both ends, so a reference that touches the query is a hit (the simulator leaves a gap between intervals, so this never affects a simulated score). Test only; the tool commands, the data and the measured values are unchanged ([#34](https://github.com/ylab-hi/segmeter/issues/34), [#68](https://github.com/ylab-hi/segmeter/pull/68))
 
 # [0.14.1]
 ## Changed
