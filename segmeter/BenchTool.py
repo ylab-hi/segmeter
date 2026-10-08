@@ -67,7 +67,7 @@ class BenchTool:
             reffiles["truth-complex"] = self.refdirs["truth-complex"] / f"{label}.bed"
 
         # create index if necessary
-        if self.options.tool == "tabix" or self.options.tool == "bedtools_tabix":
+        if self.options.tool in ("tabix", "bedtools_tabix"):
             reffiles["idx"] = self.refdirs["idx"] / f"{label}.bed.gz"
         elif self.options.tool in ["bedtools_sorted", "bedtk_sorted", "bedops", "bedmaps"]:
             reffiles["idx"] = self.refdirs["idx"] / f"{label}.bed"
