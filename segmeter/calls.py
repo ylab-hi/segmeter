@@ -39,6 +39,15 @@ def tool_call(call, logfile):
 
     return runtime, mem
 
+def index_size(path):
+    """Bytes of an index: the file, or the files below the directory (giggle and igd write a directory, #61).
+    Raises when there is no index: a missing path, or nothing written to it (no index is 0 bytes)."""
+    path = Path(path)
+    size = sum(f.stat().st_size for f in path.rglob("*") if f.is_file()) if path.is_dir() else path.stat().st_size
+    if size == 0:
+        raise RuntimeError(f"no index found at {path}")
+    return size
+
 def index_call(options, refdirs, label):
     """Tabix creates the index in the same folder as the input file."""
     print(f"Indexing {refdirs['ref'] / f'{label}.bed'} with {options.tool}...")
@@ -89,7 +98,7 @@ def index_call(options, refdirs, label):
 
         indexpath = Path(options.datadir) / "bench" / options.benchname / options.tool
         # for some reason the giggle index is not created in ./giggle/idx/<index> but in ./giggle/<index> - so use this path
-        giggle_size = os.stat(indexpath / f'{label}_index').st_size
+        giggle_size = index_size(indexpath / f'{label}_index')
         giggle_size_mb = round(giggle_size/(1024*1024), 5)
         idx_size_mb += giggle_size_mb
 
@@ -105,7 +114,7 @@ def index_call(options, refdirs, label):
         runtime += igd_rt
         mem = max(mem, igd_mem)
 
-        igd_size = os.stat(idxoutdir).st_size
+        igd_size = index_size(idxoutdir)
         igd_size_mb = round(igd_size/(1024*1024), 5)
         idx_size_mb += igd_size_mb
 
