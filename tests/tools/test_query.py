@@ -3,6 +3,7 @@ simulated-data mode (`bench -r`) and in real-data mode (`bench --target --query`
 reports one output line per (query, reference) pair, which the complex score counts (#34).
 Run with `python3 tests/tools/test_query.py` (or pytest). Needs `/usr/bin/time`; a tool that is not
 installed is skipped, so the full table only runs across the project containers."""
+import collections
 import contextlib
 import importlib.util
 import io
@@ -86,9 +87,9 @@ def make_data(datadir):
     # like the simulated complex queries: every one has hits, and the path says "complex", which selects the bedmap branch of
     # bedops and the duplicates pass of bedtk, granges and ucsc (#69)
     write_bed(datadir / "complex" / "C.bed", [q for q in queries if hits[q]])
-    expected = {(c, str(s), str(e)) for q in queries for c, s, e, _ in hits[q]}
+    pairs = collections.Counter((c, str(s), str(e)) for q in queries for c, s, e, _ in hits[q]) # reference -> number of queries hitting it
     touching = sum(r[0] == q[0] and (q[1] == r[2] or r[1] == q[2]) for q in queries if hits[q] for r in ref)
-    return expected, sum(map(len, hits.values())), touching
+    return set(pairs), pairs, touching
 
 
 def intervals(text):
@@ -107,9 +108,10 @@ def run_tool(tool, indexed, datadir, queryfile, index=True):
     _, _, out = calls.query_call(options, LABEL, bench.get_reffiles(LABEL), queryfile)
     if tool in READS_INDEX: # the query must read what the index step wrote, not the simulator's sorted copy (#39)
         assert str(bench.refdirs["idx"]) in options.logfile.getvalue()[logged:], f"{tool}: query does not read its index"
-    found, lines = intervals(Path(out.name).read_text()), utility.file_linecounter(out.name) # the set (basic score) and the raw line count (complex score)
+    text = Path(out.name).read_text()
     Path(out.name).unlink() # the caller removes the tool's output, like BenchTool does
-    return found, lines
+    # the set of references (basic score) and how often each is reported (complex score: one line per (query, reference) pair)
+    return intervals(text), collections.Counter(tuple(line.split("\t")[:3]) for line in text.splitlines() if line and not line.startswith("#"))
 
 
 def run_real(tool, datadir, target, queryfile):
@@ -127,7 +129,7 @@ def test_query_tools():
     with tempfile.TemporaryDirectory() as tmp:
         datadir = Path(tmp)
         expected, pairs, touching = make_data(datadir)
-        assert 0 < len(expected) < pairs and touching > 0 # the seeds give duplicates and a touching pair (giggle must not report it, #70); a reseed must keep both
+        assert 0 < len(expected) < sum(pairs.values()) and touching > 0 # the seeds give duplicates and a touching pair (giggle must not report it, #70); a reseed must keep both
         tempfile.tempdir = str(datadir / "tmp") # every temporary file of the queries lands here (#2)
         (datadir / "tmp").mkdir()
         failed = []
@@ -148,9 +150,10 @@ def test_query_tools():
                 # so a tool must report a reference once per query that hits it (bedtk, granges and ucsc get their
                 # duplicates back in query_call for complex query files, #69); the basic rows above run on the raw output
                 if tool != "bedops" or qdir == "complex": # once per tool
-                    _, lines = run_tool(tool, indexed, datadir, datadir / "complex" / "C.bed", index=False)
-                    print(f"{'ok' if lines == pairs else 'FAIL'} {tool} ({qdir}, complex): {lines} lines for {pairs} pairs")
-                    if lines != pairs:
+                    _, counts = run_tool(tool, indexed, datadir, datadir / "complex" / "C.bed", index=False)
+                    print(f"{'ok' if counts == pairs else 'FAIL'} {tool} ({qdir}, complex): {sum(counts.values())} lines for {sum(pairs.values())} pairs, "
+                          f"{sum(counts[r] != pairs[r] for r in counts.keys() | pairs.keys())} references with a wrong count")
+                    if counts != pairs:
                         failed.append(f"{tool} ({qdir}, complex)")
                 leftover = os.listdir(tempfile.tempdir)
                 assert not leftover, f"{tool} leaves temporary files behind: {leftover}"

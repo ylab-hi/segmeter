@@ -44,13 +44,14 @@ def test_validate():
 def test_negatives_file():
     """Every FP/FN of a subset is written to the negatives file."""
     precision = {"basic": {10: {"TP": 1, "FP": 1, "TN": 0, "FN": 1, "negatives": ["intvl_1_5p:intvl_1\tFN\n", "intvl_2_mid-gap1:intvl_2\tFP\n"]}},
-                 "complex": {10: {"dist": 3}}}
+                 "complex": {10: {"TP": 3, "FP": 1, "FN": 0, "dist": 3}}}
     with tempfile.TemporaryDirectory() as tmp:
         stats, negatives = Path(tmp) / "precision.txt", Path(tmp) / "negatives.txt"
         BenchBase.__new__(BenchBase).save_query_prec_stats(100, precision, stats, negatives)
         assert negatives.read_text().splitlines()[1:] == ["intvl_1_5p:intvl_1\tFN", "intvl_2_mid-gap1:intvl_2\tFP"]
         assert stats.read_text().splitlines()[1] == "100\t10%\t1\t1\t0\t1\t0.5\t0.5\t0.5"
-        assert stats.read_text().splitlines()[-1] == "100\t10bin\t3"
+        assert stats.read_text().splitlines()[-2] == "intvlnum\tbin\tTP\tFP\tFN\tPrecision\tRecall\tF1\tdistance"
+        assert stats.read_text().splitlines()[-1] == f"100\t10bin\t3\t1\t0\t0.75\t1.0\t{2 * 0.75 / 1.75}\t3"
 
 
 def test_query_intervals():
@@ -69,6 +70,7 @@ def test_query_intervals():
             (bench.querydirs["basic"][query] / "L_10p.bed").write_text("".join("\t".join(row) + "\n" for row in rows))
             truth += ["\t".join(row + r + (f"intvl_{i}_{query}:intvl_{i}",)) + "\n" for i, (row, r) in enumerate(zip(rows, ref))]
         (sim / "basic" / "truth" / "L.bed").write_text("".join(truth))
+        (sim / "ref" / "L_sorted.bed").write_text("".join("\t".join(r) + "\n" for r in ref)) # the complex score reads it (#74)
         (sim / "complex" / "truth" / "L.bed").write_text("chr1\t100\t400\tmult_2\t2\n")
         (bench.querydirs["complex"]["mult"] / "L_10bin.bed").write_text("chr1\t100\t400\tmult_2\n")
         result = Path(tmp) / "result.bed"
@@ -90,7 +92,7 @@ def test_query_intervals():
     basic = precision["basic"][10] # five interval types and five gap types, one of two intervals reported
     assert (basic["TP"], basic["FN"], basic["FP"], basic["TN"]) == (5, 5, 5, 5)
     assert len(basic["negatives"]) == 10
-    assert precision["complex"][10]["dist"] == 1 # two overlaps expected, one line reported
+    assert precision["complex"][10] == {"TP": 1, "FP": 0, "FN": 1, "dist": 1} # two references covered, one reported
 
 
 if __name__ == "__main__":

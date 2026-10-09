@@ -184,27 +184,35 @@ In the precision files, the precision of the tool on basic and complex queries i
 intvlnum	subset	TP	FP	TN	FN	Precision	Recall	F1
 1000	10%	500	0	500	0	1.0	1.0	1.0
 
-intvlnum	bin	distance
-1000	10bin	0
+intvlnum	bin	TP	FP	FN	Precision	Recall	F1	distance
+1000	10bin	1200	0	0	1.0	1.0	1.0	0
 ```
 
 The upper part of the file contains the precision, recall, and F1 score for the basic queries and subset (e.g., 10% of the queries).
-The lower part contains the distance which is the absolute difference between expected and observed number of intervals covered by the complex query.
-Note this only represents a decile (e.g., 10bin), in other words, the queries that cover 10% of the reference intervals per chromosome.
+The lower part scores the complex queries per decile (e.g., 10bin, the queries that cover up to 10% of the reference intervals per
+chromosome). The tools print the reference interval of a hit, not the query, so the (query, reference) pairs cannot be told apart in the
+output; what can be scored is the set of reference intervals reported for the whole bin and how often each one is reported:
 
-The distance is computed from the tool output as a whole: the expected number is the sum over the queries of the bin of the reference
-intervals each query covers, the observed number is the number of lines the tool printed, so a tool has to print a reference interval once
-per query that hits it (one line per (query, reference) pair). Most tools do, because they answer query by query (`bedtools`, `tabix`,
-`bedmap`, `giggle`, `gia`, `igd`, `intervaltree`; `ailist` prints a count per reference that segmeter expands into repeated lines).
-`bedtk flt`, `granges filter` and `bedIntersect -aHitAny` answer the other way round and print each reference that is hit by any query
-once, so their output carries no pairs (none of the three tools has a mode that prints the reference once per query: `bedtk isec`
-and plain `bedIntersect` print intersections, `granges map` one aggregated line per reference); for them segmeter runs an unmeasured
-`bedtools intersect -wa` pass over their output and the complex query file, which prints each reported reference once per query that
-overlaps it. For these three tools the complex distance therefore measures whether the tool found the right set of reference intervals
-over the bin, with the pairs taken from bedtools: a missed reference shows up as missing lines, while a reference reported although no
-query touches it is dropped by the pass. The pass runs on the complex query files only; the basic queries are scored on the raw output
-of every tool, so a false positive stays visible in the basic precision. Checking the complex pairs themselves would need one call per
-query, which is not feasible at benchmark scale.
+- **TP, FP, FN, precision, recall, F1** are computed on the set of reference intervals: expected are the intervals the queries of the
+  bin cover (a complex query runs from the start of one reference interval to the end of another, so it covers exactly the intervals
+  inside it, which segmeter finds in the sorted reference), reported are the distinct intervals in the tool output. There is no TN,
+  since a complex bin has no negative queries.
+- **distance** scores the pairs: a tool has to print a reference interval once per query that covers it, so the expected count of an
+  interval is the number of queries of the bin covering it; the distance is the sum over all intervals of the absolute difference
+  between the reported and the expected count. A missed interval covered by three queries adds 3, an interval reported once too often
+  adds 1, an interval reported although no query covers it adds 1; a missing and an extra pair do not cancel (the v0.13.x and v0.14.x
+  distance was the difference of the two line totals, where they did). A perfect tool scores 0.
+
+Most tools print one line per pair, because they answer query by query (`bedtools`, `tabix`, `bedmap`, `giggle`, `gia`, `igd`,
+`intervaltree`; `ailist` prints a count per reference that segmeter expands into repeated lines). `bedtk flt`, `granges filter` and
+`bedIntersect -aHitAny` answer the other way round and print each reference that is hit by any query once, so their output carries no
+pairs (none of the three tools has a mode that prints the reference once per query: `bedtk isec` and plain `bedIntersect` print
+intersections, `granges map` one aggregated line per reference). For them segmeter runs an unmeasured `bedtools intersect` pass over
+their output and the complex query file: `-wa` prints each reported reference once per query that overlaps it, and `-v` appends the
+reported references that no query overlaps, so the set scores see every reference the tool reported, and only the multiplicity of the
+true hits comes from bedtools. For these three tools the distance therefore cannot show a pairing error of the tool itself. The pass
+runs on the complex query files only; the basic queries are scored on the raw output of every tool. Checking the complex pairs
+themselves would need one call per query, which is not feasible at benchmark scale.
 
 #### Statistics
 

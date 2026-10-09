@@ -1,4 +1,7 @@
 # standard
+from array import array
+import bisect
+import collections
 import os
 from pathlib import Path
 
@@ -103,14 +106,14 @@ class BenchTool:
         fields["basic"] = {}
         fields["basic"][subset] = {"TP": 0, "FP": 0, "TN": 0, "FN": 0, "negatives": []}
         fields["complex"] = {}
-        fields["complex"][subset] = {"dist": 0}
+        fields["complex"][subset] = {"TP": 0, "FP": 0, "FN": 0, "dist": 0}
 
         return fields
 
-    def load_truth(self, truth_basic_file, truth_complex_file):
+    def load_truth(self, truth_basic_file, truth_complex_file, ref_sorted_file):
         truth = {}
         truth["basic"] = {}
-        truth["complex"] = {}
+        truth["complex"] = {"records": {}, "ref": {}}
 
         fh_basic = open(truth_basic_file)
         for line in fh_basic:
@@ -121,8 +124,17 @@ class BenchTool:
         fh_complex = open(truth_complex_file)
         for line in fh_complex:
             fields = line.strip().split("\t")
-            truth["complex"][(fields[0], fields[1], fields[2])] = fields[4] # only store number of records
+            truth["complex"]["records"][(fields[0], fields[1], fields[2])] = fields[4] # number of references the query covers
         fh_complex.close()
+
+        # the sorted reference per chromosome (starts and ends ascending, the intervals do not overlap): the references a
+        # complex query covers are found by bisect in get_precision (#74). Arrays, not lists: 8 bytes per coordinate
+        with open(ref_sorted_file) as fh:
+            for line in fh:
+                chrom, start, end = line.split("\t")[:3]
+                starts, ends = truth["complex"]["ref"].setdefault(chrom, (array("q"), array("q")))
+                starts.append(int(start))
+                ends.append(int(end))
 
         return truth
 
@@ -132,7 +144,7 @@ class BenchTool:
         queryfiles = self.get_queryfiles(label)
 
         # load truths
-        truth = self.load_truth(reffiles["truth-basic"], reffiles["truth-complex"])
+        truth = self.load_truth(reffiles["truth-basic"], reffiles["truth-complex"], reffiles["ref-srt"])
 
         query_times = {}
         query_memory = {}
@@ -170,7 +182,8 @@ class BenchTool:
                     query_precision[dtype][subset]["FN"] += precision["basic"]["FN"]
                     query_precision[dtype][subset]["negatives"] += precision["basic"]["negatives"]
                 elif dtype == "complex":
-                    query_precision[dtype][subset]["dist"] += precision["complex"]["dist"]
+                    for key in ("TP", "FP", "FN", "dist"):
+                        query_precision[dtype][subset][key] += precision["complex"][key]
                 os.unlink(query_result.name) # the tool's output is scored
 
 
@@ -186,7 +199,7 @@ class BenchTool:
         """Check the file for the precision of the tool"""
         precision = {
             "basic": {"TP": 0, "FP": 0, "TN": 0, "FN": 0, "negatives": []},
-            "complex": {"dist": 0}
+            "complex": {"TP": 0, "FP": 0, "FN": 0, "dist": 0}
         }
 
         if dtype == "basic":
@@ -227,19 +240,34 @@ class BenchTool:
             if os.stat(queryfile).st_size == 0:
                 return precision
 
-            results_entries_num = utility.file_linecounter(tmpfile.name)
+            # Scored on the references of the whole bin (#74): the tools print the reference of a hit, not the query, so the
+            # pairs cannot be told apart, but the set of reported references and how often each is reported can.
+            # Expected: a complex query runs from the start of one reference to the end of another and the gaps separate
+            # the neighbours, so it covers exactly the references that lie inside it, found by bisect on the sorted
+            # reference; its multiplicity is the number of queries of the bin that cover it, one output line per pair.
+            expected = collections.Counter()
+            with open(queryfile) as fhq:
+                for line in fhq:
+                    chrom, start, end = line.rstrip("\n").split("\t")[:3]
+                    starts, ends = truth["ref"][chrom]
+                    lo, hi = bisect.bisect_left(starts, int(start)), bisect.bisect_right(ends, int(end))
+                    assert hi - lo == int(truth["records"][(chrom, start, end)]), \
+                        f"{chrom}:{start}-{end} covers {hi - lo} references, the truth file says {truth['records'][(chrom, start, end)]}"
+                    for i in range(lo, hi):
+                        expected[(chrom, starts[i], ends[i])] += 1
 
-            truth_entries_num = 0
-            fht = open(queryfile)
-            for line in fht:
-                cols = line.strip().split("\t")
-                query = tuple(cols[0:3])
-                truthquery = truth[query]
-                truth_entries_num += int(truthquery)
-            fht.close()
-            if results_entries_num != 0:
-                precision["complex"]["dist"] = abs(results_entries_num - truth_entries_num)
-            else:
-                precision["complex"]["dist"] = truth_entries_num
+            reported = collections.Counter()
+            with open(tmpfile.name) as fht:
+                for line in fht:
+                    if line.strip(): # bedmap prints an empty line for a query without hits
+                        chrom, start, end = line.rstrip("\n").split("\t")[:3]
+                        reported[(chrom, int(start), int(end))] += 1
+
+            # TP/FP/FN on the set of references, the distance on the pairs: the multiplicity differences summed over the
+            # references, so a missing and an extra pair no longer cancel, as they did in the line count before 0.15.0
+            precision["complex"]["TP"] = len(expected.keys() & reported.keys())
+            precision["complex"]["FP"] = len(reported.keys() - expected.keys())
+            precision["complex"]["FN"] = len(expected.keys() - reported.keys())
+            precision["complex"]["dist"] = sum(abs(reported[key] - expected[key]) for key in expected.keys() | reported.keys())
 
         return precision
