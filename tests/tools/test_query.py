@@ -26,7 +26,6 @@ TOOLS = [
     ("tabix", "tabix", True, "query"),
     ("bedtools", "bedtools", False, "query"),
     ("bedtools_sorted", "bedtools", True, "query"),
-    ("bedtools_tabix", "bedtools+tabix", True, "query"),
     ("bedops", "bedops", True, "basic"),
     ("bedops", "bedops", True, "complex"),
     ("bedops", "bedops", True, "query"), # arbitrary target/query pair, empty before #7
@@ -42,7 +41,7 @@ TOOLS = [
     ("ailist", "ailist", False, "query"),
     ("ucsc", "bedIntersect", False, "query"),
 ]
-READS_INDEX = {"tabix", "bedtools_sorted", "bedtools_tabix", "bedtk_sorted", "bedops", "bedmaps", "igd"} # query reads refdirs["idx"]
+READS_INDEX = {"tabix", "bedtools_sorted", "bedtk_sorted", "bedops", "bedmaps", "igd"} # query reads refdirs["idx"]
 # the complex score counts the output lines against the (query, reference) pairs (#34); these report a reference
 # once however many queries hit it, like `bedtk flt` before its bedtools step, so the score counts the missing lines as distance (#69)
 ONCE_PER_REFERENCE = {"awk", "ucsc", "granges"}
@@ -120,9 +119,8 @@ def run_real(tool, datadir, target, queryfile):
     options = types.SimpleNamespace(simdata=False, tool=tool, target=str(target), query=str(queryfile),
                                     datadir=str(datadir / "real"), simname="sim_001", format="BED",
                                     benchname="bench_001")
-    with contextlib.redirect_stderr(io.StringIO()) as err:
+    with contextlib.redirect_stderr(io.StringIO()): # the tools' stderr
         BenchBase(options, {})
-    assert ("deprecated" in err.getvalue()) == (tool == "bedtools_tabix"), err.getvalue() # #43
     return intervals((datadir / "real" / "bench" / "bench_001" / tool / "result.bed").read_text())
 
 

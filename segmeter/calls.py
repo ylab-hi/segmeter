@@ -61,12 +61,12 @@ def index_call(options, refdirs, label):
         runtime += step_rt
         mem = max(mem, step_mem)
 
-    if options.tool in ("bedtools_sorted", "bedtk_sorted", "tabix", "bedtools_tabix"):
-        # the "index" of the sorted variants is the sorted reference, read by the query step; tabix and
-        # bedtools_tabix also compress and index it
+    if options.tool in ("bedtools_sorted", "bedtk_sorted", "tabix"):
+        # the "index" of the sorted variants is the sorted reference, read by the query step; tabix also
+        # compresses and indexes it
         step(f"sort -k1,1 -k2,2n -k3,3n {refdirs['ref'] / f'{label}.bed'} > {refdirs['idx'] / f'{label}.bed'}")
 
-    if options.tool in ("tabix", "bedtools_tabix"):
+    if options.tool == "tabix":
         step(f"bgzip -f {refdirs['idx'] / f'{label}.bed'} > {refdirs['idx'] / f'{label}.bed.gz'}")
 
         # determine size of the index (in MB) - gzipped and tabixed
@@ -142,13 +142,12 @@ def query_call(options, label, reffiles, queryfile):
     elif options.tool == "bedtools":
         step(f"bedtools intersect -wa -a {reffiles['ref-unsrt']} -b {queryfile} > {tmpfile.name}")
 
-    elif options.tool in ("bedtools_sorted", "bedtools_tabix"):
+    elif options.tool == "bedtools_sorted":
         # first sort the query file
         query_sorted = scratch / "query_sorted.bed"
         step(f"sort -k1,1 -k2,2n -k3,3n {queryfile} > {query_sorted}")
 
-        # the sweep algorithm of bedtools (-sorted) on the reference of the index step: the sorted file for
-        # bedtools_sorted, the bgzipped one for bedtools_tabix (bedtools cannot use the tabix index for random access)
+        # the sweep algorithm of bedtools (-sorted) on the sorted reference of the index step
         genome = sorted_genome(reffiles, label)
         step(f"bedtools intersect -sorted -g {genome} -wa -a {reffiles['idx']} -b {query_sorted} > {tmpfile.name}")
 
