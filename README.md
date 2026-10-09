@@ -139,7 +139,10 @@ segmeter bench -o DATADIR -t TOOL [-h] [-r] [-n INTVLNUMS] [-s SUBSET] [-b BENCH
 #### Benchmarked tools
 
 Every command of the index and query steps is measured and summed (time) or maximised (memory); work that only prepares input or
-converts the output into BED for the scoring is not measured.
+converts the output into BED for the scoring is not measured. The unmeasured steps are named in the Notes column: the genome file of
+`bedtools_sorted`, the `.tsv` copies and the reordered genome file of `granges`, the shrunk query of `giggle`, the conversion of the `igd`
+and `ailist` output into BED lines, and the `bedtools intersect` pass that restores the duplicates of `bedtk`, `granges` and `ucsc` for
+the complex queries (see [Precision](#precision) for what that pass means for the complex score).
 
 | `--tool` | Index step (measured) | Query step (measured) | Notes |
 | --- | --- | --- | --- |
@@ -148,15 +151,15 @@ converts the output into BED for the scoring is not measured.
 | `bedtools_sorted` | `sort` of the reference (no separate index) | `sort` of the query, `bedtools intersect -sorted -g GENOME -wa -a REF_SORTED -b QUERY_SORTED` | the sweep algorithm for sorted input; `-g` gives the chromosome order of the sorted data, so chromosomes present in only one file are handled; the genome file is written unmeasured |
 | `bedops` | `sort` of the reference (no separate index) | `sort` of the query, `bedops --element-of 1 REF_SORTED QUERY_SORTED`; complex queries: `bedmap --echo-map --multidelim '\n' QUERY_SORTED REF_SORTED` | |
 | `bedmaps` | `sort` of the reference (no separate index) | `sort` of the query, `bedmap --echo-map --multidelim '\n' QUERY_SORTED REF_SORTED` | |
-| `giggle` | `giggle/scripts/sort_bed`, `giggle index -s` | `sort_bed` of the query, `giggle search -v` | |
-| `granges` | | `granges filter --genome GENOME --left REF_SORTED --right QUERY` | reads the sorted reference; the `.tsv` copies and a genome file in natural chromosome order (granges 0.2.2 labels its query trees in that order, [#36](https://github.com/ylab-hi/segmeter/issues/36)) are prepared unmeasured |
+| `giggle` | `giggle/scripts/sort_bed`, `giggle index -s` | `sort_bed` of the query, `giggle search -v` | giggle treats the indexed and the query intervals as closed on both ends, so a reference that merely touches a query would be a hit; the query is shrunk to `[start+1, end-1]` unmeasured, which gives the half-open result for every query of 2 bp or more (a 1 bp query becomes the point `[start, start]`, which still hits a reference ending at `start`, since a closed interval cannot be empty). The simulated data is unaffected either way: a gap query ends one coordinate before the next interval, so it never touches a reference, and the published giggle precision has no false positives; the shrink matters for `--target --query` data ([#70](https://github.com/ylab-hi/segmeter/issues/70)) |
+| `granges` | | `granges filter --genome GENOME --left REF_SORTED --right QUERY` | reads the sorted reference; the `.tsv` copies and a genome file in natural chromosome order (granges 0.2.2 labels its query trees in that order, [#36](https://github.com/ylab-hi/segmeter/issues/36)) are prepared unmeasured; `filter` reports each reference once, the duplicates that complex queries expect are restored with an unmeasured `bedtools intersect` pass, as for `bedtk` ([#69](https://github.com/ylab-hi/segmeter/issues/69)) |
 | `gia` | | `gia intersect -a QUERY -b REF -t` | |
-| `bedtk` | | `bedtk flt QUERY REF` | bedtk reports each reference interval once; the duplicates that complex queries expect are restored with an unmeasured `bedtools intersect` pass |
+| `bedtk` | | `bedtk flt QUERY REF` | bedtk reports each reference interval once; the duplicates that complex queries expect are restored with an unmeasured `bedtools intersect` pass, so the complex score of such tools checks the set of references they found and takes the pairs from bedtools |
 | `bedtk_sorted` | `sort` of the reference (no separate index) | `sort` of the query, `bedtk flt QUERY_SORTED REF_SORTED` | bedtk does not need sorted input, so this only adds the sorting cost |
 | `igd` | `igd create` | `igd search -q QUERY -f` | the output is converted to BED unmeasured |
 | `ailist` | | `ailist REF QUERY` | the overlap counts are expanded to one line per overlap unmeasured |
-| `ucsc` | | `bedIntersect -aHitAny REF QUERY OUT` | |
-| `awk` | | `tools/intersect_awk.py` | an awk script that hashes the intervals by chromosome, then scans that chromosome's intervals linearly |
+| `ucsc` | | `bedIntersect -aHitAny REF QUERY OUT` | `-aHitAny` reports each reference once; the duplicates are restored with the unmeasured `bedtools intersect` pass, as for `bedtk`. Without `-aHitAny` bedIntersect prints one line per pair, but with the coordinates of the intersection, not of the reference, and a BED3 reference cannot be mapped back ([#69](https://github.com/ylab-hi/segmeter/issues/69)) |
+| `awk` | | `tools/intersect_awk.py` | an awk script that hashes the intervals by chromosome, then scans that chromosome's intervals linearly, printing a reference once per query that hits it |
 | `intervaltree` | | `tools/intersect_intervaltree.py` | a Python script that builds one interval tree per chromosome (the `intervaltree` package) and queries it for every interval of the other file |
 
 Not benchmarked: `gia intersect --sorted`. In gia 0.2.23 it numbers the chromosomes of each file by their order of appearance, so when one
@@ -188,6 +191,20 @@ intvlnum	bin	distance
 The upper part of the file contains the precision, recall, and F1 score for the basic queries and subset (e.g., 10% of the queries).
 The lower part contains the distance which is the absolute difference between expected and observed number of intervals covered by the complex query.
 Note this only represents a decile (e.g., 10bin), in other words, the queries that cover 10% of the reference intervals per chromosome.
+
+The distance is computed from the tool output as a whole: the expected number is the sum over the queries of the bin of the reference
+intervals each query covers, the observed number is the number of lines the tool printed, so a tool has to print a reference interval once
+per query that hits it (one line per (query, reference) pair). Most tools do, because they answer query by query (`bedtools`, `tabix`,
+`bedmap`, `giggle`, `gia`, `igd`, `intervaltree`; `ailist` prints a count per reference that segmeter expands into repeated lines).
+`bedtk flt`, `granges filter` and `bedIntersect -aHitAny` answer the other way round and print each reference that is hit by any query
+once, so their output carries no pairs (none of the three tools has a mode that prints the reference once per query: `bedtk isec`
+and plain `bedIntersect` print intersections, `granges map` one aggregated line per reference); for them segmeter runs an unmeasured
+`bedtools intersect -wa` pass over their output and the complex query file, which prints each reported reference once per query that
+overlaps it. For these three tools the complex distance therefore measures whether the tool found the right set of reference intervals
+over the bin, with the pairs taken from bedtools: a missed reference shows up as missing lines, while a reference reported although no
+query touches it is dropped by the pass. The pass runs on the complex query files only; the basic queries are scored on the raw output
+of every tool, so a false positive stays visible in the basic precision. Checking the complex pairs themselves would need one call per
+query, which is not feasible at benchmark scale.
 
 #### Statistics
 
@@ -253,6 +270,7 @@ build in the same environment. Use the images of the last patch release of v0.13
 | `--tool` choices in v0.13.x | `tabix`, `bedtools`, `bedtools_sorted`, `bedtools_tabix`, `bedops`, `bedmaps`, `giggle`, `granges`, `gia`, `bedtk`, `bedtk_sorted`, `igd`, `ailist`, `ucsc`, `awk`, `intervaltree` |
 | `bedtools_sorted`, `bedtools_tabix`, `bedtk_sorted` in v0.13.x | run without `-sorted` on the simulator's sorted reference (`bedtools_tabix` with the unsorted query), the bgzip/tabix output of the index step unused: the v0.13.x index time of all three includes sort and bgzip (plus tabix for `bedtools_tabix`) and `index_size(MB)` is the bgzip (plus `.csi`) size. From 0.14.0 the variants read the index step's output, the bedtools variants pass `-sorted -g`, the `_sorted` variants index with the sort alone (index size reported as 0, like `bedops`), and `bedtools_tabix` is deprecated (its query step equals `bedtools_sorted`), later removed ([#39](https://github.com/ylab-hi/segmeter/issues/39), [#45](https://github.com/ylab-hi/segmeter/issues/45)) |
 | `granges` in v0.13.x | reads the simulator's `<label>_chromlens.txt` as its genome file in the simulator's random draw order. granges 0.2.2 labels its query trees in natural chromosome order (1, 2, ..., 22, X, Y) but reads the genome file in file order, so every run whose genome file is not in natural order compared the left ranges of one chromosome with the queries of another: in the published `sim_001` data that is `1K`, `10K` and `100K` (`10` has one chromosome, `100` happened to be drawn in natural order), and their v0.13.x granges precision and recall are an artifact of the genome-file order, not of its overlap detection. From 0.14.0 granges reads an unmeasured copy of the genome file in natural order; the simulated data is unchanged ([#36](https://github.com/ylab-hi/segmeter/issues/36)) |
+| `awk`, `ucsc`, `granges` complex score in v0.13.x and v0.14.x | these tools report each reference once however many complex queries hit it (`bedIntersect -aHitAny`, `granges filter`, and the awk script stopped at the first hit), while the complex score counts one output line per (query, reference) pair; their complex distance is therefore the number of missing duplicates, not missed overlaps (the basic scores are unaffected, a basic query hits one reference). `bedtk` already had its duplicates restored by an unmeasured `bedtools intersect` pass, which ran on every query file, so a reference bedtk had reported for a basic gap query without overlapping it would have been dropped before the basic score (bedtk reported none). From 0.15.0 `granges` and `ucsc` get the same pass, it runs on the complex query files only, and the awk script prints a reference once per query ([#69](https://github.com/ylab-hi/segmeter/issues/69)) |
 | Tool versions | bedtools 2.30.0, tabix (htslib) 1.16, BEDOPS 2.4.41, bedtk 0.0-r30, IGD 0.1.1, AIList 0.1.1, UCSC bedIntersect (kent source 482), intervaltree 3.1.0, GIGGLE 0.6.3, gia 0.2.23, granges 0.2.2 (as installed in the images above) |
 
 To redo the benchmark, use the **last patch release of v0.13.x** (currently v0.13.2): it keeps these defaults, new options are off by default,

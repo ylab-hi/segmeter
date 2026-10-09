@@ -31,7 +31,7 @@ TOOLS = [
     ("bedops", "bedops", True, "query"), # arbitrary target/query pair, empty before #7
     ("bedmaps", "bedmap", True, "query"),
     ("giggle", "/giggle/bin/giggle", True, "query"),
-    ("granges", "granges", False, "query"),
+    ("granges", "granges+bedtools", False, "query"),
     ("gia", "gia", False, "query"),
     ("bedtk", "bedtk+bedtools", False, "query"),
     ("bedtk_sorted", "bedtk+bedtools", True, "query"),
@@ -39,12 +39,9 @@ TOOLS = [
     ("intervaltree", "py:intervaltree", False, "query"),
     ("igd", "igd", True, "query"),
     ("ailist", "ailist", False, "query"),
-    ("ucsc", "bedIntersect", False, "query"),
+    ("ucsc", "bedIntersect+bedtools", False, "query"),
 ]
 READS_INDEX = {"tabix", "bedtools_sorted", "bedtk_sorted", "bedops", "bedmaps", "igd"} # query reads refdirs["idx"]
-# the complex score counts the output lines against the (query, reference) pairs (#34); these report a reference
-# once however many queries hit it, like `bedtk flt` before its bedtools step, so the score counts the missing lines as distance (#69)
-ONCE_PER_REFERENCE = {"awk", "ucsc", "granges"}
 CHROMS = ["chr1", "chr2", "chr10", "chrX"]
 LABEL, NUM = "L", 5000
 
@@ -86,7 +83,9 @@ def make_data(datadir):
     for qdir in {row[3] for row in TOOLS}:
         (datadir / qdir).mkdir()
         write_bed(datadir / qdir / "Q.bed", queries)
-        write_bed(datadir / qdir / "C.bed", [q for q in queries if hits[q]]) # like the simulated complex queries: every one has hits
+    # like the simulated complex queries: every one has hits, and the path says "complex", which selects the bedmap branch of
+    # bedops and the duplicates pass of bedtk, granges and ucsc (#69)
+    write_bed(datadir / "complex" / "C.bed", [q for q in queries if hits[q]])
     expected = {(c, str(s), str(e)) for q in queries for c, s, e, _ in hits[q]}
     touching = sum(r[0] == q[0] and (q[1] == r[2] or r[1] == q[2]) for q in queries if hits[q] for r in ref)
     return expected, sum(map(len, hits.values())), touching
@@ -128,7 +127,7 @@ def test_query_tools():
     with tempfile.TemporaryDirectory() as tmp:
         datadir = Path(tmp)
         expected, pairs, touching = make_data(datadir)
-        assert 0 < len(expected) < pairs and touching > 0 # the seeds give duplicates and a touching pair (for giggle); a reseed must keep both
+        assert 0 < len(expected) < pairs and touching > 0 # the seeds give duplicates and a touching pair (giggle must not report it, #70); a reseed must keep both
         tempfile.tempdir = str(datadir / "tmp") # every temporary file of the queries lands here (#2)
         (datadir / "tmp").mkdir()
         failed = []
@@ -146,15 +145,12 @@ def test_query_tools():
                     if got != expected:
                         failed.append(f"{tool} ({qdir}, {mode})")
                 # complex score (#34): get_precision counts the output lines against the (query, reference) pairs,
-                # so a tool must report a reference once per query that hits it; bedops' --element-of branch
-                # (basic queries only) reports it once.
-                if tool != "bedops" or qdir == "complex":
-                    _, lines = run_tool(tool, indexed, datadir, datadir / qdir / "C.bed", index=False)
-                    # giggle treats intervals as closed on both ends, so a reference touching the query on either side is a
-                    # hit (#70); the simulator leaves a gap between intervals, so this never affects a simulated score
-                    want = len(expected) if tool in ONCE_PER_REFERENCE else pairs + (touching if tool == "giggle" else 0)
-                    print(f"{'ok' if lines == want else 'FAIL'} {tool} ({qdir}, complex): {lines} lines, {want} expected for {pairs} pairs")
-                    if lines != want:
+                # so a tool must report a reference once per query that hits it (bedtk, granges and ucsc get their
+                # duplicates back in query_call for complex query files, #69); the basic rows above run on the raw output
+                if tool != "bedops" or qdir == "complex": # once per tool
+                    _, lines = run_tool(tool, indexed, datadir, datadir / "complex" / "C.bed", index=False)
+                    print(f"{'ok' if lines == pairs else 'FAIL'} {tool} ({qdir}, complex): {lines} lines for {pairs} pairs")
+                    if lines != pairs:
                         failed.append(f"{tool} ({qdir}, complex)")
                 leftover = os.listdir(tempfile.tempdir)
                 assert not leftover, f"{tool} leaves temporary files behind: {leftover}"

@@ -136,6 +136,19 @@ def query_call(options, label, reffiles, queryfile):
         query_rt += step_rt
         query_mem = max(query_mem, step_mem)
 
+    def restore_duplicates(tool_output):
+        """Unmeasured. A tool that reports a reference once however many queries hit it (bedtk flt, granges filter,
+        bedIntersect -aHitAny) carries no pairing in its output, while the complex score counts one line per (query,
+        reference) pair; bedtools prints each reported reference once per query it overlaps. The complex score of these
+        tools thus checks the set of references they found, the pairs come from bedtools (#69; bedtk since v0.13).
+        Complex query files only: bedtools also drops a reported reference that no query overlaps, which would turn a
+        false positive of the tool into a true negative, so the basic queries (and real-data queries) are scored on
+        the raw output."""
+        if "complex" in str(queryfile): # the simulated complex queries live under .../complex/..., as the bedops branch relies on
+            subprocess.run(f"bedtools intersect -wa -a {tool_output} -b {queryfile} > {tmpfile.name}", shell=True, check=True)
+        else:
+            shutil.copyfile(tool_output, tmpfile.name)
+
     if options.tool == "tabix":
         step(f"tabix {reffiles['idx']} -R {queryfile} > {tmpfile.name}")
 
@@ -168,11 +181,23 @@ def query_call(options, label, reffiles, queryfile):
         step(f"bedmap --echo-map --multidelim '\n' {query_sorted} {reffiles['idx']} > {tmpfile.name}")
 
     elif options.tool == "giggle":
-        step(f" bash /giggle/scripts/sort_bed {queryfile} {scratch} 4")
+        # giggle treats the indexed and the query intervals as closed on both ends, so a reference that merely touches the
+        # query is a hit (#70). A query shrunk to [start+1, end-1] gives exactly the half-open result against the closed
+        # reference; a query of 1 bp becomes the point [start, start], which still hits a reference ending at start.
+        # Prepared unmeasured; sort_bed needs the .bed suffix
+        query_closed = scratch / "query_closed.bed"
+        with open(queryfile) as fh, open(query_closed, "w") as out:
+            for line in fh:
+                if not line.strip() or line.startswith(("#", "track", "browser")): # real-data queries may carry headers
+                    continue
+                chrom, start, end, *rest = line.rstrip("\r\n").split("\t")
+                start, end = (int(start) + 1, int(end) - 1) if int(end) - int(start) >= 2 else (int(start), int(start))
+                out.write("\t".join([chrom, str(start), str(end), *rest]) + "\n")
+        step(f" bash /giggle/scripts/sort_bed {query_closed} {scratch} 4")
 
         indexpath = Path(options.datadir) / "bench" / options.benchname / options.tool
         # for some reason the giggle index is not created in ./giggle/idx/<index> but in ./giggle/<index> - so use this path
-        step(f"/giggle/bin/giggle search -i {indexpath / f'{label}_index'} -q {scratch / f'{queryfile.name}.gz'} -v > {tmpfile.name}")
+        step(f"/giggle/bin/giggle search -i {indexpath / f'{label}_index'} -q {scratch / 'query_closed.bed.gz'} -v > {tmpfile.name}")
 
     elif options.tool == "granges":
         # granges needs the .tsv suffix: copy reference and query (not measured)
@@ -188,7 +213,9 @@ def query_call(options, label, reffiles, queryfile):
         lines = Path(reffiles['chromlens']).read_text().splitlines()
         genome.write_text("".join(line + "\n" for line in sorted(lines, key=lambda line: utility.chrom_sort_key(line.split("\t")[0]))))
 
-        step(f"granges filter --genome {genome} --left {ref_tsv} --right {query_tsv} > {tmpfile.name}")
+        tmpfile2 = scratch / "tool_output.txt"
+        step(f"granges filter --genome {genome} --left {ref_tsv} --right {query_tsv} > {tmpfile2}")
+        restore_duplicates(tmpfile2) # granges filter keeps each left range once
 
     elif options.tool == "gia":
         step(f"gia intersect -a {queryfile} -b {reffiles['ref-unsrt']} -t > {tmpfile.name}")
@@ -196,12 +223,7 @@ def query_call(options, label, reffiles, queryfile):
     elif options.tool == "bedtk":
         tmpfile2 = scratch / "tool_output.txt"
         step(f"bedtk flt {queryfile} {reffiles['ref-unsrt']} > {tmpfile2}")
-
-        # need to add duplicates to the results (ensures that the precision for complex queries is fair)
-        # bedtk is not able to report duplicates - we use bedtools for this
-        call = f"bedtools intersect -wa -a {tmpfile2} -b {queryfile} > {tmpfile.name}"
-        subprocess.run(call, shell=True, check=True)
-
+        restore_duplicates(tmpfile2) # bedtk flt reports each reference once
 
     elif options.tool == "bedtk_sorted":
         query_sorted = scratch / "query_sorted.bed"
@@ -209,9 +231,7 @@ def query_call(options, label, reffiles, queryfile):
 
         tmpfile2 = scratch / "tool_output.txt"
         step(f"bedtk flt {query_sorted} {reffiles['idx']} > {tmpfile2}")
-
-        call = f"bedtools intersect -wa -a {tmpfile2} -b {queryfile} > {tmpfile.name}"
-        subprocess.run(call, shell=True, check=True)
+        restore_duplicates(tmpfile2)
 
     elif options.tool == "awk":
         # determine the path to the awk script
@@ -256,7 +276,9 @@ def query_call(options, label, reffiles, queryfile):
         fh.close()
 
     elif options.tool == "ucsc":
-        step(f"bedIntersect -aHitAny {reffiles['ref-unsrt']} {queryfile} {tmpfile.name}")
+        tmpfile2 = scratch / "tool_output.txt"
+        step(f"bedIntersect -aHitAny {reffiles['ref-unsrt']} {queryfile} {tmpfile2}")
+        restore_duplicates(tmpfile2) # -aHitAny reports each reference once; without it bedIntersect prints the intersections, not the reference
 
     tmpfile.close()
     shutil.rmtree(scratch)
