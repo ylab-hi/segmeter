@@ -39,7 +39,7 @@ segmeter sim -o DATADIR [-h] [-n INVLNUMS] [-m MAX_CHROMLEN] [-c SIMNAME] [-g GA
 | -g, --gapsize | random size of the gaps (min and max) between the intervals. Default is 100-5000 |
 | -i, --intvlsize | random size (min and max) of the intervals. Default is 100-10000 |
 | --max_span | maximum number of reference intervals that a complex query covers (a multiple of 10, at least 10, so that every span falls into one of the ten bins). Not limited by default. The output of the complex queries grows quadratically with the number of intervals per chromosome, so a limit (e.g., 1000) is recommended for more than 10K intervals |
-| --seed | seed of the random simulation. The same seed and parameters give the same data; a random seed is drawn by default. The seed used is written to `DATADIR/sim/simname/BED/parameters.txt` with the other parameters, so any simulation can be repeated. The sizes consume the random stream in order, so `-n 10K,100K --seed S` reproduces the `10K` files of `-n 10K --seed S` |
+| --seed | seed of the random simulation. The same seed and parameters give the same data; a random seed is drawn by default. The seed used is appended to `DATADIR/sim/simname/BED/parameters.txt` with the other parameters (one block per run, so a folder grown by several runs keeps every seed), so any simulation can be repeated. The sizes consume the random stream in order, so `-n 10K,100K --seed S` reproduces the `10K` files of `-n 10K --seed S` |
 
 This will generates output files in the 'DATADIR/sim/simname/BED' folder. The files are in BED format (currently the only supported format) and can be used for benchmarking. In particular, the filers are located in the following folders:
 
@@ -50,7 +50,7 @@ DATADIR/sim/simname/BED/complex/ # complex queries
 ```
 
 In addition, segmeter generates for each specified `INTVLNUM`, a file with the length of each simulated chromosome (`DATADIR/sim/simname/BED/<INTVLNUM>_chromlens.txt`),
-and the number of intervals per chromosome (`DATADIR/sim/simname/BED/<INTVLNUM>_chrnums.txt`), and records the seed and the parameters of the run in `DATADIR/sim/simname/BED/parameters.txt`.
+and the number of intervals per chromosome (`DATADIR/sim/simname/BED/<INTVLNUM>_chrnums.txt`), and appends the seed and the parameters of the run to `DATADIR/sim/simname/BED/parameters.txt`.
 
 #### Reference
 
