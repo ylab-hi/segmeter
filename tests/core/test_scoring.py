@@ -68,9 +68,12 @@ def test_complex_scoring():
     truth_bad = bench.load_truth(write_tmp([]).name, wrong_truth.name, write_tmp("\t".join(r) + "\n" for r in ref).name)["complex"]
     try:
         bench.get_precision(write_tmp([f"{chr(9).join(q1)}\tmult\n"]).name, exact, truth_bad, "complex", "mult")
-        assert False, "a truth count that disagrees with the reference must raise"
-    except AssertionError as e:
+        raise AssertionError("a truth count that disagrees with the reference must raise")
+    except ValueError as e:
         assert "covers 5 references, the truth file says 4" in str(e)
+
+    commented = write_tmp(["# a header\n"] + ["\t".join(r) + "\n" for r in expected_pairs])
+    assert bench.get_precision(queries.name, commented, truth, "complex", "mult")["complex"] == {"TP": 9, "FP": 0, "FN": 0, "dist": 0}
 
 
 def test_simdata_querydirs():

@@ -251,15 +251,15 @@ class BenchTool:
                     chrom, start, end = line.rstrip("\n").split("\t")[:3]
                     starts, ends = truth["ref"][chrom]
                     lo, hi = bisect.bisect_left(starts, int(start)), bisect.bisect_right(ends, int(end))
-                    assert hi - lo == int(truth["records"][(chrom, start, end)]), \
-                        f"{chrom}:{start}-{end} covers {hi - lo} references, the truth file says {truth['records'][(chrom, start, end)]}"
+                    if hi - lo != int(truth["records"][(chrom, start, end)]):
+                        raise ValueError(f"{chrom}:{start}-{end} covers {hi - lo} references, the truth file says {truth['records'][(chrom, start, end)]}")
                     for i in range(lo, hi):
                         expected[(chrom, starts[i], ends[i])] += 1
 
             reported = collections.Counter()
             with open(tmpfile.name) as fht:
                 for line in fht:
-                    if line.strip(): # bedmap prints an empty line for a query without hits
+                    if line.strip() and not line.startswith("#"): # bedmap prints an empty line for a query without hits
                         chrom, start, end = line.rstrip("\n").split("\t")[:3]
                         reported[(chrom, int(start), int(end))] += 1
 

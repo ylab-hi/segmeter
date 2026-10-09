@@ -185,7 +185,7 @@ intvlnum	subset	TP	FP	TN	FN	Precision	Recall	F1
 1000	10%	500	0	500	0	1.0	1.0	1.0
 
 intvlnum	bin	TP	FP	FN	Precision	Recall	F1	distance
-1000	10bin	1200	0	0	1.0	1.0	1.0	0
+1000	10bin	900	0	0	1.0	1.0	1.0	0
 ```
 
 The upper part of the file contains the precision, recall, and F1 score for the basic queries and subset (e.g., 10% of the queries).

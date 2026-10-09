@@ -146,7 +146,7 @@ def query_call(options, label, reffiles, queryfile):
         true hits comes from bedtools (#74). Complex query files only: the basic queries (and real-data queries) are
         scored on the raw output."""
         if "complex" in str(queryfile): # the simulated complex queries live under .../complex/..., as the bedops branch relies on
-            subprocess.run(f"bedtools intersect -wa -a {tool_output} -b {queryfile} > {tmpfile.name}; "
+            subprocess.run(f"bedtools intersect -wa -a {tool_output} -b {queryfile} > {tmpfile.name} && "
                            f"bedtools intersect -v -a {tool_output} -b {queryfile} >> {tmpfile.name}", shell=True, check=True)
         else:
             shutil.copyfile(tool_output, tmpfile.name)
