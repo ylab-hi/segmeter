@@ -101,21 +101,24 @@ class BenchBase:
                     fh.write(f"{num}\tcomplex\t{key}_{key2}bin\t{value2}\t{query_mem['complex'][key][key2]}\n")
 
     def save_query_prec_stats(self, num, query_precision, filename, filename_negatives):
+        def scores(value): # precision, recall, F1; all 0 without a true positive
+            if value["TP"] == 0:
+                return 0, 0, 0
+            precision = value["TP"] / (value["TP"] + value["FP"])
+            recall = value["TP"] / (value["TP"] + value["FN"])
+            return precision, recall, 2 * ((precision * recall) / (precision + recall))
+
         with open(filename, "w") as fh:
             fh.write("intvlnum\tsubset\tTP\tFP\tTN\tFN\tPrecision\tRecall\tF1\n")
             for key, value in query_precision["basic"].items():
-                precision = 0
-                recall = 0
-                f1 = 0
-                if value["TP"] > 0:
-                    precision = value["TP"] / (value["TP"] + value["FP"])
-                    recall = value["TP"] / (value["TP"] + value["FN"])
-                    f1 = 2 * ((precision * recall) / (precision + recall))
+                precision, recall, f1 = scores(value)
                 fh.write(f"{num}\t{key}%\t{value['TP']}\t{value['FP']}\t{value['TN']}\t{value['FN']}\t")
                 fh.write(f"{precision}\t{recall}\t{f1}\n")
-            fh.write("\nintvlnum\tbin\tdistance\n")
+            # complex queries: the set of references of the bin (no negatives, so no TN) and the pair distance (#74)
+            fh.write("\nintvlnum\tbin\tTP\tFP\tFN\tPrecision\tRecall\tF1\tdistance\n")
             for key, value in query_precision["complex"].items():
-                fh.write(f"{num}\t{key}bin\t{value['dist']}\n")
+                precision, recall, f1 = scores(value)
+                fh.write(f"{num}\t{key}bin\t{value['TP']}\t{value['FP']}\t{value['FN']}\t{precision}\t{recall}\t{f1}\t{value['dist']}\n")
 
         with open(filename_negatives, "w") as fh:
             fh.write("intvlnum\tsubset\tFP\n")

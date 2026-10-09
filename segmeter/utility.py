@@ -9,10 +9,6 @@ def sort_BED(infile, outfile):
     with open(outfile, 'w') as out:
         subprocess.run(["sort", "-k1,1", "-k2,2n", "-k3,3n", str(infile)], stdout=out, env={**os.environ, "LC_ALL": "C"})
 
-def file_linecounter(filepath):
-    with open(filepath, "rb") as file:
-        return sum(1 for _ in file)
-
 def get_os():
     """returns the operating system"""
     if platform.system() == "Darwin":
