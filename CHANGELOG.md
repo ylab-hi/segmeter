@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 # [Unreleased]
+## Removed
+- `bedtools_tabix` is no longer a `--tool` choice (deprecated since 0.14.0): it measured `bedtools_sorted` plus a bgzip/tabix index that bedtools cannot use for random access. Removed from the CLI, `BenchBase`, the index and query branches (the `tabix` tool keeps bgzip and tabix), `BenchTool.get_reffiles`, the tests and the README tool tables; the README's published-benchmark rows keep the v0.13.x behaviour. No other tool's command changed, so measured values are unchanged; `bench -t bedtools_tabix` exits with an invalid-choice error ([#45](https://github.com/ylab-hi/segmeter/issues/45), [#71](https://github.com/ylab-hi/segmeter/pull/71))
+
 ## Added
 - `tests/tools/test_query.py` also checks the complex-query invariant: every tool is run a second time on the queries that have hits (like the simulated complex queries) and the raw line count of its output, which `get_precision` scores complex queries by, must equal the number of overlapping (query, reference) pairs of the oracle. The test records two tool behaviours as expected values: `awk`, `ucsc` and `granges` report a reference once however many queries hit it (like `bedtk flt` before its bedtools step), so their complex distance is the number of missing duplicates, and `giggle` treats intervals as closed on both ends, so a reference that touches the query is a hit (the simulator leaves a gap between intervals, so this never affects a simulated score). Test only; the tool commands, the data and the measured values are unchanged ([#34](https://github.com/ylab-hi/segmeter/issues/34), [#68](https://github.com/ylab-hi/segmeter/pull/68))
 
