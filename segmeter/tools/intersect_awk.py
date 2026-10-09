@@ -19,7 +19,8 @@ def main():
 
     # AWK script that mimics bedtools intersect -wa behavior
     # First pass: read target intervals and store by chromosome
-    # Second pass: for each query interval, check for overlaps and print if found
+    # Second pass: for each query interval, print it once per target interval it overlaps (segmeter passes the
+    # queries as target and the reference as query, so every reference interval is printed once per query that hits it)
     awk_script = r'''
     BEGIN {
         FS = OFS = "\t"
@@ -56,8 +57,7 @@ def main():
 
                 # Check for overlap: intervals overlap if qend > tstart && qstart < tend
                 if (qend > tstart && qstart < tend) {
-                    print $0
-                    break  # Print once per query interval (like -wa)
+                    print $0  # once per overlapping pair (like -wa), not once per line (#69)
                 }
             }
         }

@@ -26,7 +26,10 @@ RUN apt-get install -y \
     curl \
     git \
     ca-certificates \
-    libc6-dev
+    libc6-dev \
+    bedtools
+
+# bedtools is not benchmarked here: it restores the duplicates of granges' output, unmeasured (#69)
 
 # install rust - toolchain pinned to the one of the published benchmark image
 # RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
