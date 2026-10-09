@@ -1,5 +1,6 @@
 """Checks for the simulator.
 Run with `python3 tests/core/test_simulator.py` (or pytest). No external tools needed."""
+import contextlib
 import glob
 import io
 import sys
@@ -59,8 +60,34 @@ def test_max_span_bins():
         assert sum(len(s) for s in bins.values()) == 999 # every span is in exactly one bin
 
 
+def simulate(tmp, seed):
+    """A full `segmeter sim -n 10` run; returns the simulation folder and every file in it, relative path -> bytes."""
+    options = types.SimpleNamespace(datadir=tmp, simname="sim_001", intvlnums="10", intvlsize="100-10000", gapsize="100-5000",
+                                    max_chromlen=1000000000, max_span=None, seed=seed)
+    with contextlib.redirect_stdout(io.StringIO()): # "Simulate intervals for ..."
+        SimBED(options, {"10": 10}).sim_intervals()
+    out = Path(tmp) / "sim" / "sim_001" / "BED"
+    return out, {str(p.relative_to(out)): p.read_bytes() for p in out.rglob("*") if p.is_file()}
+
+
+def test_seed():
+    """The same seed gives the same data, another seed other data, and an unseeded run records the seed it drew (#15)."""
+    with tempfile.TemporaryDirectory() as a, tempfile.TemporaryDirectory() as b, tempfile.TemporaryDirectory() as c:
+        out, files_a = simulate(a, None)
+        params = dict(line.split("\t") for line in (out / "parameters.txt").read_text().splitlines())
+        assert params["intvlnums"] == "10" and params["max_span"] == "None"
+        seed = int(params["seed"])
+        _, files_b = simulate(b, seed)
+        _, files_c = simulate(c, seed + 1)
+        assert files_a == files_b
+        assert files_a["ref/10.bed"] != files_c["ref/10.bed"]
+        assert len(files_a["basic/query/perfect/10_30p.bed"].splitlines()) == 3 # 30% of 10 queries
+        assert len({l for f in files_a if f.startswith("basic/query/perfect/10_") for l in files_a[f].splitlines()}) == 10 # samples of the 10 queries
+
+
 if __name__ == "__main__":
     test_select_chrom_scaffold()
     test_max_span()
     test_max_span_bins()
+    test_seed()
     print("ok")

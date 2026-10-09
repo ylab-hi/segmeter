@@ -1,6 +1,5 @@
 import random
 from pathlib import Path
-import subprocess
 
 # class
 import utility
@@ -110,18 +109,28 @@ class SimBED:
             utility.sort_BED(querydir / f"{label}.bed", querydir / f"{label}_sorted.bed")
 
     def subset_basic_queryfiles(self, querydirs, label, num):
+        """Random samples of 10%, 20%, ..., 100% of the queries of every basic type, in random order (as `shuf -n` gave them before #15)"""
         for key in querydirs["basic"].keys():
-            infile = querydirs["basic"][key] / f"{label}.bed"
+            with open(querydirs["basic"][key] / f"{label}.bed") as fh:
+                lines = fh.readlines() # one query per interval
             for subset in range(10,101,10):
                 outfile = querydirs["basic"][key] / f"{label}_{subset}p.bed"
                 with open(outfile, 'w') as subset_bed:
-                    subprocess.run(["shuf", "-n", str(int(num * (subset / 100))), str(infile)], stdout=subset_bed)
+                    subset_bed.writelines(random.sample(lines, int(num * (subset / 100))))
                 utility.sort_BED(outfile, querydirs["basic"][key] / f"{label}_{subset}p_sorted.bed")
 
     def sim_intervals(self):
         outpath = Path(self.options.datadir) / "sim" / self.options.simname / "BED"
         refdir, truthdirs, querydirs = self.create_datadirs(outpath)
         is_start, is_end = [int(x) for x in self.options.intvlsize.split("-")]
+
+        # seed once, so that the same seed and parameters give the same data; the seed is recorded for unseeded runs (#15)
+        seed = self.options.seed if self.options.seed is not None else random.randrange(2**32)
+        random.seed(seed)
+        with open(outpath / "parameters.txt", "w") as fh:
+            fh.write(f"seed\t{seed}\n")
+            for key in ("intvlnums", "intvlsize", "gapsize", "max_chromlen", "max_span"):
+                fh.write(f"{key}\t{getattr(self.options, key)}\n")
 
         for label, num in self.intvlnums.items():
             print(f"Simulate intervals for {label}:{num}...")

@@ -38,6 +38,7 @@ def parse_arguments():
     parser.add_argument("-g", "--gapsize", type=str, help="random size of the gaps (min and max) between the intervals", default="100-5000")
     parser.add_argument("-i", "--intvlsize", type=str, help="random size (min and max) of the intervals", default="100-10000")
     parser.add_argument("--max_span", type=int, help="maximum number of intervals covered by a complex query (a multiple of 10, at least 10). Not limited by default")
+    parser.add_argument("--seed", type=int, help="seed of the simulation, for reproducible data. A random seed is drawn by default; the seed used is written to DATADIR/sim/SIMNAME/BED/parameters.txt")
 
     args = parser.parse_args()
     if args.max_span is not None and (args.max_span < 10 or args.max_span % 10): # complex queries are binned in deciles of max_span
