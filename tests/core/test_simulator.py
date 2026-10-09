@@ -3,6 +3,7 @@ Run with `python3 tests/core/test_simulator.py` (or pytest). No external tools n
 import contextlib
 import glob
 import io
+import platform
 import sys
 import tempfile
 import types
@@ -75,7 +76,7 @@ def test_seed():
     with tempfile.TemporaryDirectory() as a, tempfile.TemporaryDirectory() as b, tempfile.TemporaryDirectory() as c:
         out, files_a = simulate(a, None)
         params = dict(line.split("\t") for line in (out / "parameters.txt").read_text().splitlines())
-        assert params["intvlnums"] == "10" and params["max_span"] == "None"
+        assert params["intvlnums"] == "10" and params["max_span"] == "None" and params["python"] == platform.python_version()
         seed = int(params["seed"])
         _, files_b = simulate(b, seed)
         _, files_c = simulate(c, seed + 1)

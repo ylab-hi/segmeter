@@ -1,3 +1,4 @@
+import platform
 import random
 from pathlib import Path
 
@@ -128,7 +129,7 @@ class SimBED:
         seed = self.options.seed if self.options.seed is not None else random.randrange(2**32)
         random.seed(seed)
         with open(outpath / "parameters.txt", "w") as fh:
-            fh.write(f"seed\t{seed}\n")
+            fh.write(f"seed\t{seed}\npython\t{platform.python_version()}\n") # the draws of `random` are an implementation detail of CPython
             for key in ("intvlnums", "intvlsize", "gapsize", "max_chromlen", "max_span"):
                 fh.write(f"{key}\t{getattr(self.options, key)}\n")
 
