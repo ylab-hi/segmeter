@@ -66,10 +66,12 @@ def test_query_steps_counted():
             def tool_call(call, logfile): # 0.5 s and the next memory value; creates the redirected output, like a tool
                 if ">" in call:
                     Path(call.rsplit(">", 1)[1].strip()).write_text("")
+                elif call.startswith("bedIntersect"): # writes its last argument
+                    Path(call.split()[-1]).write_text("")
                 steps.append(call)
                 return 0.5, memory[min(len(steps), len(memory)) - 1]
             original = calls.tool_call, calls.subprocess.run
-            calls.tool_call, calls.subprocess.run = tool_call, lambda *args, **kwargs: None # the unmeasured steps: bedtk's bedtools pass, sorted_genome's sort
+            calls.tool_call, calls.subprocess.run = tool_call, lambda *args, **kwargs: None # the unmeasured steps: the duplicates pass of bedtk, granges and ucsc, sorted_genome's sort
             try:
                 for tool in TOOLS:
                     steps = []

@@ -140,8 +140,14 @@ def query_call(options, label, reffiles, queryfile):
         """Unmeasured. A tool that reports a reference once however many queries hit it (bedtk flt, granges filter,
         bedIntersect -aHitAny) carries no pairing in its output, while the complex score counts one line per (query,
         reference) pair; bedtools prints each reported reference once per query it overlaps. The complex score of these
-        tools thus checks the set of references they found, the pairs come from bedtools (#69; bedtk since v0.13)"""
-        subprocess.run(f"bedtools intersect -wa -a {tool_output} -b {queryfile} > {tmpfile.name}", shell=True, check=True)
+        tools thus checks the set of references they found, the pairs come from bedtools (#69; bedtk since v0.13).
+        Complex query files only: bedtools also drops a reported reference that no query overlaps, which would turn a
+        false positive of the tool into a true negative, so the basic queries (and real-data queries) are scored on
+        the raw output."""
+        if "complex" in str(queryfile): # the simulated complex queries live under .../complex/..., as the bedops branch relies on
+            subprocess.run(f"bedtools intersect -wa -a {tool_output} -b {queryfile} > {tmpfile.name}", shell=True, check=True)
+        else:
+            shutil.copyfile(tool_output, tmpfile.name)
 
     if options.tool == "tabix":
         step(f"tabix {reffiles['idx']} -R {queryfile} > {tmpfile.name}")
@@ -182,7 +188,9 @@ def query_call(options, label, reffiles, queryfile):
         query_closed = scratch / "query_closed.bed"
         with open(queryfile) as fh, open(query_closed, "w") as out:
             for line in fh:
-                chrom, start, end, *rest = line.rstrip("\n").split("\t")
+                if not line.strip() or line.startswith(("#", "track", "browser")): # real-data queries may carry headers
+                    continue
+                chrom, start, end, *rest = line.rstrip("\r\n").split("\t")
                 start, end = (int(start) + 1, int(end) - 1) if int(end) - int(start) >= 2 else (int(start), int(start))
                 out.write("\t".join([chrom, str(start), str(end), *rest]) + "\n")
         step(f" bash /giggle/scripts/sort_bed {query_closed} {scratch} 4")

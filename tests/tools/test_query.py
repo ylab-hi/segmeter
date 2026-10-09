@@ -83,7 +83,9 @@ def make_data(datadir):
     for qdir in {row[3] for row in TOOLS}:
         (datadir / qdir).mkdir()
         write_bed(datadir / qdir / "Q.bed", queries)
-        write_bed(datadir / qdir / "C.bed", [q for q in queries if hits[q]]) # like the simulated complex queries: every one has hits
+    # like the simulated complex queries: every one has hits, and the path says "complex", which selects the bedmap branch of
+    # bedops and the duplicates pass of bedtk, granges and ucsc (#69)
+    write_bed(datadir / "complex" / "C.bed", [q for q in queries if hits[q]])
     expected = {(c, str(s), str(e)) for q in queries for c, s, e, _ in hits[q]}
     touching = sum(r[0] == q[0] and (q[1] == r[2] or r[1] == q[2]) for q in queries if hits[q] for r in ref)
     return expected, sum(map(len, hits.values())), touching
@@ -144,9 +146,9 @@ def test_query_tools():
                         failed.append(f"{tool} ({qdir}, {mode})")
                 # complex score (#34): get_precision counts the output lines against the (query, reference) pairs,
                 # so a tool must report a reference once per query that hits it (bedtk, granges and ucsc get their
-                # duplicates back in query_call, #69); bedops' --element-of branch (basic queries only) reports it once.
-                if tool != "bedops" or qdir == "complex":
-                    _, lines = run_tool(tool, indexed, datadir, datadir / qdir / "C.bed", index=False)
+                # duplicates back in query_call for complex query files, #69); the basic rows above run on the raw output
+                if tool != "bedops" or qdir == "complex": # once per tool
+                    _, lines = run_tool(tool, indexed, datadir, datadir / "complex" / "C.bed", index=False)
                     print(f"{'ok' if lines == pairs else 'FAIL'} {tool} ({qdir}, complex): {lines} lines for {pairs} pairs")
                     if lines != pairs:
                         failed.append(f"{tool} ({qdir}, complex)")
