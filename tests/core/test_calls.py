@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).parents[2] / "segmeter"))
 import calls
 import utility
 
-TOOLS = ["tabix", "bedtools", "bedtools_sorted", "bedtools_tabix", "bedops", "bedmaps", "giggle", "granges", "gia",
+TOOLS = ["tabix", "bedtools", "bedtools_sorted", "bedops", "bedmaps", "giggle", "granges", "gia",
          "bedtk", "bedtk_sorted", "igd", "ailist", "ucsc", "awk", "intervaltree"]
 
 
@@ -122,7 +122,7 @@ def test_index_steps_counted():
                         rt, mem, size = calls.index_call(options, refdirs, "L")
                     assert rt == 0.5 * len(steps), f"{tool}: {rt} s for {len(steps)} steps"
                     assert mem == max(memory[:len(steps)], default=0), f"{tool}: {mem} MB, steps {memory[:len(steps)]}"
-                    expected = {"tabix": 2.0, "bedtools_tabix": 2.0, "giggle": 1.0, "igd": 1.0}.get(tool, 0) # 1 MB per index file
+                    expected = {"tabix": 2.0, "giggle": 1.0, "igd": 1.0}.get(tool, 0) # 1 MB per index file
                     assert size == expected, f"{tool}: index size {size} MB, expected {expected}"
             finally:
                 calls.tool_call = original

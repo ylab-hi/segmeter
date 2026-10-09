@@ -1,7 +1,6 @@
 # Standard
 from pathlib import Path
 import shutil
-import sys
 
 # Class
 from BenchTool import BenchTool
@@ -13,16 +12,13 @@ class BenchBase:
         self.intvlnums = intvlnums
 
         self.validate()
-        if options.tool == "bedtools_tabix":
-            print("WARNING: bedtools_tabix is deprecated and will be removed in 0.15.0: it measures bedtools_sorted "
-                  "plus a tabix index that bedtools cannot use; use tabix to measure the index.", file=sys.stderr)
 
         benchpath = Path(options.datadir) / "bench" / self.options.benchname / options.tool
         benchpath.mkdir(parents=True, exist_ok=True)
 
         # list of index-based tools
         self.options.idx_based_tools = [
-            "tabix", "bedtools_sorted", "bedtools_tabix", "giggle",
+            "tabix", "bedtools_sorted", "giggle",
             "bedtk_sorted", "igd", "bedops", "bedmaps"
         ]
 

@@ -133,7 +133,7 @@ segmeter bench -o DATADIR -t TOOL [-h] [-r] [-n INTVLNUMS] [-s SUBSET] [-b BENCH
 | -s, --subset | subset (in percentage) of the intervals to use for benchmarking. Format should be either XX-YY or XX,YY-ZZ. If this is left empty, all subsets/deciles are used |
 | -b, --benchname | name of the benchmark, used for the output folder. This allows to perform multiple benchmarks |
 | -c, --simname | name of the simulation data that is being used. Note that this should be the same as the name of the simulation data that was used for the simulation |
-| -t, --tool | tool to benchmark. Currently, the following tools are supported: `tabix`, `bedtools`, `bedtools_sorted`, `bedtools_tabix` (deprecated), `bedops`, `bedmaps`, `giggle`, `granges`, `gia`, `bedtk`, `bedtk_sorted`, `igd`, `ailist`, `ucsc`, `awk`, `intervaltree` |
+| -t, --tool | tool to benchmark. Currently, the following tools are supported: `tabix`, `bedtools`, `bedtools_sorted`, `bedops`, `bedmaps`, `giggle`, `granges`, `gia`, `bedtk`, `bedtk_sorted`, `igd`, `ailist`, `ucsc`, `awk`, `intervaltree` |
 
 #### Benchmarked tools
 
@@ -145,7 +145,6 @@ converts the output into BED for the scoring is not measured.
 | `tabix` | `sort`, `bgzip`, `tabix -C -p bed` (index size: `.gz` + `.csi`) | `tabix REF.bed.gz -R QUERY` | |
 | `bedtools` | | `bedtools intersect -wa -a REF -b QUERY` | |
 | `bedtools_sorted` | `sort` of the reference (no separate index) | `sort` of the query, `bedtools intersect -sorted -g GENOME -wa -a REF_SORTED -b QUERY_SORTED` | the sweep algorithm for sorted input; `-g` gives the chromosome order of the sorted data, so chromosomes present in only one file are handled; the genome file is written unmeasured |
-| `bedtools_tabix` | as `tabix` | as `bedtools_sorted`, reading the bgzipped reference | deprecated, removed in 0.15.0: bedtools cannot use the tabix index for random access, so this measures `bedtools_sorted` plus an index cost |
 | `bedops` | `sort` of the reference (no separate index) | `sort` of the query, `bedops --element-of 1 REF_SORTED QUERY_SORTED`; complex queries: `bedmap --echo-map --multidelim '\n' QUERY_SORTED REF_SORTED` | |
 | `bedmaps` | `sort` of the reference (no separate index) | `sort` of the query, `bedmap --echo-map --multidelim '\n' QUERY_SORTED REF_SORTED` | |
 | `giggle` | `giggle/scripts/sort_bed`, `giggle index -s` | `sort_bed` of the query, `giggle search -v` | |
