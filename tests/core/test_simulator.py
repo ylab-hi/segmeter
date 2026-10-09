@@ -72,11 +72,11 @@ def simulate(tmp, seed):
 
 
 def test_seed():
-    """The same seed gives the same data, another seed other data, an unseeded run records the seed it drew, and a second run
-    into the same folder appends its block to parameters.txt instead of replacing the first (#15)."""
+    """The same seed gives the same data, another seed other data, an unseeded run records the seed it drew, and the record
+    lives next to the label's data, so a later run of the same label replaces it (#15)."""
     with tempfile.TemporaryDirectory() as a, tempfile.TemporaryDirectory() as b, tempfile.TemporaryDirectory() as c:
         out, files_a = simulate(a, None)
-        params = dict(line.split("\t") for line in (out / "parameters.txt").read_text().splitlines() if line)
+        params = dict(line.split("\t") for line in (out / "10_parameters.txt").read_text().splitlines())
         assert params["intvlnums"] == "10" and params["max_span"] == "None" and params["python"] == platform.python_version()
         seed = int(params["seed"])
         _, files_b = simulate(b, seed)
@@ -85,9 +85,8 @@ def test_seed():
         assert files_a["ref/10.bed"] != files_c["ref/10.bed"]
         assert len(files_a["basic/query/perfect/10_30p.bed"].splitlines()) == 3 # 30% of 10 queries
         assert len({l for f in files_a if f.startswith("basic/query/perfect/10_") for l in files_a[f].splitlines()}) == 10 # samples of the 10 queries
-        simulate(a, seed + 1) # a later run into the same simname (e.g. another -n) keeps the first run's block
-        blocks = (out / "parameters.txt").read_text().split("\n\n")
-        assert [b.split("\n")[0] for b in blocks if b] == [f"seed\t{seed}", f"seed\t{seed + 1}"]
+        _, files_d = simulate(a, seed + 1) # the same label again: data and record replaced together
+        assert files_d == files_c and (out / "10_parameters.txt").read_text().startswith(f"seed\t{seed + 1}\n")
 
 
 if __name__ == "__main__":

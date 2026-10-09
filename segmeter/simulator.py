@@ -125,18 +125,18 @@ class SimBED:
         refdir, truthdirs, querydirs = self.create_datadirs(outpath)
         is_start, is_end = [int(x) for x in self.options.intvlsize.split("-")]
 
-        # seed once, so that the same seed and parameters give the same data; the seed is recorded for unseeded runs (#15).
-        # One block per run, appended: a simulation folder is often grown by separate runs with other -n
+        # seed once, so that the same seed and parameters give the same data; the seed is recorded for unseeded runs (#15)
         seed = self.options.seed if self.options.seed is not None else random.randrange(2**32)
         random.seed(seed)
-        with open(outpath / "parameters.txt", "a") as fh:
-            fh.write(f"seed\t{seed}\npython\t{platform.python_version()}\n") # the draws of `random` are an implementation detail of CPython
-            for key in ("intvlnums", "intvlsize", "gapsize", "max_chromlen", "max_span"):
-                fh.write(f"{key}\t{getattr(self.options, key)}\n")
-            fh.write("\n")
 
         for label, num in self.intvlnums.items():
             print(f"Simulate intervals for {label}:{num}...")
+            # the record of the run next to the label's data: replaced with it, kept when another label is added later;
+            # the full -n list is in it, since the labels consume the random stream in order
+            with open(outpath / f"{label}_parameters.txt", "w") as fh:
+                fh.write(f"seed\t{seed}\npython\t{platform.python_version()}\n") # the draws of `random` are an implementation detail of CPython
+                for key in ("intvlnums", "intvlsize", "gapsize", "max_chromlen", "max_span"):
+                    fh.write(f"{key}\t{getattr(self.options, key)}\n")
             datafiles = self.open_datafiles(label, refdir, truthdirs, querydirs)
 
             chroms = self.init_chroms()
