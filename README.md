@@ -26,7 +26,7 @@ segmeter reads a dataset of intervals from a file and evaluates the performance 
 In the simulation mode, segmeter generates of intervals (reference) and their corresponding basic and complex queries. This can be used as follows:
 
 ```
-segmeter sim -o DATADIR [-h] [-n INVLNUMS] [-m MAX_CHROMLEN] [-c SIMNAME] [-g GAPSIZE] [-i INTVLSIZE] [--max_span MAX_SPAN]
+segmeter sim -o DATADIR [-h] [-n INVLNUMS] [-m MAX_CHROMLEN] [-c SIMNAME] [-g GAPSIZE] [-i INTVLSIZE] [--max_span MAX_SPAN] [--seed SEED]
 
 ```
 
@@ -39,47 +39,48 @@ segmeter sim -o DATADIR [-h] [-n INVLNUMS] [-m MAX_CHROMLEN] [-c SIMNAME] [-g GA
 | -g, --gapsize | random size of the gaps (min and max) between the intervals. Default is 100-5000 |
 | -i, --intvlsize | random size (min and max) of the intervals. Default is 100-10000 |
 | --max_span | maximum number of reference intervals that a complex query covers (a multiple of 10, at least 10, so that every span falls into one of the ten bins). Not limited by default. The output of the complex queries grows quadratically with the number of intervals per chromosome, so a limit (e.g., 1000) is recommended for more than 10K intervals |
+| --seed | seed of the random simulation. The same seed and parameters give the same data; a random seed is drawn by default. The seed used is written with the other parameters to `DATADIR/sim/simname/BED/<INTVLNUM>_parameters.txt` next to the data of each size, so any simulation can be repeated; the record is replaced with the data when a size is simulated again and kept when another size is added later. The sizes consume the random stream in order, so `-n 10K,100K --seed S` reproduces the `10K` files of `-n 10K --seed S`; to reproduce a size from a multi-size run, rerun the recorded `-n` list |
 
-This will generates output files in the 'DATADIR/simname/BED' folder. The files are in BED format (currently the only supported format) and can be used for benchmarking. In particular, the filers are located in the following folders:
+This will generates output files in the 'DATADIR/sim/simname/BED' folder. The files are in BED format (currently the only supported format) and can be used for benchmarking. In particular, the filers are located in the following folders:
 
 ```
-DATADIR/simname/BED/ref/ # reference intervals
-DATADIR/simname/BED/basic/ # basic queries
-DATADIR/simname/BED/complex/ # complex queries
+DATADIR/sim/simname/BED/ref/ # reference intervals
+DATADIR/sim/simname/BED/basic/ # basic queries
+DATADIR/sim/simname/BED/complex/ # complex queries
 ```
 
-In addition, segmeter generates for each specified `INTVLNUM`, a file with the length of each simulated chromosome (`DATADIR/simname/BED/<INTVLNUM>_chrlens.txt`),
-and the number of intervals per chromosome (`DATADIR/simname/BED/<INTVLNUM>_chrnums.txt`).
+In addition, segmeter generates for each specified `INTVLNUM`, a file with the length of each simulated chromosome (`DATADIR/sim/simname/BED/<INTVLNUM>_chromlens.txt`),
+and the number of intervals per chromosome (`DATADIR/sim/simname/BED/<INTVLNUM>_chrnums.txt`), and the seed and the parameters of the run that produced it (`DATADIR/sim/simname/BED/<INTVLNUM>_parameters.txt`).
 
 #### Reference
 
-`DATADIR/simname/BED/ref` contains the reference intervals. This is a BED4 file with the interval ID in the fourth column.
+`DATADIR/sim/simname/BED/ref` contains the reference intervals. This is a BED4 file with the interval ID in the fourth column.
 For each value in `INTVLNUMS`, there is a corresponding file with the intervals.
 
 #### Basic queries
 
-`DATADIR/simname/BED/basic` contains the basic queries. In total, segmeter generates ten basic queries for each interval in the reference.
+`DATADIR/sim/simname/BED/basic` contains the basic queries. In total, segmeter generates ten basic queries for each interval in the reference.
 For each value in `INTVLNUMS`, there is a corresponding folder with the basic queries. In each folder, there is a  subfolders for the different
 types of basic queries:
 ```
-DATADIR/simname/BED/basic/perfect/ # perfect overlaps (boundaries are identical with reference)
-DATADIR/simname/BED/basic/5p-partial/ # partial overlaps on 5' end
-DATADIR/simname/BED/basic/3p-partial/ # partial overlaps on 3' end
-DATADIR/simname/BED/basic/contained/ # overlap is contained within the reference
-DATADIR/simname/BED/basic/enclosed/ # overlap encloses the reference
-DATADIR/simname/BED/basic/perfect-gap/ # perfect overlap with a gap between reference intervals
-DATADIR/simname/BED/basic/left-adjacent-gap/ # adjacent to the 5'-end of the interval (no overlap)
-DATADIR/simname/BED/basic/right-adjacent-gap/ # adjacent to the 3'-end of the interval (no overlap)
-DATADIR/simname/BED/basic/mid-gap1/ # random overlap with a gap
-DATADIR/simname/BED/basic/mid-gap2/ # random overlap with a gap
+DATADIR/sim/simname/BED/basic/perfect/ # perfect overlaps (boundaries are identical with reference)
+DATADIR/sim/simname/BED/basic/5p-partial/ # partial overlaps on 5' end
+DATADIR/sim/simname/BED/basic/3p-partial/ # partial overlaps on 3' end
+DATADIR/sim/simname/BED/basic/contained/ # overlap is contained within the reference
+DATADIR/sim/simname/BED/basic/enclosed/ # overlap encloses the reference
+DATADIR/sim/simname/BED/basic/perfect-gap/ # perfect overlap with a gap between reference intervals
+DATADIR/sim/simname/BED/basic/left-adjacent-gap/ # adjacent to the 5'-end of the interval (no overlap)
+DATADIR/sim/simname/BED/basic/right-adjacent-gap/ # adjacent to the 3'-end of the interval (no overlap)
+DATADIR/sim/simname/BED/basic/mid-gap1/ # random overlap with a gap
+DATADIR/sim/simname/BED/basic/mid-gap2/ # random overlap with a gap
 ```
 
-In each of the subfolders, there is a BED4 file for each of the specified INTVLNUMS (e.g., `DATADIR/simname/BED/basic/query/<query_type>/<INTVLNUM>.bed`).
-In addition, the queries are subsample to 10-100% of the queries and stored in corresponding files (e.g., `DATADIR/simname/BED/basic/query/<query_type>/INTVLNUM_<PERCENT>p.bed`).
+In each of the subfolders, there is a BED4 file for each of the specified INTVLNUMS (e.g., `DATADIR/sim/simname/BED/basic/query/<query_type>/<INTVLNUM>.bed`).
+In addition, the queries are subsample to 10-100% of the queries and stored in corresponding files (e.g., `DATADIR/sim/simname/BED/basic/query/<query_type>/INTVLNUM_<PERCENT>p.bed`).
 
 ##### Truth
 
-In addition, the truth files are stored in `DATADIR/simname/BED/basic/truth/<INTVLNUM>.bed`. These files contain the queries and their corresponding reference intervals. In each line
+In addition, the truth files are stored in `DATADIR/sim/simname/BED/basic/truth/<INTVLNUM>.bed`. These files contain the queries and their corresponding reference intervals. In each line
 the query interval is followed by the reference interval. The reference interval is the interval that the query should overlap with. In the fourth column, the combined ID of the query and
 reference interval is stored.
 
@@ -93,9 +94,9 @@ chr13	584	4573	chr13	584	4573	intvl_1_perfect:intvl_1
 
 #### Complex queries
 
-`DATADIR/simname/BED/complex` contains the complex queries. Currently, this only includes `mult` queries which basically cover multiple reference intervals. For each chromosome, there is one query
+`DATADIR/sim/simname/BED/complex` contains the complex queries. Currently, this only includes `mult` queries which basically cover multiple reference intervals. For each chromosome, there is one query
 for each number of covered intervals, from 2 up to the number of intervals on the chromosome or `--max_span`, whichever is smaller. According to the number of intervals that
-are covered in a complex query, the queries are stored in deciles (e.g., `DATADIR/simname/BED/complex/query/mult/<INTVLNUM>_<DECILE>bin.bed`). Again this contains the queries in BED4 format with and
+are covered in a complex query, the queries are stored in deciles (e.g., `DATADIR/sim/simname/BED/complex/query/mult/<INTVLNUM>_<DECILE>bin.bed`). Again this contains the queries in BED4 format with and
 identifier in the fourth column. Note that `mult_13` indicates that this query covers 13 reference intervals:
 ```
 chr12	45837	160962	mult_13
@@ -107,7 +108,7 @@ chr14	20381	105691	mult_13
 
 ##### Truth
 
-The truth files for the complex queries are stored in `DATADIR/simname/BED/complex/truth/<INTVLNUM>.bed`. This consists of the query interval and the corresponding number of intervals that are covered by the query.
+The truth files for the complex queries are stored in `DATADIR/sim/simname/BED/complex/truth/<INTVLNUM>.bed`. This consists of the query interval and the corresponding number of intervals that are covered by the query.
 ```
 chr11	43495	63230	mult_2	2
 chr11	106913	119696	mult_3	3

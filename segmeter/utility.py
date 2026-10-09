@@ -1,10 +1,13 @@
+import os
 import subprocess
 import platform
 import re
 
 def sort_BED(infile, outfile):
+    """Sorted copy of a BED file (unmeasured); `LC_ALL=C` so that the order (chromosome names, scaffolds) is the same on every
+    machine as in the containers, which a seeded simulation needs (#15)"""
     with open(outfile, 'w') as out:
-        subprocess.run(["sort", "-k1,1", "-k2,2n", "-k3,3n", str(infile)], stdout=out)
+        subprocess.run(["sort", "-k1,1", "-k2,2n", "-k3,3n", str(infile)], stdout=out, env={**os.environ, "LC_ALL": "C"})
 
 def file_linecounter(filepath):
     with open(filepath, "rb") as file:
