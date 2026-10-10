@@ -277,6 +277,147 @@ versions of the published benchmark (images up to v0.14.x, see [Published benchm
 Measured values depend on the versions, so compare results only between runs of the same image tag. The pins are checked against
 upstream before a release ([#27](https://github.com/ylab-hi/segmeter/issues/27)).
 
+## Continuous benchmarking
+
+The smoke workflow runs on pull requests and pushes to `main` in the three tool containers, with 10K and 100K intervals, seed 1729,
+`--max_span 100`, and subset/bin 100. It checks every tool's basic and complex precision and recall, and requires complex
+distance zero. Empty complex bins (in small full-run datasets) must have no false positives or missed hits.
+Query timings are divided by bedtools' timing of the same query case on the same runner. PRs run the exact base commit
+and the merge result sequentially using the same tool images; differing dataset hashes invalidate the comparison.
+The comparison fails for a normalized slowdown above 25%. Smoke uses one sample per case, so inspect raw timings
+and rerun a noisy failure before attributing it to a code change. Tool-image changes are evaluated in full cluster runs;
+the PR comparison deliberately holds the tool environment constant.
+Both tiers also record absolute simulation time and end-to-end time per tool (including scoring and container startup)
+to detect regressions in segmeter outside the measured tool commands. The PR comparison checks these on the same runner too.
+
+The full benchmark runs as a Slurm batch job using Singularity (or Apptainer), independently of GitHub Actions.
+It covers 10, 100, 1K, 10K, 100K and 1M, all subsets/bins, with three independent index/query runs.
+The exported absolute times are medians. Raw statistics, precision, SIF hashes, tool versions, dataset hashes,
+a source snapshot, CPU information and Slurm allocation details are saved in the output directory.
+Submit weekly or after a tool version changes; no GitHub runner is required on the cluster.
+
+Both tiers export `customSmallerIsBetter` JSON for `benchmark-action/github-action-benchmark`. Main smoke runs
+publish a history to `gh-pages` at `dev/bench/smoke`; enable GitHub Pages for that branch to serve the dashboard.
+Full results are saved on the cluster and can be archived manually. Use the same cluster node type and filesystem
+for comparable absolute timings. Full benchmarks have no GitHub Actions workflow.
+
+To run locally (Docker required):
+
+```sh
+python3 scripts/continuous_benchmark.py --build --output /tmp/segmeter-smoke
+python3 scripts/continuous_benchmark.py --build --tier full --output /tmp/segmeter-full
+```
+
+The output directory must be new. `--sizes 1K` permits a short integration check. Containers copy the local `segmeter/`
+source at build time; the runner snapshots and mounts the selected source read-only at runtime, which lets it test both sides of a PR.
+Update `containers/tool-versions.json` with any Dockerfile tool pin change; the manifest is embedded in each image and
+read back into results. Timing comparisons across tool versions or different CPUs need separate interpretation.
+
+### Full benchmark on a Slurm cluster
+
+Run the launcher on your cluster's login/transfer node. It loads the module, pulls the three SIF containers,
+optionally downloads and verifies the published Zenodo data, freezes the source and submits the benchmark to Slurm:
+
+```sh
+bash scripts/cluster/run-benchmark.sh \
+  --module singularity/4.1 \
+  --image-tag v0.14.1 \
+  --work-dir /shared/project/segmeter-benchmarks \
+  --dataset zenodo \
+  --account YOUR_ACCOUNT --partition YOUR_PARTITION
+```
+
+Replace the module name, account, partition and shared path with your site's values, and choose a published image tag.
+Use `--dataset simulated` (the default) for seeded data with the complex-span cap, or `--dataset zenodo` for the
+published archive ([Zenodo record 14880992](https://zenodo.org/records/14880992)). The fixed archive is 216 MB compressed;
+the launcher verifies its published MD5 checksum before extracting it. Zenodo contains sizes through 100K, so that run
+omits 1M and records the archive provenance instead of claiming a seed or span cap. Published and seeded runs have
+distinct dataset provenance and should be compared separately.
+
+For a setup check, append `--sizes 1K`. For resource overrides, add `--mem 64G`, `--time 2-00:00:00` or `--exclusive`.
+Use `--module none` if the runtime is already on PATH; `--runtime apptainer --module YOUR_APPTAINER_MODULE` selects Apptainer.
+Module loading is repeated inside the batch job. The launcher needs Python, Git, `flock`, network access and `sbatch` on
+the login node. Compute nodes need Python and the runtime, but no network access or GitHub credentials.
+
+Images and data are cached under the work directory. Each invocation prints the job ID, a unique results directory
+and Slurm log path. Source is frozen before submission, so checkout edits while the job is queued do not change it.
+Once the job finishes, `RESULTS/benchmark/publish/` contains the three JSON files to upload as described below.
+Container pulls create the SIF files; `singularity exec` then runs them directly, without a separate persistent container.
+Older release images are supported: when their embedded version manifest is absent, results record installed tool binary
+SHA-256 fingerprints and package versions. They never reuse the current Dockerfile's pins as a claim about an old image.
+
+The following commands are optional lower-level preparation and submission steps if you prefer to manage images yourself.
+
+Use an x86_64 Linux node, Python 3.8+ and Git on the host, and SingularityCE 3.6+ (or Apptainer).
+Load your site's Python and Singularity modules before submission; module names, account and partition are site-specific.
+The job inherits that environment, then runs containers with a clean environment and explicit source/data binds
+([Singularity exec options](https://docs.sylabs.io/guides/4.6/user-guide/cli/singularity_exec.html)).
+
+First commit and push the benchmark code, then use a separate checkout on shared cluster storage. Keep that checkout
+unchanged until the job starts; the job snapshots the Python source once running. The output and image directories
+must be accessible from compute nodes. Local scratch can be used if you arrange to copy results back before allocation ends.
+
+On a login/transfer node with internet access, pull a versioned release:
+
+```sh
+# Replace vX.Y.Z with the published release to benchmark; do not use latest.
+bash scripts/cluster/pull-images.sh vX.Y.Z /shared/project/segmeter-images-vX.Y.Z
+```
+
+The new image directory's parent must exist. New images embed `/opt/segmeter-tool-versions.json`; older images use runtime binary fingerprints instead.
+To benchmark the latest Dockerfile changes before release, build on a Docker machine and transfer Docker archives to the cluster:
+
+```sh
+# On the Docker machine, from this checkout; repeat for giggle and rust-tools.
+docker build --platform linux/amd64 -t segmeter-bench:others -f containers/others/Dockerfile .
+docker save --output others.tar segmeter-bench:others
+# Transfer others.tar to the cluster, then on the login/transfer node:
+singularity build /shared/project/segmeter-images/others.sif docker-archive://others.tar
+```
+
+Repeat the conversion for `giggle.sif` and `rust-tools.sif`. All three SIF files must be in the same image directory.
+Pulling/conversion happens before submission; the compute job needs no internet access or GitHub credentials.
+For Apptainer, use `SEGMETER_RUNTIME=apptainer` for both the pull script and `sbatch` invocation.
+
+From the segmeter checkout, submit a small check first, then the full benchmark with a new output directory:
+
+```sh
+sbatch --account=YOUR_ACCOUNT --partition=YOUR_PARTITION \
+  scripts/cluster/full-benchmark.sbatch \
+  /shared/project/segmeter-images /shared/project/segmeter-check --sizes 1K
+
+sbatch --account=YOUR_ACCOUNT --partition=YOUR_PARTITION \
+  scripts/cluster/full-benchmark.sbatch \
+  /shared/project/segmeter-images /shared/project/segmeter-full-2026-10-09
+```
+
+The script requests one node, one task/CPU, 32 GB and 24 hours; these are starting resource requests, not measured
+requirements. Override `--mem`, `--time`, and any site-specific resource options with `sbatch`. All tools run sequentially
+within the allocation. Slurm writes `segmeter-full-JOBID.log` in the submission directory; monitor with `squeue`/`sacct`.
+The 1M awk cases can take substantial time. For exclusive-node measurements, add `--exclusive` if your site permits it.
+See [sbatch options](https://slurm.schedmd.com/sbatch.html) for resource overrides.
+
+A successful full run creates three small files in `OUTPUT/publish/`; that directory is created only after every
+correctness check passes. Keep the whole output directory and Slurm log on cluster storage for later inspection.
+An abbreviated `--sizes` check is useful for setup validation but the full-result validator rejects it.
+
+### Archive cluster results
+
+Copy `OUTPUT/publish/` to a machine with GitHub CLI access. The source commit must have been pushed to this repository.
+Validate the full results, then optionally create a draft release and upload the three JSON files:
+
+```sh
+# Run from a segmeter checkout with gh authenticated; choose a unique results tag.
+python3 scripts/validate_publication.py publish
+gh release create benchmark-results-2026-10-09 --draft --target MEASURED_COMMIT \
+  --title "Cluster benchmark 2026-10-09" --notes "Slurm/Singularity full benchmark results"
+gh release upload benchmark-results-2026-10-09 publish/segmeter-full-*.json
+```
+
+`MEASURED_COMMIT` is `source_commit` in `segmeter-full-versions.json`, printed by the validator.
+The results release can remain a draft. Uploading requires repository write access; it archives the files without
+publishing a dashboard. Cluster jobs and uploads are manual; there is no automatic weekly cluster submission.
+
 ## Singularity
 
 The Docker images can also be pulled with Singularity, e.g. `singularity pull docker://yanglabinfo/segmeter:others-v0.13.2`, which creates the `segmeter_others-v0.13.2.sif` file.

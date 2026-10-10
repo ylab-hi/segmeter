@@ -65,7 +65,7 @@ RUN cd userApps/kent/src && MACHTYPE=local NOSQLTEST=1 make topLibs hgLib && MAC
 RUN cp userApps/kent/src/hg/bedIntersect/bedIntersect /usr/local/bin/
 
 # load segmeter
-# pin segmeter to the release that the image is built for (the workflow passes the tag)
-ARG SEGMETER_REF=main
-RUN git clone --branch ${SEGMETER_REF} --depth 1 https://github.com/ylab-hi/segmeter.git
+# Build the checked-out source, including PR changes; release workflows check out the tag.
+COPY segmeter /segmeter/segmeter
+COPY containers/tool-versions.json /opt/segmeter-tool-versions.json
 RUN ln -s /segmeter/segmeter/main.py /usr/local/bin/segmeter && chmod +x /usr/local/bin/segmeter
