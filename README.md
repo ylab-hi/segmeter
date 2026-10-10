@@ -279,7 +279,7 @@ upstream before a release ([#27](https://github.com/ylab-hi/segmeter/issues/27))
 
 ## Continuous benchmarking
 
-The smoke workflow runs every PR and push in the three tool containers, with 10K and 100K intervals, seed 1729,
+The smoke workflow runs on pull requests and pushes to `main` in the three tool containers, with 10K and 100K intervals, seed 1729,
 `--max_span 100`, and subset/bin 100. It checks every tool's basic and complex precision and recall, and requires complex
 distance zero. Empty complex bins (in small full-run datasets) must have no false positives or missed hits.
 Query timings are divided by bedtools' timing of the same query case on the same runner. PRs run the exact base commit
