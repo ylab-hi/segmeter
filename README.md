@@ -254,6 +254,29 @@ docker run -it -d -v /folder/on/host/:/folder/in/container/ yanglabinfo/segmeter
 docker exec <container_id> segmeter <args>
 ```
 
+### Tool versions
+
+Every tool is pinned in its Dockerfile, so an image tag reproduces one set of versions. The current pins (images from 0.15.0) and the
+versions of the published benchmark (images up to v0.14.x, see [Published benchmark](#published-benchmark)):
+
+| Tool | Container | Current pin | Published benchmark | Pinned in |
+| --- | --- | --- | --- | --- |
+| bedtools | others | 2.31.1 (Debian trixie `2.31.1+dfsg-2`) | 2.30.0 (Debian bookworm) | `containers/others/Dockerfile`, apt |
+| tabix (htslib) | others | 1.21 (Debian trixie `1.21+ds-1`) | 1.16 (Debian bookworm) | `containers/others/Dockerfile`, apt |
+| BEDOPS (`bedops`, `bedmap`) | others | 2.4.42 | 2.4.41 | `containers/others/Dockerfile`, release tarball |
+| bedtk | others | 1.2 (r34, commit `fa2cc15`) | 0.0-r30 (commit `da1fb73`) | `containers/others/Dockerfile`, git commit |
+| IGD | others | 0.1.1 (commit `4197c23`, 2021; built with a one-line patch that floors the divisor of a progress print at 1, since `igd create` divides by zero for fewer than 10 input files and gcc 14 no longer compiles that away) | same, unpatched (gcc 12) | `containers/others/Dockerfile`, git commit |
+| AIList | others | 0.1.1 (commit `d7fcddc`, 2019; later versions changed the command line) | same | `containers/others/Dockerfile`, git commit |
+| UCSC bedIntersect | others | kent source 502 | kent source 482 | `containers/others/Dockerfile`, archived source |
+| intervaltree | others | 3.2.1 | 3.1.0 | `containers/others/Dockerfile`, pip |
+| GIGGLE | giggle | 0.6.3, upstream commit `215bf20` (2026-03), Ubuntu 24.04, system htslib 1.19 | 0.6.3, fork `riasc/giggle` at `1b7cb90`, Ubuntu 20.04 | `containers/giggle/Dockerfile`, git commit |
+| gia | rust-tools | 0.2.23, Rust 1.99.0 | 0.2.23, Rust 1.87.0 | `containers/rust-tools/Dockerfile`, cargo |
+| granges | rust-tools | 0.2.2, Rust 1.99.0 | 0.2.2, Rust 1.87.0 | `containers/rust-tools/Dockerfile`, cargo |
+| Python (harness) | all | 3.10 (others), Ubuntu's python3 (giggle, rust-tools) | same | base images |
+
+Measured values depend on the versions, so compare results only between runs of the same image tag. The pins are checked against
+upstream before a release ([#27](https://github.com/ylab-hi/segmeter/issues/27)).
+
 ## Singularity
 
 The Docker images can also be pulled with Singularity, e.g. `singularity pull docker://yanglabinfo/segmeter:others-v0.13.2`, which creates the `segmeter_others-v0.13.2.sif` file.
@@ -280,6 +303,7 @@ build in the same environment. Use the images of the last patch release of v0.13
 | `granges` in v0.13.x | reads the simulator's `<label>_chromlens.txt` as its genome file in the simulator's random draw order. granges 0.2.2 labels its query trees in natural chromosome order (1, 2, ..., 22, X, Y) but reads the genome file in file order, so every run whose genome file is not in natural order compared the left ranges of one chromosome with the queries of another: in the published `sim_001` data that is `1K`, `10K` and `100K` (`10` has one chromosome, `100` happened to be drawn in natural order), and their v0.13.x granges precision and recall are an artifact of the genome-file order, not of its overlap detection. From 0.14.0 granges reads an unmeasured copy of the genome file in natural order; the simulated data is unchanged ([#36](https://github.com/ylab-hi/segmeter/issues/36)) |
 | `awk`, `ucsc`, `granges` complex score in v0.13.x and v0.14.x | these tools report each reference once however many complex queries hit it (`bedIntersect -aHitAny`, `granges filter`, and the awk script stopped at the first hit), while the complex score counts one output line per (query, reference) pair; their complex distance is therefore the number of missing duplicates, not missed overlaps (the basic scores are unaffected, a basic query hits one reference). `bedtk` already had its duplicates restored by an unmeasured `bedtools intersect` pass, which ran on every query file, so a reference bedtk had reported for a basic gap query without overlapping it would have been dropped before the basic score (bedtk reported none). From 0.15.0 `granges` and `ucsc` get the same pass, it runs on the complex query files only, and the awk script prints a reference once per query ([#69](https://github.com/ylab-hi/segmeter/issues/69)) |
 | Tool versions | bedtools 2.30.0, tabix (htslib) 1.16, BEDOPS 2.4.41, bedtk 0.0-r30, IGD 0.1.1, AIList 0.1.1, UCSC bedIntersect (kent source 482), intervaltree 3.1.0, GIGGLE 0.6.3, gia 0.2.23, granges 0.2.2 (as installed in the images above) |
+| Tool versions from 0.15.0 | the images are pinned to the upstream versions of 2026-10, see the [tool version table](#tool-versions) in the Docker section. The measured values of every tool change with the versions, so results from 0.15.0 images are not comparable with the published ones ([#27](https://github.com/ylab-hi/segmeter/issues/27)) |
 
 To redo the benchmark, use the **last patch release of v0.13.x** (currently v0.13.2): it keeps these defaults, new options are off by default,
 and the `bench` command takes the additional flag `-r`/`--simdata` for simulated data. Later minor releases (0.14.x and up) may change the tool versions and the simulated data.

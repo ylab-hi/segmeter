@@ -85,11 +85,13 @@ def index_call(options, refdirs, label):
         step(f"sort -k1,1 -k2,2n -k3,3n {refdirs['ref'] / f'{label}.bed'} > {refdirs['idx'] / f'{label}.bed'}")
 
     elif options.tool == "giggle":
-        step(f"bash /giggle/scripts/sort_bed {refdirs['ref'] / f'{label}.bed'} {refdirs['idx']} 4")
-        step(f"giggle index -i {refdirs['idx'] / f'{label}.bed.gz'} -o {refdirs['idx'] / f'{label}_index'} -f -s")
-
+        # giggle requires the input directory (idx/) and the output directory to share a parent, so the index is written
+        # next to idx/, in bench/<benchname>/giggle/<label>_index (the published benchmark's fork had removed that check
+        # and giggle wrote the index there anyway, #27)
         indexpath = Path(options.datadir) / "bench" / options.benchname / options.tool
-        # for some reason the giggle index is not created in ./giggle/idx/<index> but in ./giggle/<index> - so use this path
+        step(f"bash /giggle/scripts/sort_bed {refdirs['ref'] / f'{label}.bed'} {refdirs['idx']} 4")
+        step(f"giggle index -i {refdirs['idx'] / f'{label}.bed.gz'} -o {indexpath / f'{label}_index'} -f -s")
+
         giggle_size = index_size(indexpath / f'{label}_index')
         giggle_size_mb = round(giggle_size/(1024*1024), 5)
         idx_size_mb += giggle_size_mb
