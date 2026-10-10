@@ -1,0 +1,23 @@
+{
+  "others": {
+    "bedtools": "2.31.1+dfsg-2",
+    "bedtools_sorted": "2.31.1+dfsg-2",
+    "tabix": "1.21+ds-1",
+    "bedops": "2.4.42",
+    "bedmaps": "2.4.42",
+    "bedtk": "fa2cc15a8ab61d28bf6a4cfd50f36f883021a385",
+    "bedtk_sorted": "fa2cc15a8ab61d28bf6a4cfd50f36f883021a385",
+    "igd": "4197c239380059e7e3d6eafce10011fc96047f5a + progress divisor patch",
+    "ailist": "d7fcddcd08668352e8e2836dae1c9bc622496a3d",
+    "ucsc": "502",
+    "awk": "Python wrapper from mounted segmeter checkout; system awk recorded by image ID",
+    "intervaltree": "3.2.1"
+  },
+  "giggle": {
+    "giggle": "215bf202d8e766c40f49faaf7f18dc19226a6d63"
+  },
+  "rust-tools": {
+    "gia": "0.2.23",
+    "granges": "0.2.2"
+  }
+}

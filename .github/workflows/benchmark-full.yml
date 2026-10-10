@@ -1,0 +1,53 @@
+name: Publish full cluster benchmark
+on:
+  workflow_dispatch:
+    inputs:
+      results_release:
+        description: 'Release tag holding the three segmeter-full-*.json assets'
+        required: true
+        type: string
+permissions:
+  contents: write
+concurrency:
+  group: benchmark-pages
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Download cluster results
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          RESULTS_RELEASE: ${{ inputs.results_release }}
+        run: |
+          gh release download "$RESULTS_RELEASE" --dir results \
+            --pattern segmeter-full-benchmark.json \
+            --pattern segmeter-full-versions.json \
+            --pattern segmeter-full-dataset.json
+      - name: Validate results
+        id: results
+        run: |
+          commit=$(python3 scripts/validate_publication.py results)
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
+          dataset=$(python3 -c 'import json; print(json.load(open("results/segmeter-full-versions.json")).get("dataset", {}).get("kind", "simulated"))')
+          echo "dataset=$dataset" >> "$GITHUB_OUTPUT"
+          echo "Measured cluster source commit: $commit" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: full-cluster-results
+          path: results/*.json
+      - uses: benchmark-action/github-action-benchmark@v1
+        with:
+          name: Full ${{ steps.results.outputs.dataset }} (absolute time, median of three)
+          tool: customSmallerIsBetter
+          ref: ${{ steps.results.outputs.commit }}
+          output-file-path: results/segmeter-full-benchmark.json
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: true
+          benchmark-data-dir-path: dev/bench/full-${{ steps.results.outputs.dataset }}
+          fail-on-alert: false
