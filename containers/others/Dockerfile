@@ -23,7 +23,8 @@ RUN apt-get install -y \
     libc6-dev
 
 # install tabix and bedtools
-# pinned (Debian trixie); the published benchmark (v0.13.x) used tabix 1.16 and bedtools 2.30.0 of bookworm (#27)
+# pinned (Debian trixie); the published benchmark (v0.13.x) used tabix 1.16 and bedtools 2.30.0 of bookworm (#27).
+# A trixie point release of either package removes the pinned version from the archive and fails this line: bump the pin
 RUN apt-get install -y tabix=1.21+ds-1 bedtools=2.31.1+dfsg-2
 
 # install bedops by link (the published benchmark used 2.4.41)

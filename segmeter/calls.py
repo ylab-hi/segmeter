@@ -199,8 +199,7 @@ def query_call(options, label, reffiles, queryfile):
                 out.write("\t".join([chrom, str(start), str(end), *rest]) + "\n")
         step(f" bash /giggle/scripts/sort_bed {query_closed} {scratch} 4")
 
-        indexpath = Path(options.datadir) / "bench" / options.benchname / options.tool
-        # for some reason the giggle index is not created in ./giggle/idx/<index> but in ./giggle/<index> - so use this path
+        indexpath = Path(options.datadir) / "bench" / options.benchname / options.tool # the index of index_call, next to idx/
         step(f"/giggle/bin/giggle search -i {indexpath / f'{label}_index'} -q {scratch / 'query_closed.bed.gz'} -v > {tmpfile.name}")
 
     elif options.tool == "granges":

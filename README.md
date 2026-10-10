@@ -264,7 +264,7 @@ versions of the published benchmark (images up to v0.14.x, see [Published benchm
 | bedtools | others | 2.31.1 (Debian trixie `2.31.1+dfsg-2`) | 2.30.0 (Debian bookworm) | `containers/others/Dockerfile`, apt |
 | tabix (htslib) | others | 1.21 (Debian trixie `1.21+ds-1`) | 1.16 (Debian bookworm) | `containers/others/Dockerfile`, apt |
 | BEDOPS (`bedops`, `bedmap`) | others | 2.4.42 | 2.4.41 | `containers/others/Dockerfile`, release tarball |
-| bedtk | others | 1.2 (r34, commit `fa2cc15`) | 0.0-r30 (commit `da1fb73`) | `containers/others/Dockerfile`, git commit |
+| bedtk | others | 1.2 (r34, commit `fa2cc15`) | 0.0-r30 (commit `da1fb73`, since tagged v1.0 upstream) | `containers/others/Dockerfile`, git commit |
 | IGD | others | 0.1.1 (commit `4197c23`, 2021; built with a one-line patch that floors the divisor of a progress print at 1, since `igd create` divides by zero for fewer than 10 input files and gcc 14 no longer compiles that away) | same, unpatched (gcc 12) | `containers/others/Dockerfile`, git commit |
 | AIList | others | 0.1.1 (commit `d7fcddc`, 2019; later versions changed the command line) | same | `containers/others/Dockerfile`, git commit |
 | UCSC bedIntersect | others | kent source 502 | kent source 482 | `containers/others/Dockerfile`, archived source |
@@ -272,7 +272,7 @@ versions of the published benchmark (images up to v0.14.x, see [Published benchm
 | GIGGLE | giggle | 0.6.3, upstream commit `215bf20` (2026-03), Ubuntu 24.04, system htslib 1.19 | 0.6.3, fork `riasc/giggle` at `1b7cb90`, Ubuntu 20.04 | `containers/giggle/Dockerfile`, git commit |
 | gia | rust-tools | 0.2.23, Rust 1.99.0 | 0.2.23, Rust 1.87.0 | `containers/rust-tools/Dockerfile`, cargo |
 | granges | rust-tools | 0.2.2, Rust 1.99.0 | 0.2.2, Rust 1.87.0 | `containers/rust-tools/Dockerfile`, cargo |
-| Python (harness) | all | 3.10 (others), Ubuntu's python3 (giggle, rust-tools) | same | base images |
+| Python (harness) | all | 3.10 (others), 3.12 (giggle, Ubuntu 24.04), 3.10 (rust-tools, Ubuntu 22.04) | 3.10 (others), 3.8 (giggle, Ubuntu 20.04), 3.10 (rust-tools) | base images |
 
 Measured values depend on the versions, so compare results only between runs of the same image tag. The pins are checked against
 upstream before a release ([#27](https://github.com/ylab-hi/segmeter/issues/27)).
