@@ -31,12 +31,11 @@ RUN apt-get install -y \
 
 # bedtools is not benchmarked here: it restores the duplicates of granges' output, unmeasured (#69)
 
-# install rust - toolchain pinned to the one of the published benchmark image
-# RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
-RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --no-modify-path --default-toolchain 1.87.0
+# install rust - toolchain pinned (the published benchmark image used 1.87.0; a newer compiler can change the speed of the binaries, #27)
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --no-modify-path --default-toolchain 1.99.0
 ENV PATH="/root/.cargo/bin:${PATH}"
 
-# pinned to the versions of the published benchmark
+# pinned; the versions of the published benchmark, unchanged upstream
 RUN cargo install granges --version 0.2.2 --locked
 RUN cargo install gia --version 0.2.23 --locked
 

@@ -1,15 +1,16 @@
-FROM ubuntu:20.04
+FROM ubuntu:24.04
 LABEL authors="Richard A. Schäfer"
 
 WORKDIR /
 RUN apt-get -y update
+# giggle links against the system htslib since 2026 (libhts-dev, which brings the gnutls flavour of libcurl)
 RUN apt-get install -y \
     gcc \
     make \
     autoconf \
     zlib1g-dev \
     libbz2-dev \
-    libcurl4-openssl-dev \
+    libhts-dev \
     libssl-dev
 
 RUN apt-get install -y \
@@ -28,9 +29,11 @@ RUN ln -s /usr/bin/python3 /usr/bin/python
 RUN apt-get install -y \
     tabix
 
-# pinned to the commit of the published benchmark (giggle 0.6.3)
-RUN git clone https://github.com/riasc/giggle.git && cd /giggle && git checkout 1b7cb90a65e89f4f2bfb8351b8191339acfc5616
-RUN cd /giggle && make
+# pinned to upstream giggle (0.6.3 with the 2026 fixes). The published benchmark built the fork riasc/giggle at 1b7cb90,
+# which removed giggle's check that the input and output directories share a parent; segmeter writes the index next to
+# the input directory since #27, so upstream builds and runs unchanged
+RUN git clone https://github.com/ryanlayer/giggle.git && cd /giggle && git checkout 215bf202d8e766c40f49faaf7f18dc19226a6d63
+RUN cd /giggle && make HTS_INC=/usr/include HTS_LIB=/usr/lib/x86_64-linux-gnu
 
 ENV GIGGLE_ROOT="/giggle" PATH="/giggle/bin/:$PATH"
 
