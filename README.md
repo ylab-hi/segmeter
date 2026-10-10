@@ -285,7 +285,7 @@ distance zero. Empty complex bins (in small full-run datasets) must have no fals
 Query timings are divided by bedtools' timing of the same query case on the same runner. PRs run the exact base commit
 and the merge result sequentially using the same tool images; differing dataset hashes invalidate the comparison.
 The comparison fails for a normalized slowdown above 25%. Smoke uses one sample per case, so inspect raw timings
-and rerun a noisy failure before attributing it to a code change. Tool-image changes are evaluated on the full dashboard;
+and rerun a noisy failure before attributing it to a code change. Tool-image changes are evaluated in full cluster runs;
 the PR comparison deliberately holds the tool environment constant.
 Both tiers also record absolute simulation time and end-to-end time per tool (including scoring and container startup)
 to detect regressions in segmeter outside the measured tool commands. The PR comparison checks these on the same runner too.
@@ -296,10 +296,10 @@ The exported absolute times are medians. Raw statistics, precision, SIF hashes, 
 a source snapshot, CPU information and Slurm allocation details are saved in the output directory.
 Submit weekly or after a tool version changes; no GitHub runner is required on the cluster.
 
-Both tiers export `customSmallerIsBetter` JSON for `benchmark-action/github-action-benchmark`. Main smoke runs and
-full runs publish separate histories to `gh-pages` at `dev/bench/smoke`, `dev/bench/full-simulated` and `dev/bench/full-zenodo`. Enable GitHub Pages
-for that branch to serve the dashboards. Use the same cluster node type and filesystem for comparable absolute timings. The full GitHub workflow only publishes
-uploaded results; it does not submit cluster jobs.
+Both tiers export `customSmallerIsBetter` JSON for `benchmark-action/github-action-benchmark`. Main smoke runs
+publish a history to `gh-pages` at `dev/bench/smoke`; enable GitHub Pages for that branch to serve the dashboard.
+Full results are saved on the cluster and can be archived manually. Use the same cluster node type and filesystem
+for comparable absolute timings. Full benchmarks have no GitHub Actions workflow.
 
 To run locally (Docker required):
 
@@ -332,7 +332,7 @@ Use `--dataset simulated` (the default) for seeded data with the complex-span ca
 published archive ([Zenodo record 14880992](https://zenodo.org/records/14880992)). The fixed archive is 216 MB compressed;
 the launcher verifies its published MD5 checksum before extracting it. Zenodo contains sizes through 100K, so that run
 omits 1M and records the archive provenance instead of claiming a seed or span cap. Published and seeded runs have
-separate dashboard histories (`dev/bench/full-zenodo` and `dev/bench/full-simulated`).
+distinct dataset provenance and should be compared separately.
 
 For a setup check, append `--sizes 1K`. For resource overrides, add `--mem 64G`, `--time 2-00:00:00` or `--exclusive`.
 Use `--module none` if the runtime is already on PATH; `--runtime apptainer --module YOUR_APPTAINER_MODULE` selects Apptainer.
@@ -399,25 +399,24 @@ See [sbatch options](https://slurm.schedmd.com/sbatch.html) for resource overrid
 
 A successful full run creates three small files in `OUTPUT/publish/`; that directory is created only after every
 correctness check passes. Keep the whole output directory and Slurm log on cluster storage for later inspection.
-An abbreviated `--sizes` check is useful for setup validation but the publishing workflow rejects it.
+An abbreviated `--sizes` check is useful for setup validation but the full-result validator rejects it.
 
-### Publish cluster results
+### Archive cluster results
 
 Copy `OUTPUT/publish/` to a machine with GitHub CLI access. The source commit must have been pushed to this repository.
-Create a draft release to hold the results, upload the three JSON files, and dispatch the publishing workflow:
+Validate the full results, then optionally create a draft release and upload the three JSON files:
 
 ```sh
 # Run from a segmeter checkout with gh authenticated; choose a unique results tag.
+python3 scripts/validate_publication.py publish
 gh release create benchmark-results-2026-10-09 --draft --target MEASURED_COMMIT \
   --title "Cluster benchmark 2026-10-09" --notes "Slurm/Singularity full benchmark results"
 gh release upload benchmark-results-2026-10-09 publish/segmeter-full-*.json
-gh workflow run benchmark-full.yml -f results_release=benchmark-results-2026-10-09
 ```
 
-`MEASURED_COMMIT` is `source_commit` in `segmeter-full-versions.json`. The workflow must already be on the default branch.
-The results release can remain a draft. The workflow validates the files, retains them as an artifact, and publishes the
-full dashboard to `gh-pages` under `dev/bench/full-simulated` or `dev/bench/full-zenodo`, attributed to the measured commit. Publishing requires repository write access and
-GitHub Pages enabled for that branch. Cluster jobs and uploads are manual; there is no automatic weekly cluster submission.
+`MEASURED_COMMIT` is `source_commit` in `segmeter-full-versions.json`, printed by the validator.
+The results release can remain a draft. Uploading requires repository write access; it archives the files without
+publishing a dashboard. Cluster jobs and uploads are manual; there is no automatic weekly cluster submission.
 
 ## Singularity
 
