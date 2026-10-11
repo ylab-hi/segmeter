@@ -321,13 +321,17 @@ optionally downloads and verifies the published Zenodo data, freezes the source 
 ```sh
 bash scripts/cluster/run-benchmark.sh \
   --module singularity/4.1 \
+  --python-module python/3.11 \
   --image-tag v0.14.1 \
   --work-dir /shared/project/segmeter-benchmarks \
   --dataset zenodo \
   --account YOUR_ACCOUNT --partition YOUR_PARTITION
 ```
 
-Replace the module name, account, partition and shared path with your site's values, and choose a published image tag.
+Replace the module names, account, partition and shared path with your site's values, and choose a published image tag.
+Host Python 3.8+ is required. The launcher checks this before preparing images or data, and the batch job checks again
+on the compute node. Use `module avail python` to find your site's module name; omit `--python-module` if your default
+Python already meets the requirement.
 Use `--dataset simulated` (the default) for seeded data with the complex-span cap, or `--dataset zenodo` for the
 published archive ([Zenodo record 14880992](https://zenodo.org/records/14880992)). The fixed archive is 216 MB compressed;
 the launcher verifies its published MD5 checksum before extracting it. Zenodo contains sizes through 100K, so that run

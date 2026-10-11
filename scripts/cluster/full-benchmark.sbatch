@@ -16,7 +16,7 @@ fi
 cd "${SLURM_SUBMIT_DIR:?Submit with sbatch from the segmeter checkout}"
 runtime=${SEGMETER_RUNTIME:-singularity}
 case "$runtime" in singularity|apptainer) ;; *) echo "Unsupported runtime: $runtime" >&2; exit 2 ;; esac
-if [[ -n ${SEGMETER_MODULE:-} ]]; then
+if [[ -n ${SEGMETER_MODULE:-} || -n ${SEGMETER_PYTHON_MODULE:-} ]]; then
     # shellcheck source=scripts/cluster/load-runtime.sh
     source scripts/cluster/load-runtime.sh
     load_segmeter_runtime

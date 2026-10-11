@@ -1,5 +1,6 @@
 """Exporter and correctness gate tests; no external tools needed."""
 import json
+import io
 import subprocess
 from pathlib import Path
 import sys
@@ -7,7 +8,7 @@ import tempfile
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).parents[2] / 'scripts'))
-from continuous_benchmark import ContainerRuntime, export, read_results, sha256
+from continuous_benchmark import ContainerRuntime, export, main, read_results, sha256
 from validate_publication import validate
 
 
@@ -20,6 +21,23 @@ def test_export():
     absolute = export(data, False)
     assert [r['value'] for r in absolute] == [2, 4, 4]
     assert json.loads(relative[1]['extra'])['samples_seconds'] == [2, 4, 6]
+
+
+def test_old_host_python():
+    with tempfile.TemporaryDirectory() as tmp:
+        output = Path(tmp) / 'results'
+        stderr = io.StringIO()
+        with patch('continuous_benchmark.sys.version_info', (3, 6)), \
+                patch.object(sys, 'argv', ['benchmark', '--output', str(output)]), \
+                patch.object(sys, 'stderr', stderr):
+            try:
+                main()
+            except SystemExit as error:
+                assert error.code == 2
+            else:
+                raise AssertionError('Unsupported host Python accepted')
+        assert 'Host Python 3.8 or newer is required' in stderr.getvalue()
+        assert not output.exists()
 
 
 def test_gate():
@@ -97,6 +115,7 @@ def test_container_runtimes():
         assert command[command.index('-v') + 1] == f'{source}:/segmeter:ro'
 
 
+
 def test_publication():
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
@@ -133,6 +152,7 @@ def test_publication():
 
 if __name__ == '__main__':
     test_export()
+    test_old_host_python()
     test_gate()
     test_comparison()
     test_container_runtimes()

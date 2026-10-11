@@ -5,6 +5,7 @@ usage() {
     cat <<'EOF'
 Usage: bash scripts/cluster/run-benchmark.sh --image-tag vX.Y.Z --work-dir /shared/path [options]
   --module NAME          Singularity module name (default: singularity; none skips loading)
+  --python-module NAME   Load a Python module on both login and compute nodes (Python >=3.8 required)
   --runtime NAME         singularity or apptainer (default: singularity)
   --dataset NAME         simulated or zenodo (default: simulated)
   --account NAME         Slurm account
@@ -19,12 +20,13 @@ EOF
 repo=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 image_tag='' work_dir='' sizes='' dataset=simulated
 export SEGMETER_MODULE=singularity SEGMETER_RUNTIME=singularity
+export SEGMETER_PYTHON_MODULE=''
 slurm_options=()
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --help|-h) usage; exit 0 ;;
         --exclusive) slurm_options+=(--exclusive); shift; continue ;;
-        --image-tag|--work-dir|--module|--runtime|--dataset|--account|--partition|--sizes|--mem|--time)
+        --image-tag|--work-dir|--module|--python-module|--runtime|--dataset|--account|--partition|--sizes|--mem|--time)
             [[ $# -ge 2 ]] || { usage >&2; exit 2; } ;;
         *) echo "Unknown argument: $1" >&2; usage >&2; exit 2 ;;
     esac
@@ -32,6 +34,7 @@ while [[ $# -gt 0 ]]; do
         --image-tag) image_tag=$2 ;;
         --work-dir) work_dir=$2 ;;
         --module) SEGMETER_MODULE=$2 ;;
+        --python-module) SEGMETER_PYTHON_MODULE=$2 ;;
         --runtime) SEGMETER_RUNTIME=$2 ;;
         --dataset) dataset=$2 ;;
         --sizes) sizes=$2 ;;

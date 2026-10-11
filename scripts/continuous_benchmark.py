@@ -10,6 +10,7 @@ import platform
 import shutil
 import statistics
 import subprocess
+import sys
 import time
 
 TOOLS = {
@@ -161,6 +162,8 @@ def main():
     parser.add_argument('--sif-dir', type=Path, help='Directory containing others.sif, giggle.sif and rust-tools.sif')
     parser.add_argument('--dataset-dir', type=Path, help='Use existing DATADIR/sim/sim_001/BED data instead of simulating')
     args = parser.parse_args()
+    if sys.version_info < (3, 8):
+        parser.error('Host Python 3.8 or newer is required; load a newer Python module before running the benchmark')
     if args.runtime != 'docker' and (args.sif_dir is None or args.build):
         parser.error('Singularity/Apptainer requires --sif-dir and pre-pulled images; --build is Docker-only')
     source, output = args.source.resolve(), args.output.resolve()

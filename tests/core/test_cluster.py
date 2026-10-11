@@ -58,6 +58,8 @@ def test_launcher():
 name = pathlib.Path(sys.argv[0]).name
 with open(os.environ['CLUSTER_TEST_LOG'], 'a') as fh:
     fh.write(json.dumps([name, *sys.argv[1:]]) + '\\n')
+if name == 'python3' and sys.argv[1] == '-c' and os.environ.get('CLUSTER_TEST_OLD_PYTHON'):
+    sys.exit('Host Python 3.8 or newer is required; use --python-module')
 if name == 'singularity':
     pathlib.Path(sys.argv[3]).write_bytes(b'fake SIF')
 elif name == 'sbatch':
@@ -82,7 +84,7 @@ else:
                'BASH_ENV': str(initialization), 'CLUSTER_TEST_LOG': str(log),
                'CLUSTER_MODULE_LOG': str(root / 'modules.log'), 'CLUSTER_REAL_PYTHON': sys.executable}
         command = ['bash', str(ROOT / 'scripts/cluster/run-benchmark.sh'),
-                   '--module', 'singularity/test', '--image-tag', 'v0.14.1',
+                   '--module', 'singularity/test', '--python-module', 'python/test', '--image-tag', 'v0.14.1',
                    '--work-dir', str(root / 'work'), '--dataset', 'zenodo',
                    '--account', 'lab', '--partition', 'cpu', '--sizes', '1K']
         for _ in range(2):
@@ -98,7 +100,11 @@ else:
         snapshots = list((root / 'work/results').glob('*/checkout'))
         assert len(snapshots) == 2
         assert all((p / 'source-commit.txt').is_file() and (p / 'segmeter/main.py').is_file() for p in snapshots)
-        assert (root / 'modules.log').read_text().splitlines() == ['load singularity/test'] * 2
+        assert (root / 'modules.log').read_text().splitlines() == ['load singularity/test', 'load python/test'] * 2
+        result = subprocess.run(command, env={**env, 'CLUSTER_TEST_OLD_PYTHON': '1'}, capture_output=True, text=True)
+        assert result.returncode != 0 and 'Host Python 3.8 or newer is required' in result.stderr
+        later_calls = [json.loads(line) for line in log.read_text().splitlines()]
+        assert len(later_calls) == len(calls) + 1  # version check only; no prep or submission
 
 
 if __name__ == '__main__':
