@@ -59,19 +59,14 @@ jobs:
       - name: Compare on this runner
         if: github.event_name == 'pull_request'
         run: python3 scripts/compare_benchmarks.py results-base results-head >> "$GITHUB_STEP_SUMMARY"
+      - name: Collect benchmark reports
+        if: always()
+        run: python3 scripts/collect_benchmark_artifacts.py --destination smoke-artifacts results-head results-base
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: smoke-results
-          path: |
-            results-head/benchmark.json
-            results-head/versions.json
-            results-head/*.Dockerfile
-            results-head/dataset.json
-            results-head/bench/**
-            results-base/benchmark.json
-            results-base/versions.json
-            results-base/dataset.json
+          path: smoke-artifacts/
   publish:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: benchmark
