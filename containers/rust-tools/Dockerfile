@@ -35,9 +35,10 @@ RUN apt-get install -y \
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --no-modify-path --default-toolchain 1.99.0
 ENV PATH="/root/.cargo/bin:${PATH}"
 
-# pinned; the versions of the published benchmark, unchanged upstream
-RUN cargo install granges --version 0.2.2 --locked
-RUN cargo install gia --version 0.2.23 --locked
+# pinned; the versions of the published benchmark, unchanged upstream. Installed to /usr/local/bin: /root is 0700, so
+# binaries under /root/.cargo/bin are unreachable when Singularity runs the image as an unprivileged user.
+RUN cargo install --root /usr/local granges --version 0.2.2 --locked
+RUN cargo install --root /usr/local gia --version 0.2.23 --locked
 
 # Build the checked-out source, including PR changes; release workflows check out the tag.
 COPY segmeter /segmeter/segmeter

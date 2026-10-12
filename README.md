@@ -348,8 +348,12 @@ Images and data are cached under the work directory. Each invocation prints the 
 and Slurm log path. Source is frozen before submission, so checkout edits while the job is queued do not change it.
 Once the job finishes, `RESULTS/benchmark/publish/` contains the three JSON files to upload as described below.
 Container pulls create the SIF files; `singularity exec` then runs them directly, without a separate persistent container.
-Older release images are supported: when their embedded version manifest is absent, results record installed tool binary
-SHA-256 fingerprints and package versions. They never reuse the current Dockerfile's pins as a claim about an old image.
+When an older release image has no embedded version manifest, results record installed tool binary SHA-256 fingerprints
+and package versions; they never reuse the current Dockerfile's pins as a claim about an old image. Release images up to
+v0.14.1 do not run on the cluster, though: their rust-tools image keeps gia and granges under `/root`, unreadable for the
+unprivileged Singularity user, and lacks the bedtools that the unreleased granges scoring pass needs ([#69](https://github.com/ylab-hi/segmeter/issues/69)). Until a later release is
+published, build the three images from this checkout as described below, convert them to SIF files, place them in
+`WORK_DIR/images/TAG/` (for example `TAG=v0.14.1-pr78`) and pass that `--image-tag`; existing SIF files are not pulled again.
 
 The following commands are optional lower-level preparation and submission steps if you prefer to manage images yourself.
 
