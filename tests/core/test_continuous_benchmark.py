@@ -21,6 +21,7 @@ def test_export():
     absolute = export(data, False)
     assert [r['value'] for r in absolute] == [2, 4, 4]
     assert json.loads(relative[1]['extra'])['samples_seconds'] == [2, 4, 6]
+    assert json.loads(relative[1]['extra'])['comparison_samples'] == [2, 2, 2]
 
 
 def test_old_host_python():
@@ -81,6 +82,17 @@ def test_comparison():
         assert compare() == 0
         (head / 'benchmark.json').write_text('[{"name": "case", "value": 1.3}]')
         assert compare() == 1
+        def report(folder, value, samples):
+            (folder / 'benchmark.json').write_text(json.dumps([{
+                'name': 'case', 'value': value,
+                'extra': json.dumps({'comparison_samples': samples})}]))
+        report(base, 1, [0.9, 1, 1.4])
+        report(head, 1.3, [1.1, 1.3, 1.5])
+        assert compare() == 0  # overlapping ranges: insufficient evidence
+        report(head, 1.6, [1.5, 1.6, 1.7])
+        assert compare() == 1  # consistent slowdown
+        report(head, 1.2, [1.15, 1.2, 1.25])
+        assert compare() == 0  # below threshold
         (head / 'benchmark.json').write_text('[{"name": "other", "value": 1}]')
         assert compare() == 1
         (head / 'dataset.json').write_text('{"ref": "changed"}')

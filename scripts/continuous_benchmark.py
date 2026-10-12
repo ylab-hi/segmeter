@@ -138,6 +138,7 @@ def export(samples, relative):
     for key, values in sorted(samples.items()):
         tool, size, dtype, query = key
         value = statistics.median(values)
+        comparison_samples = values
         if relative and dtype == 'index':
             continue  # baseline bedtools has no index
         if relative:
@@ -145,8 +146,10 @@ def export(samples, relative):
             if baseline <= 0:
                 raise ValueError('Baseline time must be positive')
             value /= baseline
+            comparison_samples = [v / b for v, b in zip(values, samples[('bedtools', size, dtype, query)])]
         result.append({'name': '/'.join(key), 'unit': 'ratio to bedtools' if relative else 'seconds',
-                       'value': value, 'extra': json.dumps({'samples_seconds': values})})
+                       'value': value, 'extra': json.dumps({'samples_seconds': values,
+                                                          'comparison_samples': comparison_samples})})
     return result
 
 
@@ -170,7 +173,7 @@ def main():
     output.mkdir(parents=True, exist_ok=False)
     sizes = args.sizes or ('10K,100K' if args.tier == 'smoke' else
                            ('10,100,1K,10K,100K' if args.dataset_dir else '10,100,1K,10K,100K,1M'))
-    repeats = 1 if args.tier == 'smoke' else 3
+    repeats = 3
     subsets = [100] if args.tier == 'smoke' else list(range(10, 101, 10))
     metadata = {'tier': args.tier, 'sizes': sizes, 'seed': 1729, 'max_span': 100, 'repeats': repeats, 'images': {}}
     metadata['dataset'] = {'kind': 'simulated'}

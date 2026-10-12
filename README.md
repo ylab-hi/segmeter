@@ -284,8 +284,9 @@ The smoke workflow runs on pull requests and pushes to `main` in the three tool 
 distance zero. Empty complex bins (in small full-run datasets) must have no false positives or missed hits.
 Query timings are divided by bedtools' timing of the same query case on the same runner. PRs run the exact base commit
 and the merge result sequentially using the same tool images; differing dataset hashes invalidate the comparison.
-The comparison fails for a normalized slowdown above 25%. Smoke uses one sample per case, so inspect raw timings
-and rerun a noisy failure before attributing it to a code change. Tool-image changes are evaluated in full cluster runs;
+Smoke uses three runs per query case and compares medians. A slowdown above 25% fails when the head and base
+sample ranges do not overlap; overlapping ranges are reported as noisy. Per-run query samples are normalized to
+the corresponding bedtools sample. Tool-image changes are evaluated in full cluster runs;
 the PR comparison deliberately holds the tool environment constant.
 Both tiers also record absolute simulation time and end-to-end time per tool (including scoring and container startup)
 to detect regressions in segmeter outside the measured tool commands. The PR comparison checks these on the same runner too.

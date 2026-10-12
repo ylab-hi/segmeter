@@ -58,7 +58,7 @@ jobs:
         run: python3 scripts/continuous_benchmark.py --output results-head
       - name: Compare on this runner
         if: github.event_name == 'pull_request'
-        run: python3 scripts/compare_benchmarks.py results-base results-head >> "$GITHUB_STEP_SUMMARY"
+        run: python3 scripts/compare_benchmarks.py results-base results-head | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Collect benchmark reports
         if: always()
         run: python3 scripts/collect_benchmark_artifacts.py --destination smoke-artifacts results-head results-base
