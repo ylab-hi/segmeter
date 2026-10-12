@@ -171,7 +171,7 @@ def main():
         parser.error('Singularity/Apptainer requires --sif-dir and pre-pulled images; --build is Docker-only')
     source, output = args.source.resolve(), args.output.resolve()
     output.mkdir(parents=True, exist_ok=False)
-    sizes = args.sizes or ('10K,100K' if args.tier == 'smoke' else
+    sizes = args.sizes or ('10K' if args.tier == 'smoke' else
                            ('10,100,1K,10K,100K' if args.dataset_dir else '10,100,1K,10K,100K,1M'))
     repeats = 3
     subsets = [100] if args.tier == 'smoke' else list(range(10, 101, 10))
