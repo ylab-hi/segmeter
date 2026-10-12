@@ -81,7 +81,12 @@ class ContainerRuntime:
         else:
             args = [self.runtime, 'exec', '--cleanenv', '--containall', '--pwd', '/tmp']
             if source is not None:
-                args += ['--bind', f'{source}:/segmeter:ro', '--bind', f'{output}:/data']
+                # --containall gives the container a tmpfs /tmp capped by the site's session directory limit (64 MiB by
+                # default). segmeter writes each tool's output there, and the 100K complex bins exceed that (77 MB for
+                # bedtools on the 10% bin), so the file was truncated mid-line. --workdir puts /tmp on disk instead.
+                workdir = Path(output) / 'tmp'
+                workdir.mkdir(parents=True, exist_ok=True)
+                args += ['--workdir', str(workdir), '--bind', f'{source}:/segmeter:ro', '--bind', f'{output}:/data']
         return [*args, image, *command]
 
     def capture(self, container, *command):

@@ -110,8 +110,10 @@ def test_container_runtimes():
             command = runtime.command('others', 'python3', '/segmeter/segmeter/main.py',
                                       source=source, output=output)
             assert command == [executable, 'exec', '--cleanenv', '--containall', '--pwd', '/tmp',
+                               '--workdir', f'{output}/tmp',  # /tmp on disk; the tmpfs of --containall truncated 77 MB tool outputs
                                '--bind', f'{source}:/segmeter:ro', '--bind', f'{output}:/data',
                                str(image), 'python3', '/segmeter/segmeter/main.py']
+            assert (output / 'tmp').is_dir()
             with patch('continuous_benchmark.subprocess.check_output') as capture:
                 assert runtime.identity('others') == {'path': str(image), 'sha256': sha256(image)}
                 capture.assert_not_called()  # no Docker inspection for SIF files
