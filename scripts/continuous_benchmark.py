@@ -204,7 +204,10 @@ def main():
         metadata.setdefault('tools', {}).update(tool_versions(runtime, container))
         packages = {'others': ['bedtools', 'tabix', 'mawk'],
                     'giggle': ['tabix', 'libhts-dev'], 'rust-tools': ['bedtools']}[container]
-        metadata.setdefault('packages', {})[container] = runtime.capture(container, 'dpkg-query', '-W', *packages)
+        # Published images predate these package lists (giggle-v0.14.1 bundles htslib), so record what dpkg reports,
+        # including its "no packages found" lines, instead of failing the run.
+        metadata.setdefault('packages', {})[container] = runtime.capture(
+            container, 'sh', '-c', f"dpkg-query -W {' '.join(packages)} 2>&1 || true")
         # Save this checkout's build recipes separately from the installed image identities.
         (output / f'{container}.Dockerfile').write_bytes((source / 'containers' / container / 'Dockerfile').read_bytes())
     commit_file = source / 'source-commit.txt'
