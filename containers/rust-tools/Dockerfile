@@ -27,7 +27,7 @@ RUN apt-get install -y \
     git \
     ca-certificates \
     libc6-dev \
-    bedtools
+    bedtools=2.30.0+dfsg-2ubuntu0.1
 
 # bedtools is not benchmarked here: it restores the duplicates of granges' output, unmeasured (#69)
 
@@ -35,11 +35,12 @@ RUN apt-get install -y \
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --no-modify-path --default-toolchain 1.99.0
 ENV PATH="/root/.cargo/bin:${PATH}"
 
-# pinned; the versions of the published benchmark, unchanged upstream
-RUN cargo install granges --version 0.2.2 --locked
-RUN cargo install gia --version 0.2.23 --locked
+# pinned; the versions of the published benchmark, unchanged upstream. Installed to /usr/local/bin: /root is 0700, so
+# binaries under /root/.cargo/bin are unreachable when Singularity runs the image as an unprivileged user.
+RUN cargo install --root /usr/local granges --version 0.2.2 --locked
+RUN cargo install --root /usr/local gia --version 0.2.23 --locked
 
-# pin segmeter to the release that the image is built for (the workflow passes the tag)
-ARG SEGMETER_REF=main
-RUN git clone --branch ${SEGMETER_REF} --depth 1 https://github.com/ylab-hi/segmeter.git
+# Build the checked-out source, including PR changes; release workflows check out the tag.
+COPY segmeter /segmeter/segmeter
+COPY containers/tool-versions.json /opt/segmeter-tool-versions.json
 RUN ln -s /segmeter/segmeter/main.py /usr/local/bin/segmeter && chmod +x /usr/local/bin/segmeter

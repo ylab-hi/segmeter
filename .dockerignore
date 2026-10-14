@@ -1,0 +1,6 @@
+**
+!segmeter/
+!segmeter/**
+!containers/
+!containers/**
+**/__pycache__/
