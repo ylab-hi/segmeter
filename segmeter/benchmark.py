@@ -19,7 +19,7 @@ class BenchBase:
         # list of index-based tools
         self.options.idx_based_tools = [
             "tabix", "bedtools_sorted", "giggle",
-            "bedtk_sorted", "igd", "bedops", "bedmaps"
+            "bedtk_sorted", "igd", "bedops", "bedmaps", "genogrove"
         ]
 
         if not self.options.simdata:

@@ -10,7 +10,7 @@ case "$runtime" in singularity|apptainer) ;; *) echo "Unsupported runtime: $runt
 command -v "$runtime" >/dev/null
 mkdir "$2"
 image_dir=$(cd "$2" && pwd)
-for container in others giggle rust-tools; do
+for container in others giggle rust-tools genogrove; do
     "$runtime" pull "$image_dir/$container.sif" "docker://yanglabinfo/segmeter:$container-$1"
 done
 echo "Images ready in $image_dir"

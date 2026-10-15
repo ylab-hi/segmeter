@@ -41,8 +41,11 @@ TOOLS = [
     ("igd", "igd", True, "query"),
     ("ailist", "ailist", False, "query"),
     ("ucsc", "bedIntersect+bedtools", False, "query"),
+    ("genogrove", "genogrove", True, "query"),
+    ("pygenogrove", "py:pygenogrove", False, "query"),
+    ("polars_bio", "py:polars_bio", False, "query"),
 ]
-READS_INDEX = {"tabix", "bedtools_sorted", "bedtk_sorted", "bedops", "bedmaps", "igd"} # query reads refdirs["idx"]
+READS_INDEX = {"tabix", "bedtools_sorted", "bedtk_sorted", "bedops", "bedmaps", "igd", "genogrove"} # query reads refdirs["idx"]
 CHROMS = ["chr1", "chr2", "chr10", "chrX"]
 LABEL, NUM = "L", 5000
 

@@ -17,10 +17,12 @@ TOOLS = {
     'others': ['bedtools', 'bedtools_sorted', 'tabix', 'bedops', 'bedmaps',
                'bedtk', 'bedtk_sorted', 'igd', 'ailist', 'ucsc', 'awk', 'intervaltree'],
     'giggle': ['giggle'], 'rust-tools': ['gia', 'granges'],
+    'genogrove': ['genogrove', 'pygenogrove', 'polars_bio'],
 }
 
 EXECUTABLES = {'bedtools_sorted': 'bedtools', 'bedmaps': 'bedmap',
                'bedtk_sorted': 'bedtk', 'ucsc': 'bedIntersect'}
+PYTHON_MODULES = ('intervaltree', 'pygenogrove', 'polars_bio')  # tools that are Python packages, versioned by importlib
 
 
 def tool_versions(runtime, container):
@@ -33,8 +35,8 @@ if p.exists():
 else:
     result = {}
     for tool, executable in json.loads(sys.argv[2]).items():
-        if tool == 'intervaltree':
-            result[tool] = {'version': importlib.metadata.version('intervaltree')}
+        if tool in json.loads(sys.argv[3]):
+            result[tool] = {'version': importlib.metadata.version(tool.replace('_', '-'))}
         else:
             binary = shutil.which(executable)
             if binary is None:
@@ -44,7 +46,7 @@ else:
 '''
     executables = {tool: EXECUTABLES.get(tool, tool) for tool in TOOLS[container]}
     return json.loads(runtime.capture(container, 'python3', '-c', script, container,
-                                      json.dumps(executables)))[container]
+                                      json.dumps(executables), json.dumps(PYTHON_MODULES)))[container]
 
 
 def run(*args):
@@ -167,7 +169,7 @@ def main():
     parser.add_argument('--build', action='store_true')
     parser.add_argument('--sizes', help='Override sizes for local validation')
     parser.add_argument('--runtime', choices=['docker', 'singularity', 'apptainer'], default='docker')
-    parser.add_argument('--sif-dir', type=Path, help='Directory containing others.sif, giggle.sif and rust-tools.sif')
+    parser.add_argument('--sif-dir', type=Path, help='Directory containing others.sif, giggle.sif, rust-tools.sif and genogrove.sif')
     parser.add_argument('--dataset-dir', type=Path, help='Use existing DATADIR/sim/sim_001/BED data instead of simulating')
     args = parser.parse_args()
     if sys.version_info < (3, 8):
@@ -208,7 +210,7 @@ def main():
         metadata['images'][container] = runtime.identity(container)
         metadata.setdefault('tools', {}).update(tool_versions(runtime, container))
         packages = {'others': ['bedtools', 'tabix', 'mawk'],
-                    'giggle': ['tabix', 'libhts-dev'], 'rust-tools': ['bedtools']}[container]
+                    'giggle': ['tabix', 'libhts-dev'], 'rust-tools': ['bedtools'], 'genogrove': ['libhts-dev']}[container]
         # Published images predate these package lists (giggle-v0.14.1 bundles htslib), so record what dpkg reports,
         # including its "no packages found" lines, instead of failing the run.
         metadata.setdefault('packages', {})[container] = runtime.capture(
