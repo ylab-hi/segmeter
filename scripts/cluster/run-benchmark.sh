@@ -79,7 +79,7 @@ cp -R "$repo/segmeter" "$repo/containers" "$repo/scripts" "$run_dir/checkout/"
 # The run records HEAD as its source; uncommitted changes to what it copies would be attributed to a clean commit,
 # so they mark the commit as dirty, which the publication validator rejects.
 commit=$(git -C "$repo" rev-parse HEAD)
-if [[ -n $(git -C "$repo" status --porcelain -- segmeter containers scripts) ]]; then
+if [[ -n $(git -C "$repo" status --porcelain --untracked-files=normal -- segmeter containers scripts || echo '?? unknown') ]]; then
     echo "Warning: uncommitted changes under segmeter/, containers/ or scripts/; the run is recorded as $commit-dirty and cannot be published" >&2
     commit="$commit-dirty"
 fi
