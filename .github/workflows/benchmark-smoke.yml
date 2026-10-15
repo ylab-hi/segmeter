@@ -67,6 +67,7 @@ jobs:
         run: python3 scripts/continuous_benchmark.py --output results-head
       - name: Compare on this runner
         if: github.event_name == 'pull_request'
+        shell: bash  # -o pipefail: the comparison's exit status must survive the tee
         run: python3 scripts/compare_benchmarks.py results-base results-head | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Collect benchmark reports
         if: always()

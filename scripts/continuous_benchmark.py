@@ -203,7 +203,11 @@ def main():
                                                        'SLURM_CPUS_PER_TASK', 'SLURM_JOB_PARTITION') if k in os.environ}}
     if Path('/proc/cpuinfo').exists():
         (output / 'cpuinfo.txt').write_bytes(Path('/proc/cpuinfo').read_bytes())
-    for container in TOOLS:
+    # A PR that adds a container benchmarks its base commit with this script too; the base has neither the Dockerfile
+    # nor the tool choices, so only the containers of the source checkout run and the comparison reports the new cases.
+    tools = {container: names for container, names in TOOLS.items()
+             if (source / 'containers' / container / 'Dockerfile').is_file()}
+    for container in tools:
         image = f'{args.images}:{container}'
         if args.build:
             run('docker', 'build', '--platform', 'linux/amd64', '-t', image, '-f', source / 'containers' / container / 'Dockerfile', source)
@@ -243,14 +247,14 @@ def main():
               for p in sorted((output / 'sim').rglob('*')) if p.is_file()}
     (output / 'dataset.json').write_text(json.dumps(hashes, indent=2))
     for repeat in range(repeats):
-        for container, tools in TOOLS.items():
-            for tool in tools:
+        for container, names in tools.items():
+            for tool in names:
                 started = time.monotonic()
                 execute(container, 'bench', '-r', '-o', '/data', '-n', sizes,
                         '-s', '100' if args.tier == 'smoke' else '10-100',
                         '-b', f'run-{repeat}', '-t', tool)
                 wall_samples.setdefault((tool, 'all', 'end-to-end', 'wall'), []).append(time.monotonic() - started)
-    samples = read_results(output, sum(TOOLS.values(), []), sizes, repeats, subsets)
+    samples = read_results(output, sum(tools.values(), []), sizes, repeats, subsets)
     results = export(samples, args.tier == 'smoke') + export(wall_samples, False)
     (output / 'benchmark.json').write_text(json.dumps(results, indent=2))
     if args.tier == 'full':

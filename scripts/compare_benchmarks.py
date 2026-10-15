@@ -8,10 +8,12 @@ if json.loads((base / 'dataset.json').read_text()) != json.loads((head / 'datase
     raise SystemExit('Datasets differ; performance comparison is invalid')
 before = {r['name']: r for r in json.loads((base / 'benchmark.json').read_text())}
 after = {r['name']: r for r in json.loads((head / 'benchmark.json').read_text())}
-if before.keys() != after.keys():
-    raise SystemExit('Benchmark cases differ')
+if before.keys() - after.keys():
+    raise SystemExit(f'Benchmark cases missing in head: {sorted(before.keys() - after.keys())}')
 failed = False
 print('| Benchmark | Head / base | Result |\n| --- | ---: | --- |')
+for name in sorted(after.keys() - before.keys()):  # a tool added by the PR has no base measurement
+    print(f'| {name} | | new; no baseline |')
 for name in sorted(before):
     if before[name]['value'] <= 0:
         raise SystemExit(f'Nonpositive baseline: {name}')

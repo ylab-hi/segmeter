@@ -93,8 +93,10 @@ def test_comparison():
         assert compare() == 1  # consistent slowdown
         report(head, 1.2, [1.15, 1.2, 1.25])
         assert compare() == 0  # below threshold
+        (head / 'benchmark.json').write_text('[{"name": "case", "value": 1}, {"name": "new", "value": 1}]')
+        assert compare() == 0  # a tool added by the PR has no base measurement
         (head / 'benchmark.json').write_text('[{"name": "other", "value": 1}]')
-        assert compare() == 1
+        assert compare() == 1  # a base case missing in head
         (head / 'dataset.json').write_text('{"ref": "changed"}')
         assert compare() == 1
 
