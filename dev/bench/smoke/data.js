@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792031980513,
+  "lastUpdate": 1792037347681,
   "repoUrl": "https://github.com/ylab-hi/segmeter",
   "entries": {
     "Smoke (relative to bedtools)": [
@@ -3762,6 +3762,1332 @@ window.BENCHMARK_DATA = {
             "value": 0.7751552980000156,
             "unit": "seconds",
             "extra": "{\"samples_seconds\": [0.7694653920000292, 0.7785700649999967, 0.7751552980000156], \"comparison_samples\": [0.7694653920000292, 0.7785700649999967, 0.7751552980000156]}"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "richard.schaefer@northwestern.edu",
+            "name": "Richard A. Schäfer",
+            "username": "riasc"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "83da71686d8a8bf48255693841f8ceeeba9c386d",
+          "message": "Record dirty checkouts and survive empty option arrays in the launcher (#81)\n\n* Record dirty checkouts and survive empty option arrays in the launcher\n\nThe launcher copied the working tree but recorded a clean HEAD as the\nrun's source; uncommitted changes now mark it -dirty, which the\npublication validator rejects. Without optional flags the empty option\narrays were unbound variables under set -u before bash 4.4.\n\n* Document the launcher provenance fixes in the changelog\n\n* Test the dirty mark, count untracked files regardless of git config\n\nThe launcher test now launches from a scratch git repository clean and\nwith an uncommitted file and checks both recorded commits; the status\ncheck forces --untracked-files=normal and treats a failing git status\nas dirty; the validator names the rejected commit.",
+          "timestamp": "2026-10-14T23:04:07-05:00",
+          "tree_id": "27d4e8503b199319d92c75dd96b4471f3fbdfcba",
+          "url": "https://github.com/ylab-hi/segmeter/commit/83da71686d8a8bf48255693841f8ceeeba9c386d"
+        },
+        "date": 1792037347005,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "ailist/10K/basic/3p-partial_100%",
+            "value": 0.5061791967044285,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.00983, 0.00976, 0.01002], \"comparison_samples\": [0.517913593256059, 0.5025746652935118, 0.5114854517611026]}"
+          },
+          {
+            "name": "ailist/10K/basic/5p-partial_100%",
+            "value": 0.49718957588145124,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.00973, 0.00971, 0.00994], \"comparison_samples\": [0.5239633817985999, 0.4961676034747062, 0.497248624312156]}"
+          },
+          {
+            "name": "ailist/10K/basic/contained_100%",
+            "value": 0.47596382674916704,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01, 0.00989, 0.01023], \"comparison_samples\": [0.48899755501222497, 0.4641013608634444, 0.48691099476439786]}"
+          },
+          {
+            "name": "ailist/10K/basic/enclosed_100%",
+            "value": 0.4479213232007152,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01002, 0.00975, 0.01003], \"comparison_samples\": [0.4726415094339622, 0.43585158694680376, 0.43326133909287257]}"
+          },
+          {
+            "name": "ailist/10K/basic/left-adjacent-gap_100%",
+            "value": 0.5572222222222223,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01005, 0.00988, 0.01003], \"comparison_samples\": [0.5894428152492669, 0.5485841199333703, 0.5572222222222223]}"
+          },
+          {
+            "name": "ailist/10K/basic/mid-gap1_100%",
+            "value": 0.576524741081703,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01002, 0.00989, 0.01003], \"comparison_samples\": [0.610231425091352, 0.5690448791714614, 0.5744558991981673]}"
+          },
+          {
+            "name": "ailist/10K/basic/mid-gap2_100%",
+            "value": 0.5592739648326717,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.00984, 0.00986, 0.00988], \"comparison_samples\": [0.5902819436112777, 0.5592739648326717, 0.5449531163816878]}"
+          },
+          {
+            "name": "ailist/10K/basic/perfect-gap_100%",
+            "value": 0.5299465240641711,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.00991, 0.00982, 0.01001], \"comparison_samples\": [0.5675830469644902, 0.5215082315454063, 0.5352941176470588]}"
+          },
+          {
+            "name": "ailist/10K/basic/perfect_100%",
+            "value": 0.4645852749301025,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01009, 0.00965, 0.00997], \"comparison_samples\": [0.4823135755258126, 0.4404381560931082, 0.4645852749301025]}"
+          },
+          {
+            "name": "ailist/10K/basic/right-adjacent-gap_100%",
+            "value": 0.550764192139738,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01015, 0.01009, 0.00998], \"comparison_samples\": [0.6074207061639737, 0.550764192139738, 0.5294429708222812]}"
+          },
+          {
+            "name": "ailist/10K/complex/mult_100bin",
+            "value": 0.4930340557275542,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.00637, 0.00626, 0.00653], \"comparison_samples\": [0.4930340557275542, 0.48982785602503914, 0.44603825136612024]}"
+          },
+          {
+            "name": "awk/10K/basic/3p-partial_100%",
+            "value": 76.24407826982493,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [1.47507, 1.53286, 1.48066], \"comparison_samples\": [77.71707060063225, 78.93202883625128, 75.58244002041859]}"
+          },
+          {
+            "name": "awk/10K/basic/5p-partial_100%",
+            "value": 76.03423607562596,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [1.48642, 1.48799, 1.53592], \"comparison_samples\": [80.04415724286484, 76.03423607562596, 76.8344172086043]}"
+          },
+          {
+            "name": "awk/10K/basic/contained_100%",
+            "value": 71.70347453593527,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [1.49746, 1.50649, 1.5233], \"comparison_samples\": [73.22542787286064, 70.69404035664009, 72.50356972870063]}"
+          },
+          {
+            "name": "awk/10K/basic/enclosed_100%",
+            "value": 67.59588734912829,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [1.53152, 1.51212, 1.49927], \"comparison_samples\": [72.24150943396226, 67.59588734912829, 64.76328293736502]}"
+          },
+          {
+            "name": "awk/10K/basic/left-adjacent-gap_100%",
+            "value": 83.62666666666667,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [1.50106, 1.54, 1.50528], \"comparison_samples\": [88.03870967741936, 85.50805108273181, 83.62666666666667]}"
+          },
+          {
+            "name": "awk/10K/basic/mid-gap1_100%",
+            "value": 85.95914844649022,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [1.48977, 1.50983, 1.49397], \"comparison_samples\": [90.72898903775884, 86.8716915995397, 85.56529209621993]}"
+          },
+          {
+            "name": "awk/10K/basic/mid-gap2_100%",
+            "value": 85.33749290981282,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [1.49992, 1.5076, 1.5045], \"comparison_samples\": [89.97720455908818, 85.51332955190017, 82.98400441257584]}"
+          },
+          {
+            "name": "awk/10K/basic/perfect-gap_100%",
+            "value": 80.6,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [1.49174, 1.53168, 1.50722], \"comparison_samples\": [85.43757159221077, 81.3425385023898, 80.6]}"
+          },
+          {
+            "name": "awk/10K/basic/perfect_100%",
+            "value": 69.72833178005591,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [1.49637, 1.51623, 1.48873], \"comparison_samples\": [71.52820267686424, 69.20264719306253, 69.37232059645854]}"
+          },
+          {
+            "name": "awk/10K/basic/right-adjacent-gap_100%",
+            "value": 81.94978165938865,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [1.50132, 1.49604, 1.50195], \"comparison_samples\": [89.84560143626571, 81.66157205240175, 79.6790450928382]}"
+          },
+          {
+            "name": "awk/10K/complex/mult_100bin",
+            "value": 5.880030959752322,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.07548, 0.0772, 0.07597], \"comparison_samples\": [5.842105263157896, 6.040688575899844, 5.189207650273223]}"
+          },
+          {
+            "name": "bedmaps/10K/basic/3p-partial_100%",
+            "value": 1.4351184346035015,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.02759, 0.02787, 0.02856], \"comparison_samples\": [1.4536354056902, 1.4351184346035015, 1.457886676875957]}"
+          },
+          {
+            "name": "bedmaps/10K/basic/5p-partial_100%",
+            "value": 1.4154317833418497,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.02765, 0.0277, 0.02801], \"comparison_samples\": [1.4889606892837912, 1.4154317833418497, 1.40120060030015]}"
+          },
+          {
+            "name": "bedmaps/10K/basic/contained_100%",
+            "value": 1.3574488338886244,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.02773, 0.02852, 0.02865], \"comparison_samples\": [1.3559902200488998, 1.338338808071328, 1.3636363636363635]}"
+          },
+          {
+            "name": "bedmaps/10K/basic/enclosed_100%",
+            "value": 1.2717925793473401,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.028, 0.0285, 0.02845], \"comparison_samples\": [1.320754716981132, 1.2740277156906572, 1.2289416846652268]}"
+          },
+          {
+            "name": "bedmaps/10K/basic/left-adjacent-gap_100%",
+            "value": 1.2855555555555558,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.02302, 0.02314, 0.02363], \"comparison_samples\": [1.3501466275659824, 1.2848417545807884, 1.312777777777778]}"
+          },
+          {
+            "name": "bedmaps/10K/basic/mid-gap1_100%",
+            "value": 1.3176064441887227,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.02283, 0.0229, 0.02325], \"comparison_samples\": [1.3903775883069427, 1.3176064441887227, 1.331615120274914]}"
+          },
+          {
+            "name": "bedmaps/10K/basic/mid-gap2_100%",
+            "value": 1.301191151446398,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.02257, 0.02294, 0.02312], \"comparison_samples\": [1.3539292141571684, 1.301191151446398, 1.2752344180915611]}"
+          },
+          {
+            "name": "bedmaps/10K/basic/perfect-gap_100%",
+            "value": 1.2550802139037434,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.02347, 0.02298, 0.02582], \"comparison_samples\": [1.3442153493699887, 1.2203929899097186, 1.3807486631016042]}"
+          },
+          {
+            "name": "bedmaps/10K/basic/perfect_100%",
+            "value": 1.2954333643988816,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.0278, 0.02758, 0.0282], \"comparison_samples\": [1.32887189292543, 1.258785942492013, 1.3140726933830382]}"
+          },
+          {
+            "name": "bedmaps/10K/basic/right-adjacent-gap_100%",
+            "value": 1.2936681222707422,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.0232, 0.0237, 0.02411], \"comparison_samples\": [1.3883901855176541, 1.2936681222707422, 1.2790450928381965]}"
+          },
+          {
+            "name": "bedmaps/10K/complex/mult_100bin",
+            "value": 1.4698142414860682,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01818, 0.01904, 0.01899], \"comparison_samples\": [1.407120743034056, 1.4898278560250393, 1.2971311475409837]}"
+          },
+          {
+            "name": "bedops/10K/basic/3p-partial_100%",
+            "value": 1.3305870236869206,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.02597, 0.02559, 0.02584], \"comparison_samples\": [1.368282402528978, 1.3177136972193615, 1.3190403266972945]}"
+          },
+          {
+            "name": "bedops/10K/basic/5p-partial_100%",
+            "value": 1.312212570260603,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.02572, 0.02532, 0.02568], \"comparison_samples\": [1.3850296176628971, 1.2938170669391926, 1.2846423211605804]}"
+          },
+          {
+            "name": "bedops/10K/basic/contained_100%",
+            "value": 1.2498810090433126,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.02655, 0.02573, 0.02626], \"comparison_samples\": [1.2982885085574574, 1.2074143594556546, 1.2498810090433126]}"
+          },
+          {
+            "name": "bedops/10K/basic/enclosed_100%",
+            "value": 1.174787662047385,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.0263, 0.02578, 0.02628], \"comparison_samples\": [1.2405660377358492, 1.1524362986142154, 1.1352051835853132]}"
+          },
+          {
+            "name": "bedops/10K/basic/left-adjacent-gap_100%",
+            "value": 1.2855555555555558,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.02354, 0.02313, 0.02314], \"comparison_samples\": [1.3806451612903226, 1.2842865074958356, 1.2855555555555558]}"
+          },
+          {
+            "name": "bedops/10K/basic/mid-gap1_100%",
+            "value": 1.3452243958573074,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.02313, 0.02354, 0.02338], \"comparison_samples\": [1.4086479902557856, 1.3544303797468353, 1.339060710194731]}"
+          },
+          {
+            "name": "bedops/10K/basic/mid-gap2_100%",
+            "value": 1.314804310833806,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.02291, 0.02475, 0.02318], \"comparison_samples\": [1.3743251349730052, 1.4038570618264323, 1.2785438499724213]}"
+          },
+          {
+            "name": "bedops/10K/basic/perfect-gap_100%",
+            "value": 1.23475935828877,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.02332, 0.02309, 0.02279], \"comparison_samples\": [1.3356242840778925, 1.22623473181094, 1.218716577540107]}"
+          },
+          {
+            "name": "bedops/10K/basic/perfect_100%",
+            "value": 1.2073625349487418,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.02628, 0.02554, 0.02591], \"comparison_samples\": [1.2562141491395793, 1.1656777727065268, 1.2073625349487418]}"
+          },
+          {
+            "name": "bedops/10K/basic/right-adjacent-gap_100%",
+            "value": 1.2778384279475983,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.02356, 0.02341, 0.02326], \"comparison_samples\": [1.409934171154997, 1.2778384279475983, 1.23395225464191]}"
+          },
+          {
+            "name": "bedops/10K/complex/mult_100bin",
+            "value": 1.455108359133127,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01874, 0.01895, 0.0188], \"comparison_samples\": [1.4504643962848298, 1.4827856025039126, 1.284153005464481]}"
+          },
+          {
+            "name": "bedtk/10K/basic/3p-partial_100%",
+            "value": 0.3805355303810505,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.00739, 0.00739, 0.00737], \"comparison_samples\": [0.3893572181243414, 0.3805355303810505, 0.3762123532414497]}"
+          },
+          {
+            "name": "bedtk/10K/basic/5p-partial_100%",
+            "value": 0.3760858456821666,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.00755, 0.00736, 0.00732], \"comparison_samples\": [0.40656973613354874, 0.3760858456821666, 0.3661830915457729]}"
+          },
+          {
+            "name": "bedtk/10K/basic/contained_100%",
+            "value": 0.3541170871013803,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.00737, 0.00765, 0.00744], \"comparison_samples\": [0.36039119804400976, 0.3589863913655561, 0.3541170871013803]}"
+          },
+          {
+            "name": "bedtk/10K/basic/enclosed_100%",
+            "value": 0.33705856057219485,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.0076, 0.00754, 0.00734], \"comparison_samples\": [0.3584905660377358, 0.33705856057219485, 0.31706263498920084]}"
+          },
+          {
+            "name": "bedtk/10K/basic/left-adjacent-gap_100%",
+            "value": 0.3466666666666667,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.00618, 0.00635, 0.00624], \"comparison_samples\": [0.3624633431085044, 0.3525818989450305, 0.3466666666666667]}"
+          },
+          {
+            "name": "bedtk/10K/basic/mid-gap1_100%",
+            "value": 0.356156501726122,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.00601, 0.00619, 0.00633], \"comparison_samples\": [0.3660170523751522, 0.356156501726122, 0.36254295532646047]}"
+          },
+          {
+            "name": "bedtk/10K/basic/mid-gap2_100%",
+            "value": 0.3499716392512762,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.00611, 0.00646, 0.00617], \"comparison_samples\": [0.36652669466106774, 0.3664208735110607, 0.3403199117484832]}"
+          },
+          {
+            "name": "bedtk/10K/basic/perfect-gap_100%",
+            "value": 0.33155080213903737,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.00647, 0.00616, 0.0062], \"comparison_samples\": [0.37056128293241697, 0.3271375464684015, 0.33155080213903737]}"
+          },
+          {
+            "name": "bedtk/10K/basic/perfect_100%",
+            "value": 0.3406337371854613,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.00731, 0.00748, 0.00729], \"comparison_samples\": [0.34942638623326955, 0.34139662254678227, 0.33970177073625346]}"
+          },
+          {
+            "name": "bedtk/10K/basic/right-adjacent-gap_100%",
+            "value": 0.33406113537117904,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.00609, 0.00633, 0.00612], \"comparison_samples\": [0.3644524236983842, 0.3455240174672489, 0.3246684350132626]}"
+          },
+          {
+            "name": "bedtk/10K/complex/mult_100bin",
+            "value": 0.38544891640866874,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.00511, 0.00498, 0.00493], \"comparison_samples\": [0.3955108359133127, 0.38967136150234744, 0.33674863387978143]}"
+          },
+          {
+            "name": "bedtk_sorted/10K/basic/3p-partial_100%",
+            "value": 0.964984552008239,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01899, 0.01874, 0.01842], \"comparison_samples\": [1.000526870389884, 0.964984552008239, 0.9402756508422664]}"
+          },
+          {
+            "name": "bedtk_sorted/10K/basic/5p-partial_100%",
+            "value": 0.9494123658661215,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01858, 0.01867, 0.01853], \"comparison_samples\": [1.0005385029617662, 0.9540112416964741, 0.9269634817408705]}"
+          },
+          {
+            "name": "bedtk_sorted/10K/basic/contained_100%",
+            "value": 0.9067110899571632,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01905, 0.01921, 0.01876], \"comparison_samples\": [0.9315403422982885, 0.9014547160957298, 0.8929081389814373]}"
+          },
+          {
+            "name": "bedtk_sorted/10K/basic/enclosed_100%",
+            "value": 0.8502458649977648,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01902, 0.02044, 0.01875], \"comparison_samples\": [0.8971698113207547, 0.913723737147966, 0.8099352051835853]}"
+          },
+          {
+            "name": "bedtk_sorted/10K/basic/left-adjacent-gap_100%",
+            "value": 1.005,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01769, 0.01809, 0.0185], \"comparison_samples\": [1.0375366568914957, 1.0044419766796222, 1.027777777777778]}"
+          },
+          {
+            "name": "bedtk_sorted/10K/basic/mid-gap1_100%",
+            "value": 1.0287686996547756,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01751, 0.01825, 0.01788], \"comparison_samples\": [1.0663824604141292, 1.0500575373993095, 1.0240549828178693]}"
+          },
+          {
+            "name": "bedtk_sorted/10K/basic/mid-gap2_100%",
+            "value": 1.0266591038003405,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01723, 0.0181, 0.01854], \"comparison_samples\": [1.0335932813437312, 1.0266591038003405, 1.02261445118588]}"
+          },
+          {
+            "name": "bedtk_sorted/10K/basic/perfect-gap_100%",
+            "value": 0.9604278074866309,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01796, 0.01793, 0.01802], \"comparison_samples\": [1.0286368843069875, 0.9522039298990973, 0.9636363636363636]}"
+          },
+          {
+            "name": "bedtk_sorted/10K/basic/perfect_100%",
+            "value": 0.8723205964585276,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01885, 0.01872, 0.01865], \"comparison_samples\": [0.9010516252390056, 0.8544043815609311, 0.8690587138863001]}"
+          },
+          {
+            "name": "bedtk_sorted/10K/basic/right-adjacent-gap_100%",
+            "value": 1.0049126637554584,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01774, 0.01841, 0.01859], \"comparison_samples\": [1.06163973668462, 1.0049126637554584, 0.9862068965517241]}"
+          },
+          {
+            "name": "bedtk_sorted/10K/complex/mult_100bin",
+            "value": 0.6083591331269351,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.00755, 0.00786, 0.00816], \"comparison_samples\": [0.5843653250773995, 0.6150234741784039, 0.5573770491803279]}"
+          },
+          {
+            "name": "bedtools/10K/basic/3p-partial_100%",
+            "value": 1,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01898, 0.01942, 0.01959], \"comparison_samples\": [1.0, 1.0, 1.0]}"
+          },
+          {
+            "name": "bedtools/10K/basic/5p-partial_100%",
+            "value": 1,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01857, 0.01957, 0.01999], \"comparison_samples\": [1.0, 1.0, 1.0]}"
+          },
+          {
+            "name": "bedtools/10K/basic/contained_100%",
+            "value": 1,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.02045, 0.02131, 0.02101], \"comparison_samples\": [1.0, 1.0, 1.0]}"
+          },
+          {
+            "name": "bedtools/10K/basic/enclosed_100%",
+            "value": 1,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.0212, 0.02237, 0.02315], \"comparison_samples\": [1.0, 1.0, 1.0]}"
+          },
+          {
+            "name": "bedtools/10K/basic/left-adjacent-gap_100%",
+            "value": 1,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01705, 0.01801, 0.018], \"comparison_samples\": [1.0, 1.0, 1.0]}"
+          },
+          {
+            "name": "bedtools/10K/basic/mid-gap1_100%",
+            "value": 1,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01642, 0.01738, 0.01746], \"comparison_samples\": [1.0, 1.0, 1.0]}"
+          },
+          {
+            "name": "bedtools/10K/basic/mid-gap2_100%",
+            "value": 1,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01667, 0.01763, 0.01813], \"comparison_samples\": [1.0, 1.0, 1.0]}"
+          },
+          {
+            "name": "bedtools/10K/basic/perfect-gap_100%",
+            "value": 1,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01746, 0.01883, 0.0187], \"comparison_samples\": [1.0, 1.0, 1.0]}"
+          },
+          {
+            "name": "bedtools/10K/basic/perfect_100%",
+            "value": 1,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.02092, 0.02191, 0.02146], \"comparison_samples\": [1.0, 1.0, 1.0]}"
+          },
+          {
+            "name": "bedtools/10K/basic/right-adjacent-gap_100%",
+            "value": 1,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01671, 0.01832, 0.01885], \"comparison_samples\": [1.0, 1.0, 1.0]}"
+          },
+          {
+            "name": "bedtools/10K/complex/mult_100bin",
+            "value": 1,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01292, 0.01278, 0.01464], \"comparison_samples\": [1.0, 1.0, 1.0]}"
+          },
+          {
+            "name": "bedtools_sorted/10K/basic/3p-partial_100%",
+            "value": 1.2173017507723998,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.02284, 0.02364, 0.02494], \"comparison_samples\": [1.2033719704952581, 1.2173017507723998, 1.2730985196528841]}"
+          },
+          {
+            "name": "bedtools_sorted/10K/basic/5p-partial_100%",
+            "value": 1.2100153295861011,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.02296, 0.02368, 0.02393], \"comparison_samples\": [1.2364028002154013, 1.2100153295861011, 1.1970985492746373]}"
+          },
+          {
+            "name": "bedtools_sorted/10K/basic/contained_100%",
+            "value": 1.1465968586387434,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.02348, 0.02409, 0.02457], \"comparison_samples\": [1.1481662591687043, 1.1304551853589864, 1.1694431223227035]}"
+          },
+          {
+            "name": "bedtools_sorted/10K/basic/enclosed_100%",
+            "value": 1.0433616450603487,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.02321, 0.02397, 0.02334], \"comparison_samples\": [1.094811320754717, 1.0715243629861422, 1.008207343412527]}"
+          },
+          {
+            "name": "bedtools_sorted/10K/basic/left-adjacent-gap_100%",
+            "value": 1.1866666666666668,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.02098, 0.02136, 0.02186], \"comparison_samples\": [1.2304985337243401, 1.1860077734591892, 1.2144444444444447]}"
+          },
+          {
+            "name": "bedtools_sorted/10K/basic/mid-gap1_100%",
+            "value": 1.2410817031070196,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.02088, 0.02158, 0.02157], \"comparison_samples\": [1.271619975639464, 1.241657077100115, 1.2353951890034365]}"
+          },
+          {
+            "name": "bedtools_sorted/10K/basic/mid-gap2_100%",
+            "value": 1.2144072603516731,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.02141, 0.02163, 0.02122], \"comparison_samples\": [1.284343131373725, 1.2268859897901305, 1.1704357418643132]}"
+          },
+          {
+            "name": "bedtools_sorted/10K/basic/perfect-gap_100%",
+            "value": 1.1310160427807485,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.02094, 0.02115, 0.02154], \"comparison_samples\": [1.1993127147766323, 1.123207647371216, 1.1518716577540107]}"
+          },
+          {
+            "name": "bedtools_sorted/10K/basic/perfect_100%",
+            "value": 1.0899347623485556,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.02339, 0.0236, 0.02327], \"comparison_samples\": [1.1180688336520077, 1.0771337288909175, 1.0843429636533084]}"
+          },
+          {
+            "name": "bedtools_sorted/10K/basic/right-adjacent-gap_100%",
+            "value": 1.1528384279475983,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.02093, 0.02112, 0.02136], \"comparison_samples\": [1.2525433871932976, 1.1528384279475983, 1.1331564986737401]}"
+          },
+          {
+            "name": "bedtools_sorted/10K/complex/mult_100bin",
+            "value": 1.1857585139318887,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01532, 0.01519, 0.01542], \"comparison_samples\": [1.1857585139318887, 1.1885758998435056, 1.0532786885245902]}"
+          },
+          {
+            "name": "genogrove/10K/basic/3p-partial_100%",
+            "value": 0.9984552008238929,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01893, 0.01939, 0.02117], \"comparison_samples\": [0.9973656480505795, 0.9984552008238929, 1.0806533945890762]}"
+          },
+          {
+            "name": "genogrove/10K/basic/5p-partial_100%",
+            "value": 0.9473684210526316,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01854, 0.01844, 0.01947], \"comparison_samples\": [0.9983844911147012, 0.9422585590189065, 0.9739869934967484]}"
+          },
+          {
+            "name": "genogrove/10K/basic/contained_100%",
+            "value": 0.9157544026653974,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01924, 0.01902, 0.01926], \"comparison_samples\": [0.9408312958435208, 0.8925387142186767, 0.9167063303188957]}"
+          },
+          {
+            "name": "genogrove/10K/basic/enclosed_100%",
+            "value": 0.8681269557443003,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01906, 0.01942, 0.02001], \"comparison_samples\": [0.8990566037735849, 0.8681269557443003, 0.8643628509719222]}"
+          },
+          {
+            "name": "genogrove/10K/basic/left-adjacent-gap_100%",
+            "value": 0.9127777777777779,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01643, 0.01654, 0.01643], \"comparison_samples\": [0.9636363636363637, 0.9183786785119377, 0.9127777777777779]}"
+          },
+          {
+            "name": "genogrove/10K/basic/mid-gap1_100%",
+            "value": 0.9533947065592636,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01657, 0.01624, 0.02082], \"comparison_samples\": [1.0091352009744214, 0.9344073647871117, 1.1924398625429555]}"
+          },
+          {
+            "name": "genogrove/10K/basic/mid-gap2_100%",
+            "value": 0.9285309132161088,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01661, 0.01631, 0.01637], \"comparison_samples\": [0.9964007198560287, 0.925127623369257, 0.90292333149476]}"
+          },
+          {
+            "name": "genogrove/10K/basic/perfect-gap_100%",
+            "value": 0.8684491978609625,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01624, 0.0162, 0.01643], \"comparison_samples\": [0.9301260022909508, 0.8603292618162507, 0.8786096256684491]}"
+          },
+          {
+            "name": "genogrove/10K/basic/perfect_100%",
+            "value": 0.8783783783783783,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01885, 0.01848, 0.01982], \"comparison_samples\": [0.9010516252390056, 0.8434504792332269, 0.9235787511649581]}"
+          },
+          {
+            "name": "genogrove/10K/basic/right-adjacent-gap_100%",
+            "value": 0.9066593886462883,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01661, 0.0167, 0.01651], \"comparison_samples\": [0.9940155595451826, 0.9115720524017468, 0.8758620689655173]}"
+          },
+          {
+            "name": "genogrove/10K/complex/mult_100bin",
+            "value": 1.3382352941176472,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01776, 0.01711, 0.01729], \"comparison_samples\": [1.3746130030959753, 1.3388106416275432, 1.1810109289617485]}"
+          },
+          {
+            "name": "gia/10K/basic/3p-partial_100%",
+            "value": 0.9248197734294542,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01782, 0.01796, 0.0192], \"comparison_samples\": [0.9388830347734457, 0.9248197734294542, 0.9800918836140887]}"
+          },
+          {
+            "name": "gia/10K/basic/5p-partial_100%",
+            "value": 0.9611650485436893,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01827, 0.01881, 0.01932], \"comparison_samples\": [0.9838449111470114, 0.9611650485436893, 0.9664832416208103]}"
+          },
+          {
+            "name": "gia/10K/basic/contained_100%",
+            "value": 0.8491194669205141,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01738, 0.01981, 0.01784], \"comparison_samples\": [0.8498777506112469, 0.9296105114969498, 0.8491194669205141]}"
+          },
+          {
+            "name": "gia/10K/basic/enclosed_100%",
+            "value": 0.8985248100134108,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01923, 0.02014, 0.0201], \"comparison_samples\": [0.9070754716981132, 0.9003129190880644, 0.8682505399568035]}"
+          },
+          {
+            "name": "gia/10K/basic/left-adjacent-gap_100%",
+            "value": 0.9527777777777777,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01715, 0.01792, 0.01564], \"comparison_samples\": [1.0058651026392962, 0.9950027762354245, 0.868888888888889]}"
+          },
+          {
+            "name": "gia/10K/basic/mid-gap1_100%",
+            "value": 0.9654775604142692,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01678, 0.01809, 0.01573], \"comparison_samples\": [1.0219244823386113, 1.0408515535097813, 0.9009163802978236]}"
+          },
+          {
+            "name": "gia/10K/basic/mid-gap2_100%",
+            "value": 1.0005672149744753,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.0182, 0.01764, 0.01522], \"comparison_samples\": [1.0917816436712657, 1.0005672149744753, 0.839492553778268]}"
+          },
+          {
+            "name": "gia/10K/basic/perfect-gap_100%",
+            "value": 0.843850267379679,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01596, 0.0154, 0.01578], \"comparison_samples\": [0.9140893470790378, 0.8178438661710038, 0.843850267379679]}"
+          },
+          {
+            "name": "gia/10K/basic/perfect_100%",
+            "value": 0.9147250698974838,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.0357, 0.01963, 0.01908], \"comparison_samples\": [1.7065009560229445, 0.8959379278868098, 0.8890959925442684]}"
+          },
+          {
+            "name": "gia/10K/basic/right-adjacent-gap_100%",
+            "value": 0.8995633187772927,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01648, 0.01769, 0.01571], \"comparison_samples\": [0.98623578695392, 0.9656113537117905, 0.83342175066313]}"
+          },
+          {
+            "name": "gia/10K/complex/mult_100bin",
+            "value": 0.9891640866873065,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01278, 0.0127, 0.01299], \"comparison_samples\": [0.9891640866873065, 0.9937402190923318, 0.8872950819672131]}"
+          },
+          {
+            "name": "giggle/10K/basic/3p-partial_100%",
+            "value": 53.07003089598353,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [1.03062, 1.03489, 1.0293], \"comparison_samples\": [54.30031612223394, 53.289907312049436, 52.54211332312405]}"
+          },
+          {
+            "name": "giggle/10K/basic/5p-partial_100%",
+            "value": 52.35922330097087,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [1.02467, 1.01858, 1.02539], \"comparison_samples\": [55.178782983306405, 52.048032703117016, 51.29514757378689]}"
+          },
+          {
+            "name": "giggle/10K/basic/contained_100%",
+            "value": 48.43788672060923,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [1.01768, 1.03105, 1.01577], \"comparison_samples\": [49.764303178484106, 48.38338808071328, 48.34697762970014]}"
+          },
+          {
+            "name": "giggle/10K/basic/enclosed_100%",
+            "value": 45.97228430934287,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [1.02059, 1.05715, 1.0284], \"comparison_samples\": [48.14103773584906, 47.25748770675011, 44.423326133909285]}"
+          },
+          {
+            "name": "giggle/10K/basic/left-adjacent-gap_100%",
+            "value": 2.835555555555556,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.05027, 0.05189, 0.05104], \"comparison_samples\": [2.948387096774194, 2.8811771238200996, 2.835555555555556]}"
+          },
+          {
+            "name": "giggle/10K/basic/mid-gap1_100%",
+            "value": 2.9850402761795167,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.05253, 0.05117, 0.05188], \"comparison_samples\": [3.1991473812423874, 2.944188722669735, 2.9713631156930127]}"
+          },
+          {
+            "name": "giggle/10K/basic/mid-gap2_100%",
+            "value": 2.920022688598979,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.04972, 0.0524, 0.05148], \"comparison_samples\": [2.982603479304139, 2.972206466250709, 2.839492553778268]}"
+          },
+          {
+            "name": "giggle/10K/basic/perfect-gap_100%",
+            "value": 2.781283422459893,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.05286, 0.04919, 0.05201], \"comparison_samples\": [3.027491408934708, 2.6123207647371216, 2.781283422459893]}"
+          },
+          {
+            "name": "giggle/10K/basic/perfect_100%",
+            "value": 47.554520037278664,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [1.02085, 1.01863, 1.02052], \"comparison_samples\": [48.79780114722753, 46.49155636695573, 47.554520037278664]}"
+          },
+          {
+            "name": "giggle/10K/basic/right-adjacent-gap_100%",
+            "value": 2.767467248908297,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.05887, 0.05062, 0.0507], \"comparison_samples\": [3.5230400957510475, 2.763100436681223, 2.6896551724137936]}"
+          },
+          {
+            "name": "giggle/10K/complex/mult_100bin",
+            "value": 173.22987616099073,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [2.23833, 2.23628, 2.23813], \"comparison_samples\": [173.2453560371517, 174.9827856025039, 152.87773224043715]}"
+          },
+          {
+            "name": "granges/10K/basic/3p-partial_100%",
+            "value": 0.9186405767250259,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01799, 0.01784, 0.01757], \"comparison_samples\": [0.9478398314014752, 0.9186405767250259, 0.8968861664114344]}"
+          },
+          {
+            "name": "granges/10K/basic/5p-partial_100%",
+            "value": 0.9131323454266734,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01741, 0.01787, 0.01816], \"comparison_samples\": [0.9375336564351103, 0.9131323454266734, 0.9084542271135567]}"
+          },
+          {
+            "name": "granges/10K/basic/contained_100%",
+            "value": 0.8519752498810089,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01788, 0.01801, 0.0179], \"comparison_samples\": [0.8743276283618582, 0.8451431252932896, 0.8519752498810089]}"
+          },
+          {
+            "name": "granges/10K/basic/enclosed_100%",
+            "value": 0.8211890925346447,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01837, 0.01847, 0.01747], \"comparison_samples\": [0.8665094339622642, 0.8256593652212785, 0.7546436285097192]}"
+          },
+          {
+            "name": "granges/10K/basic/left-adjacent-gap_100%",
+            "value": 0.5972222222222222,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01092, 0.01075, 0.01062], \"comparison_samples\": [0.6404692082111437, 0.5968906163242642, 0.59]}"
+          },
+          {
+            "name": "granges/10K/basic/mid-gap1_100%",
+            "value": 0.6219792865362486,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01094, 0.01081, 0.01055], \"comparison_samples\": [0.6662606577344702, 0.6219792865362486, 0.6042382588774342]}"
+          },
+          {
+            "name": "granges/10K/basic/mid-gap2_100%",
+            "value": 0.6108905275099262,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01114, 0.01077, 0.01048], \"comparison_samples\": [0.6682663467306539, 0.6108905275099262, 0.5780474351902923]}"
+          },
+          {
+            "name": "granges/10K/basic/perfect-gap_100%",
+            "value": 0.5652406417112299,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01049, 0.01099, 0.01057], \"comparison_samples\": [0.6008018327605956, 0.5836431226765799, 0.5652406417112299]}"
+          },
+          {
+            "name": "granges/10K/basic/perfect_100%",
+            "value": 0.8191985088536812,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01758, 0.01839, 0.01745], \"comparison_samples\": [0.8403441682600381, 0.8393427658603377, 0.8131407269338304]}"
+          },
+          {
+            "name": "granges/10K/basic/right-adjacent-gap_100%",
+            "value": 0.5846069868995634,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01071, 0.01087, 0.01054], \"comparison_samples\": [0.6409335727109516, 0.5933406113537117, 0.5591511936339524]}"
+          },
+          {
+            "name": "granges/10K/complex/mult_100bin",
+            "value": 1.0278637770897834,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01286, 0.01328, 0.01358], \"comparison_samples\": [0.9953560371517028, 1.0391236306729266, 0.9275956284153005]}"
+          },
+          {
+            "name": "igd/10K/basic/3p-partial_100%",
+            "value": 1.115859938208033,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.02155, 0.02181, 0.02167], \"comparison_samples\": [1.1354056902002108, 1.123069001029866, 1.1061766207248596]}"
+          },
+          {
+            "name": "igd/10K/basic/5p-partial_100%",
+            "value": 1.0991313234542668,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.02151, 0.02165, 0.0214], \"comparison_samples\": [1.1583198707592892, 1.1062851303014818, 1.070535267633817]}"
+          },
+          {
+            "name": "igd/10K/basic/contained_100%",
+            "value": 1.0471204188481675,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.022, 0.02204, 0.02177], \"comparison_samples\": [1.075794621026895, 1.0342562177381511, 1.0361732508329367]}"
+          },
+          {
+            "name": "igd/10K/basic/enclosed_100%",
+            "value": 1.0335270451497542,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.02287, 0.0232, 0.02312], \"comparison_samples\": [1.0787735849056603, 1.037103263299061, 0.9987041036717064]}"
+          },
+          {
+            "name": "igd/10K/basic/left-adjacent-gap_100%",
+            "value": 1.1111111111111112,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.02052, 0.02, 0.01983], \"comparison_samples\": [1.2035190615835778, 1.110494169905608, 1.1016666666666668]}"
+          },
+          {
+            "name": "igd/10K/basic/mid-gap1_100%",
+            "value": 1.1507479861910241,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.02063, 0.0198, 0.02], \"comparison_samples\": [1.256394640682095, 1.139240506329114, 1.145475372279496]}"
+          },
+          {
+            "name": "igd/10K/basic/mid-gap2_100%",
+            "value": 1.1293250141803743,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01991, 0.02014, 0.0198], \"comparison_samples\": [1.194361127774445, 1.142370958593307, 1.0921125206839493]}"
+          },
+          {
+            "name": "igd/10K/basic/perfect-gap_100%",
+            "value": 1.0844919786096257,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.02179, 0.02028, 0.01998], \"comparison_samples\": [1.247995418098511, 1.0770047796070101, 1.0684491978609625]}"
+          },
+          {
+            "name": "igd/10K/basic/perfect_100%",
+            "value": 1.0629077353215284,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.02235, 0.02281, 0.02298], \"comparison_samples\": [1.0683556405353727, 1.0410771337288909, 1.070829450139795]}"
+          },
+          {
+            "name": "igd/10K/basic/right-adjacent-gap_100%",
+            "value": 1.0862445414847162,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.0199, 0.02017, 0.01966], \"comparison_samples\": [1.1909036505086776, 1.1009825327510918, 1.042970822281167]}"
+          },
+          {
+            "name": "igd/10K/complex/mult_100bin",
+            "value": 0.8746130030959752,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01149, 0.0113, 0.0113], \"comparison_samples\": [0.8893188854489165, 0.8841940532081377, 0.7718579234972677]}"
+          },
+          {
+            "name": "intervaltree/10K/basic/3p-partial_100%",
+            "value": 17.499485066941297,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.33859, 0.3409, 0.33984], \"comparison_samples\": [17.839304531085354, 17.554067971163747, 17.34762633996937]}"
+          },
+          {
+            "name": "intervaltree/10K/basic/5p-partial_100%",
+            "value": 17.346959632089934,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.34026, 0.33202, 0.33948], \"comparison_samples\": [18.323101777059776, 16.96576392437404, 16.98249124562281]}"
+          },
+          {
+            "name": "intervaltree/10K/basic/contained_100%",
+            "value": 14.274155164207519,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.2999, 0.30044, 0.29691], \"comparison_samples\": [14.665036674816626, 14.09854528390427, 14.131841980009519]}"
+          },
+          {
+            "name": "intervaltree/10K/basic/enclosed_100%",
+            "value": 16.80867232901207,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.38677, 0.37137, 0.37601], \"comparison_samples\": [18.243867924528303, 16.601251676352256, 16.24233261339093]}"
+          },
+          {
+            "name": "intervaltree/10K/basic/left-adjacent-gap_100%",
+            "value": 15.60888888888889,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.28096, 0.27671, 0.28857], \"comparison_samples\": [16.47859237536657, 15.364242087729039, 16.031666666666666]}"
+          },
+          {
+            "name": "intervaltree/10K/basic/mid-gap1_100%",
+            "value": 16.11680092059839,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.28233, 0.27966, 0.28011], \"comparison_samples\": [17.19427527405603, 16.090909090909093, 16.042955326460483]}"
+          },
+          {
+            "name": "intervaltree/10K/basic/mid-gap2_100%",
+            "value": 15.931934203062962,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.28088, 0.28432, 0.27776], \"comparison_samples\": [16.849430113977206, 16.127056154282474, 15.32046332046332]}"
+          },
+          {
+            "name": "intervaltree/10K/basic/perfect-gap_100%",
+            "value": 15.088770053475935,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.28216, 0.27026, 0.2847], \"comparison_samples\": [16.160366552119132, 14.35262878385555, 15.224598930481283]}"
+          },
+          {
+            "name": "intervaltree/10K/basic/perfect_100%",
+            "value": 15.525163094128612,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.33006, 0.34089, 0.33317], \"comparison_samples\": [15.777246653919693, 15.558649018712918, 15.525163094128612]}"
+          },
+          {
+            "name": "intervaltree/10K/basic/right-adjacent-gap_100%",
+            "value": 15.587882096069869,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.28557, 0.27233, 0.28621], \"comparison_samples\": [17.089766606822263, 14.865174672489085, 15.183554376657828]}"
+          },
+          {
+            "name": "intervaltree/10K/complex/mult_100bin",
+            "value": 31.229876160990717,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.41363, 0.4013, 0.40349], \"comparison_samples\": [32.01470588235294, 31.400625978090765, 27.560792349726775]}"
+          },
+          {
+            "name": "polars_bio/10K/basic/3p-partial_100%",
+            "value": 15.662718846549948,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.30462, 0.30417, 0.29958], \"comparison_samples\": [16.049525816649105, 15.662718846549948, 15.292496171516081]}"
+          },
+          {
+            "name": "polars_bio/10K/basic/5p-partial_100%",
+            "value": 15.465508431272355,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.30424, 0.30266, 0.29993], \"comparison_samples\": [16.3834141087776, 15.465508431272355, 15.004002001000499]}"
+          },
+          {
+            "name": "polars_bio/10K/basic/contained_100%",
+            "value": 14.316039980961445,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.29508, 0.34001, 0.30078], \"comparison_samples\": [14.429339853300734, 15.955419990614734, 14.316039980961445]}"
+          },
+          {
+            "name": "polars_bio/10K/basic/enclosed_100%",
+            "value": 13.776486365668305,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.30818, 0.33161, 0.29698], \"comparison_samples\": [14.53679245283019, 14.823871256146624, 12.828509719222463]}"
+          },
+          {
+            "name": "polars_bio/10K/basic/left-adjacent-gap_100%",
+            "value": 16.82277777777778,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.30281, 0.30535, 0.29056], \"comparison_samples\": [17.760117302052787, 16.95446973903387, 16.142222222222223]}"
+          },
+          {
+            "name": "polars_bio/10K/basic/mid-gap1_100%",
+            "value": 17.222669735327962,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.2986, 0.30889, 0.29933], \"comparison_samples\": [18.185140073081605, 17.772727272727273, 17.143757159221074]}"
+          },
+          {
+            "name": "polars_bio/10K/basic/mid-gap2_100%",
+            "value": 17.517867271695973,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.30884, 0.3155, 0.29793], \"comparison_samples\": [18.526694661067786, 17.895632444696542, 16.432984004412575]}"
+          },
+          {
+            "name": "polars_bio/10K/basic/perfect-gap_100%",
+            "value": 16.216042780748662,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.30324, 0.31529, 0.30249], \"comparison_samples\": [17.36769759450172, 16.744025491237387, 16.175935828877]}"
+          },
+          {
+            "name": "polars_bio/10K/basic/perfect_100%",
+            "value": 14.433830382106246,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.32527, 0.30874, 0.30975], \"comparison_samples\": [15.548279158699808, 14.091282519397536, 14.433830382106246]}"
+          },
+          {
+            "name": "polars_bio/10K/basic/right-adjacent-gap_100%",
+            "value": 16.203602620087338,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.29685, 0.31634, 0.29308], \"comparison_samples\": [17.764811490125673, 17.267467248908297, 15.548010610079578]}"
+          },
+          {
+            "name": "polars_bio/10K/complex/mult_100bin",
+            "value": 23.73606811145511,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.31427, 0.29798, 0.30667], \"comparison_samples\": [24.324303405572756, 23.31611893583725, 20.9474043715847]}"
+          },
+          {
+            "name": "pygenogrove/10K/basic/3p-partial_100%",
+            "value": 9.732234809474768,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.19101, 0.18563, 0.189], \"comparison_samples\": [10.063751317175976, 9.55870236869207, 9.647779479326188]}"
+          },
+          {
+            "name": "pygenogrove/10K/basic/5p-partial_100%",
+            "value": 9.50536535513541,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.19051, 0.18602, 0.18572], \"comparison_samples\": [10.259019924609586, 9.50536535513541, 9.29064532266133]}"
+          },
+          {
+            "name": "pygenogrove/10K/basic/contained_100%",
+            "value": 8.989528795811518,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.18623, 0.18917, 0.18887], \"comparison_samples\": [9.106601466992666, 8.877053026748007, 8.989528795811518]}"
+          },
+          {
+            "name": "pygenogrove/10K/basic/enclosed_100%",
+            "value": 8.416182387125614,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.18827, 0.19096, 0.18689], \"comparison_samples\": [8.88066037735849, 8.536432722396066, 8.073002159827213]}"
+          },
+          {
+            "name": "pygenogrove/10K/basic/left-adjacent-gap_100%",
+            "value": 8.87388888888889,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.16026, 0.15973, 0.15907], \"comparison_samples\": [9.399413489736071, 8.868961687951138, 8.837222222222222]}"
+          },
+          {
+            "name": "pygenogrove/10K/basic/mid-gap1_100%",
+            "value": 9.283659378596088,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.16063, 0.16159, 0.16135], \"comparison_samples\": [9.78258221680877, 9.29746835443038, 9.241122565864833]}"
+          },
+          {
+            "name": "pygenogrove/10K/basic/mid-gap2_100%",
+            "value": 9.247305728871243,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.16303, 0.16574, 0.15985], \"comparison_samples\": [9.779844031193761, 9.401020986954055, 8.816878102592387]}"
+          },
+          {
+            "name": "pygenogrove/10K/basic/perfect-gap_100%",
+            "value": 8.548663101604278,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.15792, 0.15986, 0.16279], \"comparison_samples\": [9.0446735395189, 8.489644184811471, 8.705347593582886]}"
+          },
+          {
+            "name": "pygenogrove/10K/basic/perfect_100%",
+            "value": 8.983224603914259,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.22079, 0.19278, 0.19058], \"comparison_samples\": [10.554015296367112, 8.798722044728436, 8.880708294501398]}"
+          },
+          {
+            "name": "pygenogrove/10K/basic/right-adjacent-gap_100%",
+            "value": 8.678493449781659,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.15899, 0.1597, 0.15845], \"comparison_samples\": [9.514661879114303, 8.717248908296943, 8.40583554376658]}"
+          },
+          {
+            "name": "pygenogrove/10K/complex/mult_100bin",
+            "value": 9.798761609907121,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.1266, 0.12995, 0.12608], \"comparison_samples\": [9.798761609907121, 10.168231611893585, 8.612021857923496]}"
+          },
+          {
+            "name": "tabix/10K/basic/3p-partial_100%",
+            "value": 11.23480947476828,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.21818, 0.21279, 0.22556], \"comparison_samples\": [11.495258166491043, 10.957260556127704, 11.514037774374682]}"
+          },
+          {
+            "name": "tabix/10K/basic/5p-partial_100%",
+            "value": 11.22432294328053,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.21966, 0.22327, 0.2178], \"comparison_samples\": [11.82875605815832, 11.408788962698006, 10.89544772386193]}"
+          },
+          {
+            "name": "tabix/10K/basic/contained_100%",
+            "value": 10.575440266539742,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.22219, 0.22207, 0.22824], \"comparison_samples\": [10.865036674816626, 10.42092914124824, 10.86339838172299]}"
+          },
+          {
+            "name": "tabix/10K/basic/enclosed_100%",
+            "value": 9.694233348234242,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.21434, 0.21686, 0.2187], \"comparison_samples\": [10.110377358490567, 9.694233348234242, 9.44708423326134]}"
+          },
+          {
+            "name": "tabix/10K/basic/left-adjacent-gap_100%",
+            "value": 12.03777777777778,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.21502, 0.21668, 0.22229], \"comparison_samples\": [12.611143695014663, 12.031093836757357, 12.349444444444444]}"
+          },
+          {
+            "name": "tabix/10K/basic/mid-gap1_100%",
+            "value": 12.451668584579977,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.21641, 0.21242, 0.2194], \"comparison_samples\": [13.179658952496954, 12.222094361334868, 12.565864833906073]}"
+          },
+          {
+            "name": "tabix/10K/basic/mid-gap2_100%",
+            "value": 12.145207033465685,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.21325, 0.21594, 0.21412], \"comparison_samples\": [12.79244151169766, 12.248440158820193, 11.810259238830668]}"
+          },
+          {
+            "name": "tabix/10K/basic/perfect-gap_100%",
+            "value": 11.444385026737967,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.21401, 0.2098, 0.21619], \"comparison_samples\": [12.257159221076748, 11.141795007966012, 11.56096256684492]}"
+          },
+          {
+            "name": "tabix/10K/basic/perfect_100%",
+            "value": 10.225535880708295,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.21944, 0.21921, 0.22017], \"comparison_samples\": [10.489483747609942, 10.005020538566864, 10.25955265610438]}"
+          },
+          {
+            "name": "tabix/10K/basic/right-adjacent-gap_100%",
+            "value": 11.832423580786026,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.21595, 0.21874, 0.21677], \"comparison_samples\": [12.923399162178336, 11.93995633187773, 11.49973474801061]}"
+          },
+          {
+            "name": "tabix/10K/complex/mult_100bin",
+            "value": 0.9102167182662539,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01165, 0.01176, 0.01194], \"comparison_samples\": [0.9017027863777091, 0.92018779342723, 0.8155737704918032]}"
+          },
+          {
+            "name": "ucsc/10K/basic/3p-partial_100%",
+            "value": 0.9335736354273945,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01813, 0.01806, 0.01846], \"comparison_samples\": [0.9552160168598525, 0.9299691040164778, 0.9423175089331292]}"
+          },
+          {
+            "name": "ucsc/10K/basic/5p-partial_100%",
+            "value": 0.8942258559018907,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01839, 0.01746, 0.0175], \"comparison_samples\": [0.9903069466882068, 0.8921819110884006, 0.8754377188594298]}"
+          },
+          {
+            "name": "ucsc/10K/basic/contained_100%",
+            "value": 0.8810090433127081,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01857, 0.01851, 0.01823], \"comparison_samples\": [0.9080684596577018, 0.8686062881276396, 0.8676820561637315]}"
+          },
+          {
+            "name": "ucsc/10K/basic/enclosed_100%",
+            "value": 0.8395172105498435,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01925, 0.01878, 0.01877], \"comparison_samples\": [0.9080188679245282, 0.8395172105498435, 0.8107991360691144]}"
+          },
+          {
+            "name": "ucsc/10K/basic/left-adjacent-gap_100%",
+            "value": 0.8733333333333335,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01572, 0.01641, 0.01534], \"comparison_samples\": [0.9219941348973608, 0.9111604664075513, 0.8522222222222222]}"
+          },
+          {
+            "name": "ucsc/10K/basic/mid-gap1_100%",
+            "value": 0.8883774453394707,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01544, 0.01611, 0.01507], \"comparison_samples\": [0.9403166869671132, 0.92692750287687, 0.8631156930126003]}"
+          },
+          {
+            "name": "ucsc/10K/basic/mid-gap2_100%",
+            "value": 0.8638684061259218,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01523, 0.0157, 0.01499], \"comparison_samples\": [0.913617276544691, 0.890527509926262, 0.8268063982349696]}"
+          },
+          {
+            "name": "ucsc/10K/basic/perfect-gap_100%",
+            "value": 0.8358288770053476,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01563, 0.01581, 0.01526], \"comparison_samples\": [0.8951890034364263, 0.8396176314391929, 0.816042780748663]}"
+          },
+          {
+            "name": "ucsc/10K/basic/perfect_100%",
+            "value": 0.8960857409133272,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01937, 0.01923, 0.0181], \"comparison_samples\": [0.925908221797323, 0.8776814240073026, 0.8434296365330849]}"
+          },
+          {
+            "name": "ucsc/10K/basic/right-adjacent-gap_100%",
+            "value": 0.8373362445414847,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01534, 0.01594, 0.01519], \"comparison_samples\": [0.9180131657690006, 0.8700873362445415, 0.8058355437665783]}"
+          },
+          {
+            "name": "ucsc/10K/complex/mult_100bin",
+            "value": 1.1222910216718267,
+            "unit": "ratio to bedtools",
+            "extra": "{\"samples_seconds\": [0.01472, 0.0145, 0.01416], \"comparison_samples\": [1.1393188854489165, 1.1345852895148671, 0.9672131147540984]}"
+          },
+          {
+            "name": "ailist/all/end-to-end/wall",
+            "value": 0.8740415180000127,
+            "unit": "seconds",
+            "extra": "{\"samples_seconds\": [0.8541142600000171, 0.8740415180000127, 0.887100074999978], \"comparison_samples\": [0.8541142600000171, 0.8740415180000127, 0.887100074999978]}"
+          },
+          {
+            "name": "awk/all/end-to-end/wall",
+            "value": 15.825731768000026,
+            "unit": "seconds",
+            "extra": "{\"samples_seconds\": [15.743699942000006, 15.923285420000013, 15.825731768000026], \"comparison_samples\": [15.743699942000006, 15.923285420000013, 15.825731768000026]}"
+          },
+          {
+            "name": "bedmaps/all/end-to-end/wall",
+            "value": 1.0147909780000077,
+            "unit": "seconds",
+            "extra": "{\"samples_seconds\": [0.9819043569999906, 1.0147909780000077, 1.0274569000000042], \"comparison_samples\": [0.9819043569999906, 1.0147909780000077, 1.0274569000000042]}"
+          },
+          {
+            "name": "bedops/all/end-to-end/wall",
+            "value": 0.9734507099999519,
+            "unit": "seconds",
+            "extra": "{\"samples_seconds\": [0.9463154400000064, 0.9734507099999519, 0.9812803199999962], \"comparison_samples\": [0.9463154400000064, 0.9734507099999519, 0.9812803199999962]}"
+          },
+          {
+            "name": "bedtk/all/end-to-end/wall",
+            "value": 0.788256959000023,
+            "unit": "seconds",
+            "extra": "{\"samples_seconds\": [0.791321757999981, 0.788256959000023, 0.7850861599999917], \"comparison_samples\": [0.791321757999981, 0.788256959000023, 0.7850861599999917]}"
+          },
+          {
+            "name": "bedtk_sorted/all/end-to-end/wall",
+            "value": 0.9275380720000044,
+            "unit": "seconds",
+            "extra": "{\"samples_seconds\": [0.9130112959999792, 0.9275380720000044, 0.9300929710000219], \"comparison_samples\": [0.9130112959999792, 0.9275380720000044, 0.9300929710000219]}"
+          },
+          {
+            "name": "bedtools/all/end-to-end/wall",
+            "value": 0.9071141059999945,
+            "unit": "seconds",
+            "extra": "{\"samples_seconds\": [0.8854388819999883, 0.9071141059999945, 0.925813536000021], \"comparison_samples\": [0.8854388819999883, 0.9071141059999945, 0.925813536000021]}"
+          },
+          {
+            "name": "bedtools_sorted/all/end-to-end/wall",
+            "value": 0.9663971370000013,
+            "unit": "seconds",
+            "extra": "{\"samples_seconds\": [0.9425685419999752, 0.9764641330000359, 0.9663971370000013], \"comparison_samples\": [0.9425685419999752, 0.9764641330000359, 0.9663971370000013]}"
+          },
+          {
+            "name": "genogrove/all/end-to-end/wall",
+            "value": 0.8818192389999808,
+            "unit": "seconds",
+            "extra": "{\"samples_seconds\": [0.9579332049999607, 0.8545564130000116, 0.8818192389999808], \"comparison_samples\": [0.9579332049999607, 0.8545564130000116, 0.8818192389999808]}"
+          },
+          {
+            "name": "gia/all/end-to-end/wall",
+            "value": 0.851966066999978,
+            "unit": "seconds",
+            "extra": "{\"samples_seconds\": [0.8868577060000007, 0.8459057119999898, 0.851966066999978], \"comparison_samples\": [0.8868577060000007, 0.8459057119999898, 0.851966066999978]}"
+          },
+          {
+            "name": "giggle/all/end-to-end/wall",
+            "value": 8.536268813999982,
+            "unit": "seconds",
+            "extra": "{\"samples_seconds\": [8.675736907000015, 8.536268813999982, 8.509774094000022], \"comparison_samples\": [8.675736907000015, 8.536268813999982, 8.509774094000022]}"
+          },
+          {
+            "name": "granges/all/end-to-end/wall",
+            "value": 0.8540014779999865,
+            "unit": "seconds",
+            "extra": "{\"samples_seconds\": [0.9694893889999889, 0.8540014779999865, 0.8170045720000303], \"comparison_samples\": [0.9694893889999889, 0.8540014779999865, 0.8170045720000303]}"
+          },
+          {
+            "name": "igd/all/end-to-end/wall",
+            "value": 1.349937347999969,
+            "unit": "seconds",
+            "extra": "{\"samples_seconds\": [1.3235448179999878, 1.349937347999969, 1.3545840390000308], \"comparison_samples\": [1.3235448179999878, 1.349937347999969, 1.3545840390000308]}"
+          },
+          {
+            "name": "intervaltree/all/end-to-end/wall",
+            "value": 4.202208525000003,
+            "unit": "seconds",
+            "extra": "{\"samples_seconds\": [4.2207351730000084, 4.160620220999988, 4.202208525000003], \"comparison_samples\": [4.2207351730000084, 4.160620220999988, 4.202208525000003]}"
+          },
+          {
+            "name": "polars_bio/all/end-to-end/wall",
+            "value": 4.005485470999986,
+            "unit": "seconds",
+            "extra": "{\"samples_seconds\": [4.005485470999986, 4.0916222910000215, 3.93192072100004], \"comparison_samples\": [4.005485470999986, 4.0916222910000215, 3.93192072100004]}"
+          },
+          {
+            "name": "pygenogrove/all/end-to-end/wall",
+            "value": 2.5174202700000023,
+            "unit": "seconds",
+            "extra": "{\"samples_seconds\": [2.5554249809999874, 2.5174202700000023, 2.500390698999979], \"comparison_samples\": [2.5554249809999874, 2.5174202700000023, 2.500390698999979]}"
+          },
+          {
+            "name": "segmeter/all/simulation/wall",
+            "value": 1.4489666420000162,
+            "unit": "seconds",
+            "extra": "{\"samples_seconds\": [1.4489666420000162], \"comparison_samples\": [1.4489666420000162]}"
+          },
+          {
+            "name": "tabix/all/end-to-end/wall",
+            "value": 2.9384818749999795,
+            "unit": "seconds",
+            "extra": "{\"samples_seconds\": [2.901457327000003, 2.9385263080000072, 2.9384818749999795], \"comparison_samples\": [2.901457327000003, 2.9385263080000072, 2.9384818749999795]}"
+          },
+          {
+            "name": "ucsc/all/end-to-end/wall",
+            "value": 0.9054269160000104,
+            "unit": "seconds",
+            "extra": "{\"samples_seconds\": [0.9054269160000104, 0.9067831870000305, 0.8929392300000245], \"comparison_samples\": [0.9054269160000104, 0.9067831870000305, 0.8929392300000245]}"
           }
         ]
       }
