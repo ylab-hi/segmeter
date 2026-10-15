@@ -3,6 +3,7 @@ import io
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
 import tarfile
@@ -105,6 +106,15 @@ else:
         assert result.returncode != 0 and 'Host Python 3.8 or newer is required' in result.stderr
         later_calls = [json.loads(line) for line in log.read_text().splitlines()]
         assert len(later_calls) == len(calls) + 1  # version check only; no prep or submission
+        # no optional flags: the empty option arrays must not trip `set -u` (an unbound variable before bash 4.4), and the
+        # run records HEAD, marked -dirty when segmeter/, containers/ or scripts/ have uncommitted changes
+        minimal = ['bash', str(ROOT / 'scripts/cluster/run-benchmark.sh'), '--image-tag', 'v0.15.0', '--work-dir', str(root / 'work')]
+        result = subprocess.run(minimal, env=env, check=True, capture_output=True, text=True)
+        assert 'Submitted Slurm job 4242' in result.stdout
+        job = [json.loads(line) for line in log.read_text().splitlines() if line.startswith('["sbatch"')][-1]
+        assert not any(a.startswith('--account') or a in ('--sizes', '--dataset-dir') for a in job), job
+        commit = max((root / 'work/results').glob('*/checkout/source-commit.txt'), key=os.path.getmtime).read_text().strip()
+        assert re.fullmatch(r'[0-9a-f]{40}(-dirty)?', commit), commit
 
 
 if __name__ == '__main__':
