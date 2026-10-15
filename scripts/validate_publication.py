@@ -10,7 +10,7 @@ def validate(folder):
     versions = json.loads((folder / 'segmeter-full-versions.json').read_text())
     commit = versions['source_commit']
     if not re.fullmatch(r'[0-9a-f]{40}', commit):
-        raise ValueError('Invalid source commit')
+        raise ValueError(f'Invalid source commit {commit!r}; a -dirty run was launched from an edited checkout')
     if versions['repeats'] != 3 or versions.get('tier') != 'full':
         raise ValueError('Expected a full benchmark with three repeats')
     kind = versions.get('dataset', {}).get('kind', 'simulated')

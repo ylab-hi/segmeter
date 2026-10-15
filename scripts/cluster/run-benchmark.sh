@@ -76,9 +76,17 @@ run_dir=$(mktemp -d "$work_dir/results/$dataset-$stamp-XXXXXX")
 # Freeze the checkout now, so later edits while queued cannot change this run.
 mkdir "$run_dir/checkout"
 cp -R "$repo/segmeter" "$repo/containers" "$repo/scripts" "$run_dir/checkout/"
-git -C "$repo" rev-parse HEAD > "$run_dir/checkout/source-commit.txt"
+# The run records HEAD as its source; uncommitted changes to what it copies would be attributed to a clean commit,
+# so they mark the commit as dirty, which the publication validator rejects.
+commit=$(git -C "$repo" rev-parse HEAD)
+if [[ -n $(git -C "$repo" status --porcelain --untracked-files=normal -- segmeter containers scripts || echo '?? unknown') ]]; then
+    echo "Warning: uncommitted changes under segmeter/, containers/ or scripts/; the run is recorded as $commit-dirty and cannot be published" >&2
+    commit="$commit-dirty"
+fi
+echo "$commit" > "$run_dir/checkout/source-commit.txt"
 cd "$run_dir/checkout"
-job_id=$(sbatch --parsable "${slurm_options[@]}" \
+# ${array[@]+"${array[@]}"}: an empty array is an unbound variable under set -u before bash 4.4 (RHEL 7 login nodes)
+job_id=$(sbatch --parsable ${slurm_options[@]+"${slurm_options[@]}"} \
     --output="$run_dir/slurm-%j.log" \
-    scripts/cluster/full-benchmark.sbatch "$image_dir" "$run_dir/benchmark" "${benchmark_options[@]}")
+    scripts/cluster/full-benchmark.sbatch "$image_dir" "$run_dir/benchmark" ${benchmark_options[@]+"${benchmark_options[@]}"})
 printf 'Submitted Slurm job %s\nResults: %s/benchmark\nLog: %s/slurm-%s.log\n' "$job_id" "$run_dir" "$run_dir" "${job_id%%;*}"

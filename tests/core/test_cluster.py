@@ -3,6 +3,8 @@ import io
 import json
 import os
 from pathlib import Path
+import re
+import shutil
 import subprocess
 import sys
 import tarfile
@@ -105,6 +107,33 @@ else:
         assert result.returncode != 0 and 'Host Python 3.8 or newer is required' in result.stderr
         later_calls = [json.loads(line) for line in log.read_text().splitlines()]
         assert len(later_calls) == len(calls) + 1  # version check only; no prep or submission
+        # no optional flags: the empty option arrays must not trip `set -u` (an unbound variable before bash 4.4), and the
+        # run records HEAD, marked -dirty when segmeter/, containers/ or scripts/ have uncommitted changes
+        minimal = ['bash', str(ROOT / 'scripts/cluster/run-benchmark.sh'), '--image-tag', 'v0.15.0', '--work-dir', str(root / 'work')]
+        result = subprocess.run(minimal, env=env, check=True, capture_output=True, text=True)
+        assert 'Submitted Slurm job 4242' in result.stdout
+        job = [json.loads(line) for line in log.read_text().splitlines() if line.startswith('["sbatch"')][-1]
+        assert not any(a.startswith('--account') or a in ('--sizes', '--dataset-dir') for a in job), job
+        # the recorded source commit: a scratch git repository holding a copy of what the launcher snapshots (the
+        # launcher finds its repository from its own path), launched clean and then with an uncommitted edit
+        repo = root / 'repo'
+        for name in ('segmeter', 'containers', 'scripts'):
+            shutil.copytree(ROOT / name, repo / name, ignore=shutil.ignore_patterns('__pycache__'))
+        git = ['git', '-C', str(repo), '-c', 'user.name=test', '-c', 'user.email=test@example.org']
+        subprocess.run(['git', 'init', '-q', str(repo)], check=True)
+        subprocess.run([*git, 'add', '.'], check=True)
+        subprocess.run([*git, 'commit', '-q', '-m', 'snapshot'], check=True)
+        def recorded(work):
+            result = subprocess.run(['bash', str(repo / 'scripts/cluster/run-benchmark.sh'), '--image-tag', 'v0.15.0',
+                                     '--work-dir', str(root / work)], env=env, check=True, capture_output=True, text=True)
+            run_dir = re.search(r'^Results: (.*)/benchmark$', result.stdout, re.M).group(1)
+            return (Path(run_dir) / 'checkout/source-commit.txt').read_text().strip(), result.stderr
+        head = subprocess.run([*git, 'rev-parse', 'HEAD'], check=True, capture_output=True, text=True).stdout.strip()
+        commit, stderr = recorded('clean')
+        assert commit == head and 'dirty' not in stderr, (commit, stderr)
+        (repo / 'scripts' / 'note.txt').write_text('uncommitted\n') # untracked counts as dirty, like a modified file
+        commit, stderr = recorded('dirty')
+        assert commit == f'{head}-dirty' and 'cannot be published' in stderr, (commit, stderr)
 
 
 if __name__ == '__main__':

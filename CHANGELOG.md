@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 # [Unreleased]
+## Fixed
+- The cluster launcher copies the working tree into the frozen run directory but recorded a clean `HEAD` as the run's source commit, so an edited checkout could be archived as that commit; uncommitted changes under `segmeter/`, `containers/` or `scripts/` now mark the recorded commit `<commit>-dirty` with a warning, which `scripts/validate_publication.py` rejects. Without `--account`, `--partition`, `--mem`, `--time`, `--sizes` or a Zenodo dataset the launcher's empty option arrays were unbound variables under `set -u` on bash before 4.4 (RHEL 7 login nodes, macOS); the expansions use the `${array[@]+"${array[@]}"}` form and the launcher test runs a launch without optional flags. The README launcher example and image paragraph point to the published v0.15.0 images. No measured command, default or data changes ([#17](https://github.com/ylab-hi/segmeter/issues/17), [#81](https://github.com/ylab-hi/segmeter/pull/81))
 
 # [0.15.0]
 ## Changed

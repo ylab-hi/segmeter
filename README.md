@@ -331,7 +331,7 @@ optionally downloads and verifies the published Zenodo data, freezes the source 
 bash scripts/cluster/run-benchmark.sh \
   --module singularity/4.1 \
   --python-module python/3.11 \
-  --image-tag v0.14.1 \
+  --image-tag v0.15.0 \
   --work-dir /shared/project/segmeter-benchmarks \
   --dataset zenodo \
   --account YOUR_ACCOUNT --partition YOUR_PARTITION
@@ -359,9 +359,11 @@ Container pulls create the SIF files; `singularity exec` then runs them directly
 When an older release image has no embedded version manifest, results record installed tool binary SHA-256 fingerprints
 and package versions; they never reuse the current Dockerfile's pins as a claim about an old image. Release images up to
 v0.14.1 do not run on the cluster, though: their rust-tools image keeps gia and granges under `/root`, unreadable for the
-unprivileged Singularity user, and lacks the bedtools that the unreleased granges scoring pass needs ([#69](https://github.com/ylab-hi/segmeter/issues/69)). Until a later release is
-published, build the four images from this checkout as described below, convert them to SIF files, place them in
-`WORK_DIR/images/TAG/` (for example `TAG=v0.14.1-pr78`) and pass that `--image-tag`; existing SIF files are not pulled again.
+unprivileged Singularity user, and lacks the bedtools that the granges scoring pass needs since 0.15.0 ([#69](https://github.com/ylab-hi/segmeter/issues/69)). Use v0.15.0 or later.
+To benchmark unreleased changes, build the four images from the checkout as described below, convert them to SIF files, place
+them in `WORK_DIR/images/TAG/` (for example `TAG=v0.15.0-pr81`) and pass that `--image-tag`; existing SIF files are not pulled again.
+The launcher records the checkout's `HEAD` as the source of a run; uncommitted changes under `segmeter/`, `containers/` or
+`scripts/` mark it `-dirty`, which the publication validator rejects, so commit first.
 
 The following commands are optional lower-level preparation and submission steps if you prefer to manage images yourself.
 
