@@ -81,7 +81,7 @@ def test_comparison():
             return subprocess.run([sys.executable, str(script), str(base), str(head)], capture_output=True).returncode
         assert compare() == 0
         (head / 'benchmark.json').write_text('[{"name": "case", "value": 1.3}]')
-        assert compare() == 1
+        assert compare() == 0  # one sample per side has no range to separate: reported, never failed
         def report(folder, value, samples):
             (folder / 'benchmark.json').write_text(json.dumps([{
                 'name': 'case', 'value': value,
@@ -93,6 +93,20 @@ def test_comparison():
         assert compare() == 1  # consistent slowdown
         report(head, 1.2, [1.15, 1.2, 1.25])
         assert compare() == 0  # below threshold
+        (base / 'benchmark.json').write_text('[{"name": "case", "value": 1.0}]')
+        (head / 'benchmark.json').write_text('[{"name": "case", "value": 1.6}]')
+        assert compare() == 0  # one sample per side (the simulation wall): reported, never failed
+        def wall(folder, value, samples):
+            (folder / 'benchmark.json').write_text(json.dumps([{
+                'name': 'wall', 'value': value, 'unit': 'seconds',
+                'extra': json.dumps({'comparison_samples': samples})}]))
+        wall(base, 0.6, [0.6, 0.6, 0.7])
+        wall(head, 0.9, [0.8, 1.0, 0.9])
+        assert compare() == 0  # a sub-second wall: container start-up jitter, not a regression
+        wall(base, 10, [10, 10, 10.5])
+        wall(head, 15, [14, 15, 15.5])
+        assert compare() == 1  # five seconds slower
+        (base / 'benchmark.json').write_text('[{"name": "case", "value": 1}]')
         (head / 'benchmark.json').write_text('[{"name": "case", "value": 1}, {"name": "new", "value": 1}]')
         assert compare() == 0  # a tool added by the PR has no base measurement
         (head / 'benchmark.json').write_text('[{"name": "other", "value": 1}]')

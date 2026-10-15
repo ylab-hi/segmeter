@@ -292,8 +292,9 @@ distance zero. Empty complex bins (in small full-run datasets) must have no fals
 Query timings are divided by bedtools' timing of the same query case on the same runner. PRs run the exact base commit
 and the merge result sequentially using the same tool images; differing dataset hashes invalidate the comparison.
 Smoke uses three runs per query case and compares medians. A slowdown above 25% fails when the head and base
-sample ranges do not overlap; overlapping ranges are reported as noisy. Per-run query samples are normalized to
-the corresponding bedtools sample. Tool-image changes are evaluated in full cluster runs;
+sample ranges do not overlap; overlapping ranges are reported as noisy, as are rows with one sample per side (the
+simulation wall) and rows in seconds that slow down by less than a second, since a sub-second end-to-end wall jitters
+by a few tenths with container start-up. Per-run query samples are normalized to the corresponding bedtools sample. Tool-image changes are evaluated in full cluster runs;
 the PR comparison deliberately holds the tool environment constant.
 Both tiers also record absolute simulation time and end-to-end time per tool (including scoring and container startup)
 to detect regressions in segmeter outside the measured tool commands. The PR comparison checks these on the same runner too.

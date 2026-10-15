@@ -20,8 +20,14 @@ for name in sorted(before):
     ratio = after[name]['value'] / before[name]['value']
     def samples(record):
         return json.loads(record.get('extra', '{}')).get('comparison_samples', [record['value']])
-    regression = ratio > 1.25 and min(samples(after[name])) > max(samples(before[name]))
-    status = 'regression' if regression else ('noisy; ranges overlap' if ratio > 1.25 else 'pass')
+    # A regression needs a 25% slowdown with the sample ranges apart. One sample per side has no range, so the row is
+    # reported only. Rows in seconds (end-to-end and simulation walls) also need more than a second of slowdown: a
+    # sub-second wall jitters by a few tenths with container start-up, which is 25% of it.
+    separable = min(len(samples(after[name])), len(samples(before[name]))) > 1
+    material = after[name].get('unit') != 'seconds' or after[name]['value'] - before[name]['value'] > 1
+    regression = ratio > 1.25 and separable and material and min(samples(after[name])) > max(samples(before[name]))
+    status = 'regression' if regression else ('noisy; ranges overlap' if ratio > 1.25 and separable and material
+                                              else 'noisy; single sample or sub-second' if ratio > 1.25 else 'pass')
     print(f'| {name} | {ratio:.3f} | {status} |')
     failed |= regression
 sys.exit(1 if failed else 0)
