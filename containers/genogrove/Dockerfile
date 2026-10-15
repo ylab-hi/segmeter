@@ -16,7 +16,6 @@ RUN apt-get -y update && apt-get install -y \
     libhts-dev=1.19+ds-1.1build3 \
     python3 \
     python3-pip \
-    python3-venv \
     time
 
 # genogrove CLI, pinned to a release tag; the CLI target is built in-tree (cxxopts is fetched by CPM at configure time)
@@ -27,8 +26,10 @@ RUN git clone --branch ${GENOGROVE_VERSION} --depth 1 https://github.com/genogro
     cp /genogrove-src/build/bin/genogrove /usr/local/bin/genogrove && \
     rm -rf /genogrove-src
 
-# pygenogrove (manylinux wheel) and polars-bio (manylinux abi3 wheel), pinned
-RUN pip install --break-system-packages --no-cache-dir pygenogrove==0.9.0 polars-bio==0.36.2
+# pygenogrove (manylinux wheel) and polars-bio (manylinux abi3 wheel), pinned with the polars, DataFusion and pyarrow
+# versions it ran with, since polars-bio only constrains their ranges and polars is where its speed comes from
+RUN pip install --break-system-packages --no-cache-dir pygenogrove==0.9.0 polars-bio==0.36.2 \
+    polars==1.44.2 datafusion==53.0.0 pyarrow==24.0.0
 
 WORKDIR /
 # Build the checked-out source, including PR changes; release workflows check out the tag.

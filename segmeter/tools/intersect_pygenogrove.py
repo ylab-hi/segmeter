@@ -13,7 +13,7 @@ def main():
     parser.add_argument("-t", "--target", required=True, help="Target BED file with intervals to search in")
     parser.add_argument("-q", "--query", required=True, help="Query BED file with intervals to find overlaps with")
     parser.add_argument("-o", "--output", required=True, help="Output file: the target intervals hit, one line per (query, target) pair")
-    parser.add_argument("-k", "--order", type=int, default=64, help="order of the B+ tree (default: %(default)s)")
+    parser.add_argument("-k", "--order", type=int, required=True, help="order of the B+ tree (segmeter passes calls.GENOGROVE_ORDER)")
     options = parser.parse_args()
 
     grove = pg.BedGrove(options.order)

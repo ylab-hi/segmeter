@@ -13,7 +13,7 @@ import calls
 import utility
 
 TOOLS = ["tabix", "bedtools", "bedtools_sorted", "bedops", "bedmaps", "giggle", "granges", "gia",
-         "bedtk", "bedtk_sorted", "igd", "ailist", "ucsc", "awk", "intervaltree"]
+         "bedtk", "bedtk_sorted", "igd", "ailist", "ucsc", "awk", "intervaltree", "genogrove", "pygenogrove", "polars_bio"]
 
 
 def test_missing_rss_line():
@@ -108,6 +108,8 @@ def test_index_steps_counted():
                     made.append(tmp / "bench" / "b" / "giggle" / "L_index" / "cache.0.dat")
                 if call.startswith("igd create"): # igd create <in> <out> <label>: a directory with <label>.igd
                     made.append(Path(call.split()[3]) / "L.igd")
+                if call.startswith("genogrove idx"): # genogrove idx <ref> -o <index>.gg
+                    made.append(Path(call.split()[call.split().index("-o") + 1]))
                 for path in made:
                     path.parent.mkdir(parents=True, exist_ok=True)
                     path.write_bytes(b"x" * 2**20)
@@ -124,7 +126,7 @@ def test_index_steps_counted():
                         rt, mem, size = calls.index_call(options, refdirs, "L")
                     assert rt == 0.5 * len(steps), f"{tool}: {rt} s for {len(steps)} steps"
                     assert mem == max(memory[:len(steps)], default=0), f"{tool}: {mem} MB, steps {memory[:len(steps)]}"
-                    expected = {"tabix": 2.0, "giggle": 1.0, "igd": 1.0}.get(tool, 0) # 1 MB per index file
+                    expected = {"tabix": 2.0, "giggle": 1.0, "igd": 1.0, "genogrove": 1.0}.get(tool, 0) # 1 MB per index file
                     assert size == expected, f"{tool}: index size {size} MB, expected {expected}"
             finally:
                 calls.tool_call = original

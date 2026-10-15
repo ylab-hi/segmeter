@@ -163,7 +163,7 @@ the complex queries (see [Precision](#precision) for what that pass means for th
 | `intervaltree` | | `tools/intersect_intervaltree.py` | a Python script that builds one interval tree per chromosome (the `intervaltree` package) and queries it for every interval of the other file |
 | `genogrove` | `genogrove idx REF -o REF.gg -k 64` (index size: the `.gg` file) | `genogrove isec -q QUERY -i REF.gg` | the index is a grove (a B+ tree per chromosome) of order 64, the CLI default of 3 degenerates the tree; the query loads the whole index, so the measured time includes the load, and prints the reference of every hit. genogrove reads BED as half-open, so the result equals bedtools' |
 | `pygenogrove` | | `tools/intersect_pygenogrove.py` | a Python script that inserts the reference into a `pygenogrove.BedGrove` (order 64) and intersects every query, searched as the closed interval `[start, end-1]` with the strand wildcard |
-| `polars_bio` | | `tools/intersect_polars_bio.py` | a Python script that scans both files as frames tagged 0-based half-open (an untagged frame counts as 1-based closed, which also reports touching intervals) and runs `polars_bio.overlap(REF, QUERY, overlap_output="left")`, which prints a reference once per overlapping query. polars and DataFusion use every core by default; the cluster job allocates one |
+| `polars_bio` | | `tools/intersect_polars_bio.py` | a Python script that scans both files as frames tagged 0-based half-open (an untagged frame counts as 1-based closed, which also reports touching intervals) and runs `polars_bio.overlap(REF, QUERY, overlap_output="left")`, which prints a reference once per overlapping query. polars and DataFusion are pinned to one thread in the script (`POLARS_MAX_THREADS=1`, one DataFusion partition), like every other tool; polars-bio has no persistent index, so there is no indexed variant |
 
 Not benchmarked: `gia intersect --sorted`. In gia 0.2.23 it numbers the chromosomes of each file by their order of appearance, so when one
 file lacks a chromosome that the other has, every later chromosome is compared with the wrong one and overlaps are silently dropped
@@ -278,7 +278,7 @@ versions of the published benchmark (images up to v0.14.x, see [Published benchm
 | granges | rust-tools | 0.2.2, Rust 1.99.0 | 0.2.2, Rust 1.87.0 | `containers/rust-tools/Dockerfile`, cargo |
 | genogrove | genogrove | v0.26.1, built with `-DBUILD_CLI=ON` against the system htslib 1.19 | not benchmarked | `containers/genogrove/Dockerfile`, git tag |
 | pygenogrove | genogrove | 0.9.0 | not benchmarked | `containers/genogrove/Dockerfile`, pip |
-| polars-bio | genogrove | 0.36.2 | not benchmarked | `containers/genogrove/Dockerfile`, pip |
+| polars-bio | genogrove | 0.36.2 with polars 1.44.2, DataFusion 53.0.0, pyarrow 24.0.0 | not benchmarked | `containers/genogrove/Dockerfile`, pip |
 | Python (harness) | all | 3.10 (others), 3.12 (giggle and genogrove, Ubuntu 24.04), 3.10 (rust-tools, Ubuntu 22.04) | 3.10 (others), 3.8 (giggle, Ubuntu 20.04), 3.10 (rust-tools) | base images |
 
 Measured values depend on the versions, so compare results only between runs of the same image tag. The pins are checked against
