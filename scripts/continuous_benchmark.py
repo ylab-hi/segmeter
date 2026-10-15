@@ -17,10 +17,12 @@ TOOLS = {
     'others': ['bedtools', 'bedtools_sorted', 'tabix', 'bedops', 'bedmaps',
                'bedtk', 'bedtk_sorted', 'igd', 'ailist', 'ucsc', 'awk', 'intervaltree'],
     'giggle': ['giggle'], 'rust-tools': ['gia', 'granges'],
+    'genogrove': ['genogrove', 'pygenogrove', 'polars_bio'],
 }
 
 EXECUTABLES = {'bedtools_sorted': 'bedtools', 'bedmaps': 'bedmap',
                'bedtk_sorted': 'bedtk', 'ucsc': 'bedIntersect'}
+PYTHON_MODULES = ('intervaltree', 'pygenogrove', 'polars_bio')  # tools that are Python packages, versioned by importlib
 
 
 def tool_versions(runtime, container):
@@ -33,8 +35,8 @@ if p.exists():
 else:
     result = {}
     for tool, executable in json.loads(sys.argv[2]).items():
-        if tool == 'intervaltree':
-            result[tool] = {'version': importlib.metadata.version('intervaltree')}
+        if tool in json.loads(sys.argv[3]):
+            result[tool] = {'version': importlib.metadata.version(tool.replace('_', '-'))}
         else:
             binary = shutil.which(executable)
             if binary is None:
@@ -44,7 +46,7 @@ else:
 '''
     executables = {tool: EXECUTABLES.get(tool, tool) for tool in TOOLS[container]}
     return json.loads(runtime.capture(container, 'python3', '-c', script, container,
-                                      json.dumps(executables)))[container]
+                                      json.dumps(executables), json.dumps(PYTHON_MODULES)))[container]
 
 
 def run(*args):
@@ -167,7 +169,7 @@ def main():
     parser.add_argument('--build', action='store_true')
     parser.add_argument('--sizes', help='Override sizes for local validation')
     parser.add_argument('--runtime', choices=['docker', 'singularity', 'apptainer'], default='docker')
-    parser.add_argument('--sif-dir', type=Path, help='Directory containing others.sif, giggle.sif and rust-tools.sif')
+    parser.add_argument('--sif-dir', type=Path, help='Directory containing others.sif, giggle.sif, rust-tools.sif and genogrove.sif')
     parser.add_argument('--dataset-dir', type=Path, help='Use existing DATADIR/sim/sim_001/BED data instead of simulating')
     args = parser.parse_args()
     if sys.version_info < (3, 8):
@@ -201,14 +203,18 @@ def main():
                                                        'SLURM_CPUS_PER_TASK', 'SLURM_JOB_PARTITION') if k in os.environ}}
     if Path('/proc/cpuinfo').exists():
         (output / 'cpuinfo.txt').write_bytes(Path('/proc/cpuinfo').read_bytes())
-    for container in TOOLS:
+    # A PR that adds a container benchmarks its base commit with this script too; the base has neither the Dockerfile
+    # nor the tool choices, so only the containers of the source checkout run and the comparison reports the new cases.
+    tools = {container: names for container, names in TOOLS.items()
+             if (source / 'containers' / container / 'Dockerfile').is_file()}
+    for container in tools:
         image = f'{args.images}:{container}'
         if args.build:
             run('docker', 'build', '--platform', 'linux/amd64', '-t', image, '-f', source / 'containers' / container / 'Dockerfile', source)
         metadata['images'][container] = runtime.identity(container)
         metadata.setdefault('tools', {}).update(tool_versions(runtime, container))
         packages = {'others': ['bedtools', 'tabix', 'mawk'],
-                    'giggle': ['tabix', 'libhts-dev'], 'rust-tools': ['bedtools']}[container]
+                    'giggle': ['tabix', 'libhts-dev'], 'rust-tools': ['bedtools'], 'genogrove': ['libhts-dev']}[container]
         # Published images predate these package lists (giggle-v0.14.1 bundles htslib), so record what dpkg reports,
         # including its "no packages found" lines, instead of failing the run.
         metadata.setdefault('packages', {})[container] = runtime.capture(
@@ -241,14 +247,14 @@ def main():
               for p in sorted((output / 'sim').rglob('*')) if p.is_file()}
     (output / 'dataset.json').write_text(json.dumps(hashes, indent=2))
     for repeat in range(repeats):
-        for container, tools in TOOLS.items():
-            for tool in tools:
+        for container, names in tools.items():
+            for tool in names:
                 started = time.monotonic()
                 execute(container, 'bench', '-r', '-o', '/data', '-n', sizes,
                         '-s', '100' if args.tier == 'smoke' else '10-100',
                         '-b', f'run-{repeat}', '-t', tool)
                 wall_samples.setdefault((tool, 'all', 'end-to-end', 'wall'), []).append(time.monotonic() - started)
-    samples = read_results(output, sum(TOOLS.values(), []), sizes, repeats, subsets)
+    samples = read_results(output, sum(tools.values(), []), sizes, repeats, subsets)
     results = export(samples, args.tier == 'smoke') + export(wall_samples, False)
     (output / 'benchmark.json').write_text(json.dumps(results, indent=2))
     if args.tier == 'full':

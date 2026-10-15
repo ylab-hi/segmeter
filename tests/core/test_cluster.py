@@ -91,7 +91,7 @@ else:
             result = subprocess.run(command, env=env, check=True, capture_output=True, text=True)
             assert 'Submitted Slurm job 4242' in result.stdout
         calls = [json.loads(line) for line in log.read_text().splitlines()]
-        assert len([c for c in calls if c[0] == 'singularity']) == 3  # cached on second launch
+        assert len([c for c in calls if c[0] == 'singularity']) == 4  # one pull per container, cached on second launch
         jobs = [c for c in calls if c[0] == 'sbatch']
         assert len(jobs) == 2
         for job in jobs:

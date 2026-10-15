@@ -41,8 +41,11 @@ TOOLS = [
     ("igd", "igd", True, "query"),
     ("ailist", "ailist", False, "query"),
     ("ucsc", "bedIntersect+bedtools", False, "query"),
+    ("genogrove", "genogrove", True, "query"),
+    ("pygenogrove", "py:pygenogrove", False, "query"),
+    ("polars_bio", "py:polars_bio", False, "query"),
 ]
-READS_INDEX = {"tabix", "bedtools_sorted", "bedtk_sorted", "bedops", "bedmaps", "igd"} # query reads refdirs["idx"]
+READS_INDEX = {"tabix", "bedtools_sorted", "bedtk_sorted", "bedops", "bedmaps", "igd", "genogrove"} # query reads refdirs["idx"]
 CHROMS = ["chr1", "chr2", "chr10", "chrX"]
 LABEL, NUM = "L", 5000
 
@@ -73,12 +76,14 @@ def write_bed(path, rows):
 def make_data(datadir):
     """Reference and queries laid out like a simulation, so BenchTool resolves the paths."""
     ref, queries = list(random_bed(NUM, "intvl", 7)), list(random_bed(NUM // 10, "query", 11))
+    # queries on a chromosome the reference lacks (real data: peaks on contigs), which every tool must report nothing for
+    queries += [("chrQ", 1000 * i, 1000 * i + 500, f"only_{i}") for i in range(1, 4)]
     sim = datadir / "sim" / "sim_001" / "BED"
     (sim / "ref").mkdir(parents=True)
     write_bed(sim / "ref" / f"{LABEL}.bed", ref)
     utility.sort_BED(sim / "ref" / f"{LABEL}.bed", sim / "ref" / f"{LABEL}_sorted.bed")
     # not in natural chromosome order, like the simulator's random order: granges needs it reordered (#36)
-    (sim / f"{LABEL}_chromlens.txt").write_text("".join(f"{c}\t2000000\n" for c in reversed(CHROMS)))
+    (sim / f"{LABEL}_chromlens.txt").write_text("".join(f"{c}\t2000000\n" for c in reversed(CHROMS + ["chrQ"])))
     # ponytail: O(ref * query) oracle, fine for 5000 x 500
     hits = {q: [r for r in ref if r[0] == q[0] and q[1] < r[2] and r[1] < q[2]] for q in queries}
     for qdir in {row[3] for row in TOOLS}:

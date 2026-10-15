@@ -51,6 +51,15 @@ jobs:
           load: true
           cache-from: type=gha,scope=benchmark-rust
           cache-to: type=gha,scope=benchmark-rust,mode=max
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: containers/genogrove/Dockerfile
+          platforms: linux/amd64
+          tags: segmeter-bench:genogrove
+          load: true
+          cache-from: type=gha,scope=benchmark-genogrove
+          cache-to: type=gha,scope=benchmark-genogrove,mode=max
       - name: Benchmark base
         if: github.event_name == 'pull_request'
         run: python3 scripts/continuous_benchmark.py --source base --output results-base
@@ -58,6 +67,7 @@ jobs:
         run: python3 scripts/continuous_benchmark.py --output results-head
       - name: Compare on this runner
         if: github.event_name == 'pull_request'
+        shell: bash  # -o pipefail: the comparison's exit status must survive the tee
         run: python3 scripts/compare_benchmarks.py results-base results-head | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Collect benchmark reports
         if: always()

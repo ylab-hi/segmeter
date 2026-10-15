@@ -9,6 +9,8 @@ import os
 # class
 import utility
 
+GENOGROVE_ORDER = 64 # order of the grove B+ tree; the CLI default of 3 is a degenerate tree
+
 def tool_call(call, logfile):
     logfile.write(f"Executing: {call}\n")
     rss_label = utility.get_time_rss_label()
@@ -109,6 +111,11 @@ def index_call(options, refdirs, label):
         igd_size = index_size(idxoutdir)
         igd_size_mb = round(igd_size/(1024*1024), 5)
         idx_size_mb += igd_size_mb
+
+    elif options.tool == "genogrove":
+        gg = refdirs['idx'] / f'{label}.gg'
+        step(f"genogrove idx {refdirs['ref'] / f'{label}.bed'} -o {gg} -k {GENOGROVE_ORDER}")
+        idx_size_mb += round(index_size(gg)/(1024*1024), 5)
 
     return runtime, mem, idx_size_mb
 
@@ -245,6 +252,19 @@ def query_call(options, label, reffiles, queryfile):
         # determine the path to the intervaltree script
         script_path = Path(__file__).parent / "tools" / "intersect_intervaltree.py"
         step(f"python3 {script_path} -q {queryfile} -t {reffiles['ref-unsrt']} -r target -o {tmpfile.name}")
+
+    elif options.tool == "genogrove":
+        # loads the .gg index of the index step (the measured time includes the load) and prints the reference of
+        # every hit (chrom, start, end)
+        step(f"genogrove isec -q {queryfile} -i {reffiles['idx']} > {tmpfile.name}")
+
+    elif options.tool == "pygenogrove":
+        script_path = Path(__file__).parent / "tools" / "intersect_pygenogrove.py"
+        step(f"python3 {script_path} -q {queryfile} -t {reffiles['ref-unsrt']} -k {GENOGROVE_ORDER} -o {tmpfile.name}")
+
+    elif options.tool == "polars_bio":
+        script_path = Path(__file__).parent / "tools" / "intersect_polars_bio.py"
+        step(f"python3 {script_path} -q {queryfile} -t {reffiles['ref-unsrt']} -o {tmpfile.name}")
 
     elif options.tool == "igd":
         tmpfile2 = scratch / "tool_output.txt"

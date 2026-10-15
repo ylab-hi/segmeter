@@ -58,7 +58,7 @@ mkdir -p "$image_dir" "$work_dir/results"
 # A lock prevents simultaneous launchers from pulling/extracting into the same cache.
 exec 9>"$work_dir/.prepare.lock"
 flock -n 9 || { echo "Another launcher is preparing $work_dir" >&2; exit 1; }
-for container in others giggle rust-tools; do
+for container in others giggle rust-tools genogrove; do
     if [[ ! -f $image_dir/$container.sif ]]; then
         "$SEGMETER_RUNTIME" pull --force "$image_dir/$container.sif.part" "docker://yanglabinfo/segmeter:$container-$image_tag"
         mv "$image_dir/$container.sif.part" "$image_dir/$container.sif"

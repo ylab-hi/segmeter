@@ -34,7 +34,7 @@ def parse_arguments():
     parser.add_argument("-c", "--simname", type=str, help="name of the simulation, used for the output folder. Only used in simulation mode", default="sim_001")
     parser.add_argument("-t", "--tool", type=str, help="tool to benchmark",
         choices=["tabix", "bedtools", "bedtools_sorted", "bedops", "bedmaps", "giggle", "granges", "gia", "bedtk", "bedtk_sorted", "igd", "ailist",
-            "ucsc", "awk", "intervaltree"])
+            "ucsc", "awk", "intervaltree", "genogrove", "pygenogrove", "polars_bio"])
     parser.add_argument("-g", "--gapsize", type=str, help="random size of the gaps (min and max) between the intervals", default="100-5000")
     parser.add_argument("-i", "--intvlsize", type=str, help="random size (min and max) of the intervals", default="100-10000")
     parser.add_argument("--max_span", type=int, help="maximum number of intervals covered by a complex query (a multiple of 10, at least 10). Not limited by default")

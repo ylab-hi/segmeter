@@ -74,6 +74,8 @@ class BenchTool:
             reffiles["idx"] = self.refdirs["idx"] / f"{label}.bed.gz"
         elif self.options.tool in ["bedtools_sorted", "bedtk_sorted", "bedops", "bedmaps"]:
             reffiles["idx"] = self.refdirs["idx"] / f"{label}.bed"
+        elif self.options.tool == "genogrove":
+            reffiles["idx"] = self.refdirs["idx"] / f"{label}.gg"
 
         # add genome length
         if self.options.simdata:

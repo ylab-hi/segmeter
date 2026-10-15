@@ -134,7 +134,7 @@ segmeter bench -o DATADIR -t TOOL [-h] [-r] [-n INTVLNUMS] [-s SUBSET] [-b BENCH
 | -s, --subset | subset (in percentage) of the intervals to use for benchmarking. Format should be either XX-YY or XX,YY-ZZ. If this is left empty, all subsets/deciles are used |
 | -b, --benchname | name of the benchmark, used for the output folder. This allows to perform multiple benchmarks |
 | -c, --simname | name of the simulation data that is being used. Note that this should be the same as the name of the simulation data that was used for the simulation |
-| -t, --tool | tool to benchmark. Currently, the following tools are supported: `tabix`, `bedtools`, `bedtools_sorted`, `bedops`, `bedmaps`, `giggle`, `granges`, `gia`, `bedtk`, `bedtk_sorted`, `igd`, `ailist`, `ucsc`, `awk`, `intervaltree` |
+| -t, --tool | tool to benchmark. Currently, the following tools are supported: `tabix`, `bedtools`, `bedtools_sorted`, `bedops`, `bedmaps`, `giggle`, `granges`, `gia`, `bedtk`, `bedtk_sorted`, `igd`, `ailist`, `ucsc`, `awk`, `intervaltree`, `genogrove`, `pygenogrove`, `polars_bio` |
 
 #### Benchmarked tools
 
@@ -161,6 +161,9 @@ the complex queries (see [Precision](#precision) for what that pass means for th
 | `ucsc` | | `bedIntersect -aHitAny REF QUERY OUT` | `-aHitAny` reports each reference once; the duplicates are restored with the unmeasured `bedtools intersect` pass, as for `bedtk`. Without `-aHitAny` bedIntersect prints one line per pair, but with the coordinates of the intersection, not of the reference, and a BED3 reference cannot be mapped back ([#69](https://github.com/ylab-hi/segmeter/issues/69)) |
 | `awk` | | `tools/intersect_awk.py` | an awk script that hashes the intervals by chromosome, then scans that chromosome's intervals linearly, printing a reference once per query that hits it |
 | `intervaltree` | | `tools/intersect_intervaltree.py` | a Python script that builds one interval tree per chromosome (the `intervaltree` package) and queries it for every interval of the other file |
+| `genogrove` | `genogrove idx REF -o REF.gg -k 64` (index size: the `.gg` file) | `genogrove isec -q QUERY -i REF.gg` | the index is a grove (a B+ tree per chromosome) of order 64, the CLI default of 3 degenerates the tree; the query loads the whole index, so the measured time includes the load, and prints the reference of every hit. genogrove reads BED as half-open, so the result equals bedtools' |
+| `pygenogrove` | | `tools/intersect_pygenogrove.py` | a Python script that inserts the reference into a `pygenogrove.BedGrove` (order 64) and intersects every query, searched as the closed interval `[start, end-1]` with the strand wildcard |
+| `polars_bio` | | `tools/intersect_polars_bio.py` | a Python script that scans both files as frames tagged 0-based half-open (an untagged frame counts as 1-based closed, which also reports touching intervals) and runs `polars_bio.overlap(REF, QUERY, overlap_output="left")`, which prints a reference once per overlapping query. polars and DataFusion are pinned to one thread in the script (`POLARS_MAX_THREADS=1`, one DataFusion partition), like every other tool; polars-bio has no persistent index, so there is no indexed variant |
 
 Not benchmarked: `gia intersect --sorted`. In gia 0.2.23 it numbers the chromosomes of each file by their order of appearance, so when one
 file lacks a chromosome that the other has, every later chromosome is compared with the wrong one and overlaps are silently dropped
@@ -236,13 +239,14 @@ The file contains the time and memory usage of the tool for each query type and 
 
 ## Docker
 
-In addition, we provide a ready-to-use Docker container that has segmeter preconfigured. It can be found at [dockerhub](https://hub.docker.com/r/yanglabinfo/segmeter). We provide three different containers that can be used for the different tools.
+In addition, we provide a ready-to-use Docker container that has segmeter preconfigured. It can be found at [dockerhub](https://hub.docker.com/r/yanglabinfo/segmeter). We provide four different containers that can be used for the different tools.
 
 | Container      | Tools      | Container tag |
 | ------------- | ------------- | ------------- |
 | giggle | giggle | segmeter:giggle-latest |
 | others | ailist, bedops, bedtools, bedtk, igd, tabix, ucsc, awk, intervaltree | segmeter:others-latest |
 | rust-tools | gia, granges | segmeter:rust-tools-latest |
+| genogrove | genogrove, pygenogrove, polars_bio (Ubuntu 24.04: genogrove needs GCC 13, polars-bio Python 3.11+) | segmeter:genogrove-latest |
 
 The `latest` tags follow the most recent release; for reproducible runs use a version tag instead, e.g. `others-v0.13.2` (see [Published benchmark](#published-benchmark)).
 The images are built for `linux/amd64` only (the arm64 images up to v0.14.0 ship an x86_64 BEDOPS). On Apple Silicon run them with
@@ -272,21 +276,25 @@ versions of the published benchmark (images up to v0.14.x, see [Published benchm
 | GIGGLE | giggle | 0.6.3, upstream commit `215bf20` (2026-03), Ubuntu 24.04, system htslib 1.19 | 0.6.3, fork `riasc/giggle` at `1b7cb90`, Ubuntu 20.04 | `containers/giggle/Dockerfile`, git commit |
 | gia | rust-tools | 0.2.23, Rust 1.99.0 | 0.2.23, Rust 1.87.0 | `containers/rust-tools/Dockerfile`, cargo |
 | granges | rust-tools | 0.2.2, Rust 1.99.0 | 0.2.2, Rust 1.87.0 | `containers/rust-tools/Dockerfile`, cargo |
-| Python (harness) | all | 3.10 (others), 3.12 (giggle, Ubuntu 24.04), 3.10 (rust-tools, Ubuntu 22.04) | 3.10 (others), 3.8 (giggle, Ubuntu 20.04), 3.10 (rust-tools) | base images |
+| genogrove | genogrove | v0.26.1, built with `-DBUILD_CLI=ON` against the system htslib 1.19 | not benchmarked | `containers/genogrove/Dockerfile`, git tag |
+| pygenogrove | genogrove | 0.9.0 | not benchmarked | `containers/genogrove/Dockerfile`, pip |
+| polars-bio | genogrove | 0.36.2 with polars 1.44.2, DataFusion 53.0.0, pyarrow 24.0.0 | not benchmarked | `containers/genogrove/Dockerfile`, pip |
+| Python (harness) | all | 3.10 (others), 3.12 (giggle and genogrove, Ubuntu 24.04), 3.10 (rust-tools, Ubuntu 22.04) | 3.10 (others), 3.8 (giggle, Ubuntu 20.04), 3.10 (rust-tools) | base images |
 
 Measured values depend on the versions, so compare results only between runs of the same image tag. The pins are checked against
 upstream before a release ([#27](https://github.com/ylab-hi/segmeter/issues/27)).
 
 ## Continuous benchmarking
 
-The smoke workflow runs on pull requests and pushes to `main` in the three tool containers, with 10K intervals, seed 1729,
+The smoke workflow runs on pull requests and pushes to `main` in the four tool containers, with 10K intervals, seed 1729,
 `--max_span 100`, and subset/bin 100. It checks every tool's basic and complex precision and recall, and requires complex
 distance zero. Empty complex bins (in small full-run datasets) must have no false positives or missed hits.
 Query timings are divided by bedtools' timing of the same query case on the same runner. PRs run the exact base commit
 and the merge result sequentially using the same tool images; differing dataset hashes invalidate the comparison.
 Smoke uses three runs per query case and compares medians. A slowdown above 25% fails when the head and base
-sample ranges do not overlap; overlapping ranges are reported as noisy. Per-run query samples are normalized to
-the corresponding bedtools sample. Tool-image changes are evaluated in full cluster runs;
+sample ranges do not overlap; overlapping ranges are reported as noisy, as are rows with one sample per side (the
+simulation wall) and rows in seconds that slow down by less than a second, since a sub-second end-to-end wall jitters
+by a few tenths with container start-up. Per-run query samples are normalized to the corresponding bedtools sample. Tool-image changes are evaluated in full cluster runs;
 the PR comparison deliberately holds the tool environment constant.
 Both tiers also record absolute simulation time and end-to-end time per tool (including scoring and container startup)
 to detect regressions in segmeter outside the measured tool commands. The PR comparison checks these on the same runner too.
@@ -316,7 +324,7 @@ read back into results. Timing comparisons across tool versions or different CPU
 
 ### Full benchmark on a Slurm cluster
 
-Run the launcher on your cluster's login/transfer node. It loads the module, pulls the three SIF containers,
+Run the launcher on your cluster's login/transfer node. It loads the module, pulls the four SIF containers,
 optionally downloads and verifies the published Zenodo data, freezes the source and submits the benchmark to Slurm:
 
 ```sh
@@ -352,7 +360,7 @@ When an older release image has no embedded version manifest, results record ins
 and package versions; they never reuse the current Dockerfile's pins as a claim about an old image. Release images up to
 v0.14.1 do not run on the cluster, though: their rust-tools image keeps gia and granges under `/root`, unreadable for the
 unprivileged Singularity user, and lacks the bedtools that the unreleased granges scoring pass needs ([#69](https://github.com/ylab-hi/segmeter/issues/69)). Until a later release is
-published, build the three images from this checkout as described below, convert them to SIF files, place them in
+published, build the four images from this checkout as described below, convert them to SIF files, place them in
 `WORK_DIR/images/TAG/` (for example `TAG=v0.14.1-pr78`) and pass that `--image-tag`; existing SIF files are not pulled again.
 
 The following commands are optional lower-level preparation and submission steps if you prefer to manage images yourself.
@@ -377,14 +385,14 @@ The new image directory's parent must exist. New images embed `/opt/segmeter-too
 To benchmark the latest Dockerfile changes before release, build on a Docker machine and transfer Docker archives to the cluster:
 
 ```sh
-# On the Docker machine, from this checkout; repeat for giggle and rust-tools.
+# On the Docker machine, from this checkout; repeat for giggle, rust-tools and genogrove.
 docker build --platform linux/amd64 -t segmeter-bench:others -f containers/others/Dockerfile .
 docker save --output others.tar segmeter-bench:others
 # Transfer others.tar to the cluster, then on the login/transfer node:
 singularity build /shared/project/segmeter-images/others.sif docker-archive://others.tar
 ```
 
-Repeat the conversion for `giggle.sif` and `rust-tools.sif`. All three SIF files must be in the same image directory.
+Repeat the conversion for `giggle.sif`, `rust-tools.sif` and `genogrove.sif`. All four SIF files must be in the same image directory.
 Pulling/conversion happens before submission; the compute job needs no internet access or GitHub credentials.
 For Apptainer, use `SEGMETER_RUNTIME=apptainer` for both the pull script and `sbatch` invocation.
 

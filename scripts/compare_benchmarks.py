@@ -8,18 +8,26 @@ if json.loads((base / 'dataset.json').read_text()) != json.loads((head / 'datase
     raise SystemExit('Datasets differ; performance comparison is invalid')
 before = {r['name']: r for r in json.loads((base / 'benchmark.json').read_text())}
 after = {r['name']: r for r in json.loads((head / 'benchmark.json').read_text())}
-if before.keys() != after.keys():
-    raise SystemExit('Benchmark cases differ')
+if before.keys() - after.keys():
+    raise SystemExit(f'Benchmark cases missing in head: {sorted(before.keys() - after.keys())}')
 failed = False
 print('| Benchmark | Head / base | Result |\n| --- | ---: | --- |')
+for name in sorted(after.keys() - before.keys()):  # a tool added by the PR has no base measurement
+    print(f'| {name} | | new; no baseline |')
 for name in sorted(before):
     if before[name]['value'] <= 0:
         raise SystemExit(f'Nonpositive baseline: {name}')
     ratio = after[name]['value'] / before[name]['value']
     def samples(record):
         return json.loads(record.get('extra', '{}')).get('comparison_samples', [record['value']])
-    regression = ratio > 1.25 and min(samples(after[name])) > max(samples(before[name]))
-    status = 'regression' if regression else ('noisy; ranges overlap' if ratio > 1.25 else 'pass')
+    # A regression needs a 25% slowdown with the sample ranges apart. One sample per side has no range, so the row is
+    # reported only. Rows in seconds (end-to-end and simulation walls) also need more than a second of slowdown: a
+    # sub-second wall jitters by a few tenths with container start-up, which is 25% of it.
+    separable = min(len(samples(after[name])), len(samples(before[name]))) > 1
+    material = after[name].get('unit') != 'seconds' or after[name]['value'] - before[name]['value'] > 1
+    regression = ratio > 1.25 and separable and material and min(samples(after[name])) > max(samples(before[name]))
+    status = 'regression' if regression else ('noisy; ranges overlap' if ratio > 1.25 and separable and material
+                                              else 'noisy; single sample or sub-second' if ratio > 1.25 else 'pass')
     print(f'| {name} | {ratio:.3f} | {status} |')
     failed |= regression
 sys.exit(1 if failed else 0)
